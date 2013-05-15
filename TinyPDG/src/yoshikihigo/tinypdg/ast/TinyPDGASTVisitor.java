@@ -3,10 +3,6 @@ package yoshikihigo.tinypdg.ast;
 import java.util.List;
 import java.util.Stack;
 
-import jp.ac.osaka_u.ist.sdl.statementcomplexity.unit.ExpressionInfo;
-import jp.ac.osaka_u.ist.sdl.statementcomplexity.unit.MethodInfo;
-import jp.ac.osaka_u.ist.sdl.statementcomplexity.unit.StatementInfo;
-
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ArrayAccess;
 import org.eclipse.jdt.core.dom.ArrayCreation;
@@ -57,27 +53,28 @@ import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import org.eclipse.jdt.internal.core.dom.NaiveASTFlattener;
 
+import yoshikihigo.tinypdg.pe.BlockInfo;
+import yoshikihigo.tinypdg.pe.ExpressionInfo;
+import yoshikihigo.tinypdg.pe.MethodInfo;
+import yoshikihigo.tinypdg.pe.ProgramElementInfo;
+import yoshikihigo.tinypdg.pe.StatementInfo;
+import yoshikihigo.tinypdg.pe.TypeInfo;
+
 public class TinyPDGASTVisitor extends NaiveASTFlattener {
 
 	final private String path;
 	final private CompilationUnit root;
 	final private List<MethodInfo> methods;
-	final private Stack<Integer> expressionComplexityStack;
-	final private Stack<Integer> expressionDepthStack;
-	final private Stack<String> expressionTextStack;
-	final private Stack<MethodInfo> methodStack;
+	final private Stack<ProgramElementInfo> stack;
 
 	private boolean inMethod;
 
-	public TinyPDGASTVisitor(final String path,
-			final CompilationUnit root, final List<MethodInfo> methods) {
+	public TinyPDGASTVisitor(final String path, final CompilationUnit root,
+			final List<MethodInfo> methods) {
 		this.path = path;
 		this.root = root;
 		this.methods = methods;
-		this.expressionComplexityStack = new Stack<Integer>();
-		this.expressionDepthStack = new Stack<Integer>();
-		this.expressionTextStack = new Stack<String>();
-		this.methodStack = new Stack<MethodInfo>();
+		this.stack = new Stack<ProgramElementInfo>();
 		this.inMethod = false;
 	}
 
@@ -90,17 +87,14 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 		final int startLine = this.getStartLineNumber(node);
 		final int endLine = this.getEndLineNumber(node);
 
-		this.methodStack.push(new MethodInfo(this.path, name, startLine,
-				endLine));
+		this.stack.push(new MethodInfo(this.path, name, startLine, endLine));
 
 		if (null != node.getBody()) {
 			node.getBody().accept(this);
 		}
 
-		final MethodInfo method = this.methodStack.pop();
-		if (0 < method.getStatements().size()) {
-			this.methods.add(method);
-		}
+		final ProgramElementInfo method = this.stack.pop();
+		this.methods.add((MethodInfo) method);
 
 		this.inMethod = false;
 
@@ -150,27 +144,19 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 
 			node.getExpression().accept(this);
 
-			final int expressionComplexity = this.expressionComplexityStack
-					.pop();
-			final int expressionDepth = this.expressionDepthStack.pop();
-			final String expressionText = this.expressionTextStack.pop();
+			final ProgramElementInfo expression = this.stack.pop();
 
 			node.getMessage().accept(this);
-			final int messageComplexity = this.expressionComplexityStack.pop();
-			final int messageDepth = this.expressionDepthStack.pop();
-			final String messageText = this.expressionTextStack.pop();
 
-			final int complexity = expressionComplexity + messageComplexity;
-			final int depth = expressionDepth > messageDepth ? expressionDepth + 1
-					: messageDepth + 1;
+			final ProgramElementInfo message = this.stack.pop();
+
+			final ProgramElementInfo ownerBlock = this.stack.peek();
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 
-			final int methodID = this.inMethod ? this.methodStack.peek().id : 0;
-			final StatementInfo statement = new StatementInfo(methodID,
-					StatementInfo.Type.Assert, complexity, depth, startLine,
-					endLine);
-			this.methodStack.peek().add(statement);
+			final StatementInfo statement = new StatementInfo(ownerBlock,
+					StatementInfo.CATEGORY.Assert, startLine, endLine);
+			((BlockInfo) ownerBlock).addStatement(statement);
 		}
 
 		return false;
@@ -180,39 +166,22 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	public boolean visit(final ArrayAccess node) {
 
 		if (this.inMethod) {
+
 			node.getArray().accept(this);
 
-			final int arrayComplexity = this.expressionComplexityStack.pop();
-			final int arrayDepth = this.expressionDepthStack.pop();
-			final String arrayText = this.expressionTextStack.pop();
+			final ProgramElementInfo array = this.stack.pop();
 
 			node.getIndex().accept(this);
-			final int indexComplexity = this.expressionComplexityStack.pop();
-			final int indexDepth = this.expressionDepthStack.pop();
-			final String indexText = this.expressionTextStack.pop();
 
-			final int complexity = arrayComplexity + indexComplexity + 1;
-			final int depth = arrayDepth > indexDepth ? arrayDepth + 1
-					: indexDepth + 1;
-			final int methodID = this.methodStack.peek().id;
+			final ProgramElementInfo index = this.stack.pop();
 
-			this.expressionComplexityStack.push(complexity);
-			this.expressionDepthStack.push(depth);
-			final StringBuilder text = new StringBuilder();
-			text.append(arrayText);
-			text.append("[");
-			text.append(indexText);
-			text.append("]");
-			this.expressionTextStack.push(text.toString());
-
-			if (1 < complexity) {
-				final int startLine = this.getStartLineNumber(node);
-				final int endLine = this.getEndLineNumber(node);
-				final ExpressionInfo expression = new ExpressionInfo(0,
-						methodID, node, text.toString(), complexity, depth,
-						startLine, endLine);
-				this.methodStack.peek().addExpression(expression);
-			}
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final ExpressionInfo expression = new ExpressionInfo(
+					ExpressionInfo.CATEGORY.ArrayAccess, startLine, endLine);
+			expression.addExpression((ExpressionInfo) array);
+			expression.addExpression((ExpressionInfo) index);
+			this.stack.push(expression);
 		}
 
 		return false;
@@ -222,15 +191,16 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	public boolean visit(final ArrayType node) {
 
 		if (this.inMethod) {
-			this.expressionComplexityStack.push(1);
-			this.expressionDepthStack.push(1);
-
 			final StringBuffer text = new StringBuffer();
 			text.append(node.getElementType().toString());
 			for (int i = 0; i < node.getDimensions(); i++) {
 				text.append("[]");
 			}
-			this.expressionTextStack.push(text.toString());
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final TypeInfo type = new TypeInfo(text.toString(), startLine,
+					endLine);
+			this.stack.push(type);
 		}
 
 		return false;
@@ -240,9 +210,11 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	public boolean visit(final NullLiteral node) {
 
 		if (this.inMethod) {
-			this.expressionComplexityStack.push(1);
-			this.expressionDepthStack.push(1);
-			this.expressionTextStack.push("null");
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final ExpressionInfo expression = new ExpressionInfo(
+					ExpressionInfo.CATEGORY.Null, startLine, endLine);
+			this.stack.push(expression);
 		}
 
 		return false;
@@ -252,9 +224,12 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	public boolean visit(final NumberLiteral node) {
 
 		if (this.inMethod) {
-			this.expressionComplexityStack.push(1);
-			this.expressionDepthStack.push(1);
-			this.expressionTextStack.push(node.getToken());
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final ExpressionInfo expression = new ExpressionInfo(
+					ExpressionInfo.CATEGORY.Number, startLine, endLine);
+			expression.setText(node.getToken());
+			this.stack.push(expression);
 		}
 
 		return false;
@@ -265,28 +240,13 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 
 		if (this.inMethod) {
 			node.getOperand().accept(this);
-
-			final int operandComplexity = this.expressionComplexityStack.pop();
-			final int operandDepth = this.expressionDepthStack.pop();
-			final String operandText = this.expressionTextStack.pop();
-
-			final int complexity = operandComplexity + 1;
-			final int depth = operandDepth + 1;
-			final int methodID = this.methodStack.peek().id;
-			final String text = operandText + node.getOperator().toString();
-
-			this.expressionComplexityStack.push(complexity);
-			this.expressionDepthStack.push(depth);
-			this.expressionTextStack.push(text);
-
-			if (1 < complexity) {
-				final int startLine = this.getStartLineNumber(node);
-				final int endLine = this.getEndLineNumber(node);
-				final ExpressionInfo expression = new ExpressionInfo(0,
-						methodID, node, text, complexity, depth, startLine,
-						endLine);
-				this.methodStack.peek().addExpression(expression);
-			}
+			final ProgramElementInfo operand = this.stack.pop();
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final ExpressionInfo expression = new ExpressionInfo(
+					ExpressionInfo.CATEGORY.Postfix, startLine, endLine);
+			expression.setText(node.getOperator().toString());
+			this.stack.push(expression);
 		}
 
 		return false;
@@ -297,28 +257,13 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 
 		if (this.inMethod) {
 			node.getOperand().accept(this);
-
-			final int operandComplexity = this.expressionComplexityStack.pop();
-			final int operandDepth = this.expressionDepthStack.pop();
-			final String operandText = this.expressionTextStack.pop();
-
-			final int complexity = operandComplexity + 1;
-			final int depth = operandDepth + 1;
-			final String text = node.getOperator().toString() + operandText;
-
-			this.expressionComplexityStack.push(complexity);
-			this.expressionDepthStack.push(depth);
-			this.expressionTextStack.push(text);
-
-			if (1 < complexity) {
-				final int startLine = this.getStartLineNumber(node);
-				final int endLine = this.getEndLineNumber(node);
-				final int methodID = this.methodStack.peek().id;
-				final ExpressionInfo expression = new ExpressionInfo(0,
-						methodID, node, text, complexity, depth, startLine,
-						endLine);
-				this.methodStack.peek().addExpression(expression);
-			}
+			final ProgramElementInfo operand = this.stack.pop();
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final ExpressionInfo expression = new ExpressionInfo(
+					ExpressionInfo.CATEGORY.Prefix, startLine, endLine);
+			expression.setText(node.getOperator().toString());
+			this.stack.push(expression);
 		}
 
 		return false;
@@ -328,9 +273,12 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	public boolean visit(final StringLiteral node) {
 
 		if (this.inMethod) {
-			this.expressionComplexityStack.push(1);
-			this.expressionDepthStack.push(1);
-			this.expressionTextStack.push("\"" + node.getLiteralValue() + "\"");
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final ExpressionInfo expression = new ExpressionInfo(
+					ExpressionInfo.CATEGORY.String, startLine, endLine);
+			expression.setText("\"" + node.getLiteralValue() + "\"");
+			this.stack.push(expression);
 		}
 
 		return false;
@@ -354,7 +302,7 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 
 		if (this.inMethod) {
 
-			int complexity = 1; // ƒƒ\ƒbƒhŒÄ‚Ño‚µ‚Ì•¡ŽG“x‚ð1‚Æ‚·‚é
+			int complexity = 1; // ï¿½ï¿½ï¿½\ï¿½bï¿½hï¿½Ä‚Ñoï¿½ï¿½ï¿½Ì•ï¿½ï¿½Gï¿½xï¿½ï¿½1ï¿½Æ‚ï¿½ï¿½ï¿½
 			int depth = 1;
 
 			final StringBuilder text = new StringBuilder();
@@ -392,9 +340,11 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	public boolean visit(final TypeLiteral node) {
 
 		if (this.inMethod) {
-			this.expressionComplexityStack.push(1);
-			this.expressionDepthStack.push(1);
-			this.expressionTextStack.push("class");
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final ExpressionInfo expression = new ExpressionInfo(
+					ExpressionInfo.CATEGORY.TypeLiteral, startLine, endLine);
+			this.stack.push(expression);
 		}
 
 		return false;
@@ -428,9 +378,12 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	public boolean visit(final CharacterLiteral node) {
 
 		if (this.inMethod) {
-			this.expressionComplexityStack.push(1);
-			this.expressionDepthStack.push(1);
-			this.expressionTextStack.push(node.getEscapedValue());
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final ExpressionInfo expression = new ExpressionInfo(
+					ExpressionInfo.CATEGORY.Character, startLine, endLine);
+			expression.setText("\'" + node.charValue() + "\'");
+			this.stack.push(expression);
 		}
 
 		return false;
@@ -455,39 +408,18 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 		if (this.inMethod) {
 			node.getLeftOperand().accept(this);
 
-			final int leftOperandComplexity = this.expressionComplexityStack
-					.pop();
-			final int leftOperandDepth = this.expressionDepthStack.pop();
-			final String leftOperandText = this.expressionTextStack.pop();
+			final ProgramElementInfo left = this.stack.pop();
 
 			node.getRightOperand().accept(this);
-			final int rightOperandComplexity = this.expressionComplexityStack
-					.pop();
-			final int rightOperandDepth = this.expressionDepthStack.pop();
-			final String rightOperandText = this.expressionTextStack.pop();
 
-			final int complexity = leftOperandComplexity
-					+ rightOperandComplexity + 1;
-			final int depth = leftOperandDepth > rightOperandDepth ? leftOperandDepth + 1
-					: rightOperandDepth + 1;
-			final StringBuilder text = new StringBuilder();
-			text.append(leftOperandText);
-			text.append(node.getOperator().toString());
-			text.append(rightOperandText);
+			final ProgramElementInfo right = this.stack.pop();
 
-			this.expressionComplexityStack.push(complexity);
-			this.expressionDepthStack.push(depth);
-			this.expressionTextStack.push(text.toString());
-
-			if (1 < complexity) {
-				final int startLine = this.getStartLineNumber(node);
-				final int endLine = this.getEndLineNumber(node);
-				final int methodID = this.methodStack.peek().id;
-				final ExpressionInfo expression = new ExpressionInfo(0,
-						methodID, node, text.toString(), complexity, depth,
-						startLine, endLine);
-				this.methodStack.peek().addExpression(expression);
-			}
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final ExpressionInfo expression = new ExpressionInfo(
+					ExpressionInfo.CATEGORY.Infix, startLine, endLine);
+			expression.setText(node.getOperator().toString());
+			this.stack.push(expression);
 		}
 
 		return false;
@@ -539,7 +471,7 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	public boolean visit(final ArrayInitializer node) {
 
 		if (this.inMethod) {
-			int complexity = 1; // ”z—ñ‰Šú‰»‚Ì•¡ŽG“x‚Í‚P‚É‚µ‚Ä‚¨‚­
+			int complexity = 1; // ï¿½zï¿½ñ‰Šï¿½Ì•ï¿½ï¿½Gï¿½xï¿½Í‚Pï¿½É‚ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½
 			int depth = 1;
 			final StringBuilder text = new StringBuilder();
 			text.append("{");
@@ -670,7 +602,7 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	public boolean visit(final ClassInstanceCreation node) {
 
 		if (this.inMethod) {
-			int complexity = 1; // ƒCƒ“ƒXƒ^ƒ“ƒX¶¬‚Ì•¡ŽG“x‚ð1‚É‚µ‚Ä‚¨‚­
+			int complexity = 1; // ï¿½Cï¿½ï¿½ï¿½Xï¿½^ï¿½ï¿½ï¿½Xï¿½ï¿½ï¿½ï¿½ï¿½Ì•ï¿½ï¿½Gï¿½xï¿½ï¿½1ï¿½É‚ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½
 			int depth = 1;
 			final StringBuilder text = new StringBuilder();
 			text.append("new ");
@@ -729,7 +661,7 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	public boolean visit(final ConditionalExpression node) {
 
 		if (this.inMethod) {
-			int complexity = 1; // ŽO€‰‰ŽZŽq‚Ì•¡ŽG“x‚ð‚P‚É‚µ‚Ä‚¨‚­
+			int complexity = 1; // ï¿½Oï¿½ï¿½ï¿½ï¿½ï¿½Zï¿½qï¿½Ì•ï¿½ï¿½Gï¿½xï¿½ï¿½ï¿½Pï¿½É‚ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½
 			int depth = 1;
 			final StringBuilder text = new StringBuilder();
 
@@ -790,7 +722,7 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	public boolean visit(final ConstructorInvocation node) {
 
 		if (this.inMethod) {
-			int complexity = 1; // ƒRƒ“ƒXƒgƒ‰ƒNƒ^ŒÄ‚Ño‚µ‚Ì•¡ŽG“x‚ð1‚É‚µ‚Ä‚¨‚­
+			int complexity = 1; // ï¿½Rï¿½ï¿½ï¿½Xï¿½gï¿½ï¿½ï¿½Nï¿½^ï¿½Ä‚Ñoï¿½ï¿½ï¿½Ì•ï¿½ï¿½Gï¿½xï¿½ï¿½1ï¿½É‚ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½
 			int depth = 1;
 			final StringBuilder text = new StringBuilder();
 			text.append("(");
@@ -1015,7 +947,7 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	public boolean visit(final SuperConstructorInvocation node) {
 
 		if (this.inMethod) {
-			int complexity = 1; // ƒX[ƒp[ƒNƒ‰ƒX‚ÌƒRƒXƒgƒ‰ƒNƒ^ŒÄ‚Ño‚µ‚Ì•¡ŽG“x‚ð1‚É‚µ‚Ä‚¨‚­
+			int complexity = 1; // ï¿½Xï¿½[ï¿½pï¿½[ï¿½Nï¿½ï¿½ï¿½Xï¿½ÌƒRï¿½Xï¿½gï¿½ï¿½ï¿½Nï¿½^ï¿½Ä‚Ñoï¿½ï¿½ï¿½Ì•ï¿½ï¿½Gï¿½xï¿½ï¿½1ï¿½É‚ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½
 			int depth = 1;
 
 			if (null != node.getExpression()) {
@@ -1068,7 +1000,7 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	public boolean visit(final VariableDeclarationExpression node) {
 
 		if (this.inMethod) {
-			int complexity = 1; // •Ï”éŒ¾Ž®‚Ì•¡ŽG“x‚ð1‚É‚µ‚Ä‚¨‚­
+			int complexity = 1; // ï¿½Ïï¿½ï¿½éŒ¾ï¿½ï¿½ï¿½Ì•ï¿½ï¿½Gï¿½xï¿½ï¿½1ï¿½É‚ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½
 			int depth = 1;
 
 			for (final Object fragment : node.fragments()) {
@@ -1093,7 +1025,7 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	public boolean visit(final VariableDeclarationStatement node) {
 
 		if (this.inMethod) {
-			int complexity = 0; // •Ï”éŒ¾•¶‚Ì•¡ŽG“x‚ð1‚É‚µ‚Ä‚¨‚­
+			int complexity = 0; // ï¿½Ïï¿½ï¿½éŒ¾ï¿½ï¿½ï¿½Ì•ï¿½ï¿½Gï¿½xï¿½ï¿½1ï¿½É‚ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½
 			int depth = 1;
 
 			for (final Object fragment : node.fragments()) {
