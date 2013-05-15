@@ -19,6 +19,9 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	final private List<ExpressionInfo> updaters;
 
 	final private List<StatementInfo> statements;
+	private StatementInfo elseStatement;
+	final private List<StatementInfo> catchStatements;
+	private StatementInfo finallyStatement;
 
 	public StatementInfo(final ProgramElementInfo ownerBlock,
 			final CATEGORY category, final int startLine, final int endLine) {
@@ -35,16 +38,18 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 		this.updaters = new ArrayList<ExpressionInfo>();
 
 		this.statements = new ArrayList<StatementInfo>();
+		this.elseStatement = null;
+		this.catchStatements = new ArrayList<StatementInfo>();
+		this.finallyStatement = null;
 	}
 
 	public enum CATEGORY {
 
-		Assert("ASSERT"), Case("CASE"), Do("DO"), Expression("EXPRESSION"), If(
-				"IF"), ForInitializer("FORINITIALIZER"), ForCondition(
-				"FORCONDITION"), ForUpdater("FORUPDATER"), Foreach("FOREACH"), Return(
-				"RETURN"), Synchronized("SYNCHRONIZED"), Switch("SWITCH"), Throw(
-				"SWITCH"), VariableDeclaration("VARIABLEDECLARATION"), While(
-				"WHILE");
+		Assert("ASSERT"), Case("CASE"), Catch("CATCH"), Do("DO"), Else("ELSE"), Expression(
+				"EXPRESSION"), Finally("FINALLY"), If("IF"), For("FOR"), Foreach(
+				"FOREACH"), Return("RETURN"), Synchronized("SYNCHRONIZED"), Switch(
+				"SWITCH"), Throw("SWITCH"), Try("TRY"), VariableDeclaration(
+				"VARIABLEDECLARATION"), While("WHILE");
 
 		final public String id;
 
@@ -89,6 +94,33 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	@Override
 	public List<StatementInfo> getStatements() {
 		return Collections.unmodifiableList(this.statements);
+	}
+
+	public void setElseStatement(final StatementInfo elseStatement) {
+		assert null != elseStatement : "\"elseStatement\" is null.";
+		this.elseStatement = elseStatement;
+	}
+
+	public StatementInfo getElseStatement() {
+		return this.elseStatement;
+	}
+
+	public void addCatchStatement(final StatementInfo catchStatement) {
+		assert null != catchStatement : "\"catchStatement\" is null.";
+		this.catchStatements.add(catchStatement);
+	}
+
+	public List<StatementInfo> getCatchStatements() {
+		return Collections.unmodifiableList(this.catchStatements);
+	}
+
+	public void setFinallyStatement(final StatementInfo finallyStatement) {
+		assert null != finallyStatement : "\"finallyStatement\" is null.";
+		this.finallyStatement = finallyStatement;
+	}
+
+	public StatementInfo getFinallyStatement() {
+		return this.finallyStatement;
 	}
 
 	public void addExpression(final ExpressionInfo expression) {

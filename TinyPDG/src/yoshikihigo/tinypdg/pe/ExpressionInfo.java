@@ -20,10 +20,17 @@ public class ExpressionInfo extends ProgramElementInfo {
 
 	public enum CATEGORY {
 
-		ArrayAccess("ARRAYACCESS"), Binomial("BINOMIAL"), Character("CHARACTER"), Infix(
-				"INFIX"), Null("NULL"), Number("NUMBER"), Postfix("POSTFIX"), Prefix(
-				"PREFIX"), String("STRING"), Trinomial("TRINOMIAL"), TypeLiteral(
-				"TYPELITERAL");
+		ArrayAccess("ARRAYACCESS"), ArrayCreation("ARRAYCREATION"), ArrayInitializer(
+				"ARRAYINITIALIZER"), Assignment("ASSIGNMENT"), Binomial(
+				"BINOMIAL"), Boolean("BOOLEAN"), Cast("CAST"), Character(
+				"CHARACTER"), ConstructorInvocation("CONSTRUCTORINVOCATION"), Infix(
+				"INFIX"), Instanceof("INSTANCEOF"), MethodInvocation(
+				"METHODINVOCATION"), Null("NULL"), Number("NUMBER"), Parenthesized(
+				"PARENTHESIZED"), Postfix("POSTFIX"), Prefix("PREFIX"), String(
+				"STRING"), SuperConstructorInvocation(
+				"SUPERCONSTRUCTORINVOCATION"), This("THIS"), Trinomial(
+				"TRINOMIAL"), TypeLiteral("TYPELITERAL"), VariableDeclarationExpression(
+				"VARIABLEDECLARATIONEXPRESSION");
 
 		final public String id;
 
