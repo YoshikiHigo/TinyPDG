@@ -3,6 +3,8 @@ package yoshikihigo.tinypdg.pe;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class StatementInfo extends ProgramElementInfo implements BlockInfo {
@@ -130,5 +132,83 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 
 	public List<ExpressionInfo> getExpressions() {
 		return Collections.unmodifiableList(this.expressions);
+	}
+
+	public SortedSet<String> getAssignedVariables() {
+
+		final SortedSet<String> variables = new TreeSet<String>();
+
+		for (final ExpressionInfo expression : this.expressions) {
+			variables.addAll(expression.getAssignedVariables());
+		}
+
+		for (final ExpressionInfo initializer : this.initializers) {
+			variables.addAll(initializer.getAssignedVariables());
+		}
+
+		if (null != this.condition) {
+			variables.addAll(this.condition.getAssignedVariables());
+		}
+
+		for (final ExpressionInfo updater : this.updaters) {
+			variables.addAll(updater.getAssignedVariables());
+		}
+
+		for (final StatementInfo statement : this.statements) {
+			variables.addAll(statement.getAssignedVariables());
+		}
+
+		if (null != this.elseStatement) {
+			variables.addAll(this.elseStatement.getAssignedVariables());
+		}
+
+		for (final StatementInfo catchStatement : this.catchStatements) {
+			variables.addAll(catchStatement.getAssignedVariables());
+		}
+
+		if (null != this.finallyStatement) {
+			variables.addAll(this.finallyStatement.getAssignedVariables());
+		}
+
+		return variables;
+	}
+
+	public SortedSet<String> getReferencedVariables() {
+
+		final SortedSet<String> variables = new TreeSet<String>();
+
+		for (final ExpressionInfo expression : this.expressions) {
+			variables.addAll(expression.getReferencedVariables());
+		}
+
+		for (final ExpressionInfo initializer : this.initializers) {
+			variables.addAll(initializer.getReferencedVariables());
+		}
+
+		if (null != this.condition) {
+			variables.addAll(this.condition.getReferencedVariables());
+		}
+
+		for (final ExpressionInfo updater : this.updaters) {
+			variables.addAll(updater.getReferencedVariables());
+		}
+
+		for (final StatementInfo statement : this.statements) {
+			variables.addAll(statement.getReferencedVariables());
+		}
+
+		if (null != this.elseStatement) {
+			variables.addAll(this.elseStatement.getReferencedVariables());
+		}
+
+		for (final StatementInfo catchStatement : this.catchStatements) {
+			variables.addAll(catchStatement.getReferencedVariables());
+		}
+
+		if (null != this.finallyStatement) {
+			variables.addAll(this.finallyStatement.getReferencedVariables());
+		}
+
+		return variables;
 	}
 }
