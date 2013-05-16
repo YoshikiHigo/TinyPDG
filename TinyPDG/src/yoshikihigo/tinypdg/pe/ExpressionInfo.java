@@ -35,7 +35,8 @@ public class ExpressionInfo extends ProgramElementInfo {
 				"SUPERFIELDACCESS"), SuperMethodInvocation(
 				"SUPERMETHODINVOCATION"), This("THIS"), Trinomial("TRINOMIAL"), TypeLiteral(
 				"TYPELITERAL"), VariableDeclarationExpression(
-				"VARIABLEDECLARATIONEXPRESSION");
+				"VARIABLEDECLARATIONEXPRESSION"), VariableDeclarationFragment(
+				"VARIABLEDECLARATIONFRAGMENT");
 
 		final public String id;
 

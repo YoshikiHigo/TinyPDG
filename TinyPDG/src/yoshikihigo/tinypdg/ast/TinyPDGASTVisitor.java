@@ -1,9 +1,18 @@
 package yoshikihigo.tinypdg.ast;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Stack;
 
+import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
+import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.ArrayAccess;
 import org.eclipse.jdt.core.dom.ArrayCreation;
 import org.eclipse.jdt.core.dom.ArrayInitializer;
@@ -49,6 +58,7 @@ import org.eclipse.jdt.core.dom.ThrowStatement;
 import org.eclipse.jdt.core.dom.TryStatement;
 import org.eclipse.jdt.core.dom.TypeLiteral;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
+import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import org.eclipse.jdt.internal.core.dom.NaiveASTFlattener;
@@ -61,6 +71,35 @@ import yoshikihigo.tinypdg.pe.StatementInfo;
 import yoshikihigo.tinypdg.pe.TypeInfo;
 
 public class TinyPDGASTVisitor extends NaiveASTFlattener {
+
+	static public CompilationUnit createAST(final File file) {
+
+		final String lineSeparator = System.getProperty("line.separator");
+		final StringBuffer text = new StringBuffer();
+		final BufferedReader reader;
+
+		try {
+			reader = new BufferedReader(new InputStreamReader(
+					new FileInputStream(file), "JISAutoDetect"));
+
+			while (reader.ready()) {
+				final String line = reader.readLine();
+				text.append(line);
+				text.append(lineSeparator);
+			}
+			reader.close();
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		final ASTParser parser = ASTParser.newParser(AST.JLS4);
+		parser.setSource(text.toString().toCharArray());
+		return (CompilationUnit) parser.createAST(null);
+	}
 
 	final private String path;
 	final private CompilationUnit root;
@@ -87,14 +126,17 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 		final int startLine = this.getStartLineNumber(node);
 		final int endLine = this.getEndLineNumber(node);
 
-		this.stack.push(new MethodInfo(this.path, name, startLine, endLine));
+		final MethodInfo method = new MethodInfo(this.path, name, startLine,
+				endLine);
+		this.stack.push(method);
 
 		if (null != node.getBody()) {
 			node.getBody().accept(this);
 		}
 
-		final ProgramElementInfo method = this.stack.pop();
-		this.methods.add((MethodInfo) method);
+		this.stack.pop();
+
+		this.methods.add(method);
 
 		this.inMethod = false;
 
@@ -815,6 +857,29 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 			}
 
 			((BlockInfo) ownerBlock).addStatement(vdStatement);
+		}
+
+		return false;
+	}
+
+	@Override
+	public boolean visit(final VariableDeclarationFragment node) {
+
+		if (this.inMethod) {
+
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final ExpressionInfo vdFragment = new ExpressionInfo(
+					ExpressionInfo.CATEGORY.VariableDeclarationFragment,
+					startLine, endLine);
+
+			if (null != node.getInitializer()) {
+				node.getInitializer().accept(this);
+				final ProgramElementInfo expression = this.stack.pop();
+				vdFragment.addExpression((ExpressionInfo) expression);
+			}
+
+			this.stack.push(vdFragment);
 		}
 
 		return false;
