@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/features/org.eclipse.jdt_3.8.2.v20130116-090414-8-8nFu3FNOfwKLRuqgXKIy9z0I83.jar"/>
 	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/features/org.eclipse.jdt.source_3.8.2.v20130116-090414-8-8nFu3FNOfwKLRuqgXKIy9z0I83.jar"/>
 	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.ant.launching_1.0.200.v20120530-1204.jar"/>
@@ -21,7 +21,7 @@
 	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.jdt.compiler.apt.source_1.0.600.v20130116-050536.jar"/>
 	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.jdt.compiler.tool_1.0.200.v20130116-050536.jar"/>
 	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.jdt.compiler.tool.source_1.0.200.v20130116-050536.jar"/>
-	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.jdt.core_3.8.3.v20130121-145325.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.jdt.core_3.8.3.v20130121-145325.jar" sourcepath="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.jdt.core.source_3.8.3.v20130121-145325.jar"/>
 	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.jdt.core.manipulation_1.5.0.v20120523-1543.jar"/>
 	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.jdt.core.manipulation.source_1.5.0.v20120523-1543.jar"/>
 	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.jdt.core.source_3.8.3.v20130121-145325.jar"/>
@@ -57,5 +57,26 @@
 	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.junit4_4.8.1.v20120523-1257.jar"/>
 	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/artifacts.jar"/>
 	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/content.jar"/>
+	<classpathentry kind="lib" path="lib/commons-cli-1.2/commons-cli-1.2-javadoc.jar"/>
+	<classpathentry kind="lib" path="lib/commons-cli-1.2/commons-cli-1.2-sources.jar"/>
+	<classpathentry kind="lib" path="lib/commons-cli-1.2/commons-cli-1.2.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.equinox.common_3.6.100.v20120522-1841.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.equinox.common.source_3.6.100.v20120522-1841.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.core.resources_3.8.1.v20121114-124432.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.core.resources.source_3.8.1.v20121114-124432.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.core.runtime_3.8.0.v20120912-155025.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.core.runtime.source_3.8.0.v20120912-155025.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.core.jobs_3.5.300.v20120912-155018.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.core.jobs.source_3.5.300.v20120912-155018.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.osgi_3.8.2.v20130124-134944.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.osgi.source_3.8.2.v20130124-134944.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.core.contenttype_3.4.200.v20120523-2004.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.core.contenttype.source_3.4.200.v20120523-2004.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.osgi.services_3.3.100.v20120522-1822.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.osgi.services.source_3.3.100.v20120522-1822.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.osgi.util_3.2.300.v20120913-144807.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.osgi.util.source_3.2.300.v20120913-144807.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.equinox.preferences_3.5.1.v20121031-182809.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.equinox.preferences.source_3.5.1.v20121031-182809.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
