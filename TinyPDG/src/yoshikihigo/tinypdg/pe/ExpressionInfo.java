@@ -6,18 +6,17 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-public class ExpressionInfo extends ProgramElementInfo {
+public class ExpressionInfo extends ProgramElementInfo implements
+		VariableAssignmentAndReference {
 
 	final public CATEGORY category;
 	final private List<ExpressionInfo> expressions;
-	private String text;
 
 	public ExpressionInfo(final CATEGORY category, final int startLine,
 			final int endLine) {
 		super(startLine, endLine);
 		this.category = category;
 		this.expressions = new ArrayList<ExpressionInfo>();
-		this.text = null;
 	}
 
 	public enum CATEGORY {
@@ -54,11 +53,7 @@ public class ExpressionInfo extends ProgramElementInfo {
 		return Collections.unmodifiableList(this.expressions);
 	}
 
-	public void setText(final String text) {
-		assert null != text : "\"text\" is null.";
-		this.text = text;
-	}
-
+	@Override
 	public SortedSet<String> getAssignedVariables() {
 
 		final SortedSet<String> variables = new TreeSet<String>();
@@ -68,6 +63,9 @@ public class ExpressionInfo extends ProgramElementInfo {
 			variables.addAll(left.getReferencedVariables());
 			final ExpressionInfo right = this.expressions.get(1);
 			variables.addAll(right.getAssignedVariables());
+			break;
+		case VariableDeclarationFragment:
+			variables.add(this.getText());
 			break;
 		case Postfix:
 		case Prefix:
@@ -83,6 +81,7 @@ public class ExpressionInfo extends ProgramElementInfo {
 		return variables;
 	}
 
+	@Override
 	public SortedSet<String> getReferencedVariables() {
 		final SortedSet<String> variables = new TreeSet<String>();
 		switch (this.category) {

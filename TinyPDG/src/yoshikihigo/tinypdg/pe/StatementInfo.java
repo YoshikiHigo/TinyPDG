@@ -5,13 +5,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.atomic.AtomicInteger;
 
-public class StatementInfo extends ProgramElementInfo implements BlockInfo {
+public class StatementInfo extends ProgramElementInfo implements BlockInfo,
+		VariableAssignmentAndReference {
 
-	static final private AtomicInteger ID_Generator = new AtomicInteger(0);
-
-	final public int id;
 	final public ProgramElementInfo ownerBlock;
 	final public CATEGORY category;
 	final public List<ExpressionInfo> expressions;
@@ -30,7 +27,6 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 
 		super(startLine, endLine);
 
-		this.id = ID_Generator.getAndIncrement();
 		this.ownerBlock = ownerBlock;
 		this.category = category;
 		this.expressions = new ArrayList<ExpressionInfo>();
@@ -47,10 +43,11 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 
 	public enum CATEGORY {
 
-		Assert("ASSERT"), Case("CASE"), Catch("CATCH"), Do("DO"), Else("ELSE"), Expression(
-				"EXPRESSION"), Finally("FINALLY"), If("IF"), For("FOR"), Foreach(
-				"FOREACH"), Return("RETURN"), Synchronized("SYNCHRONIZED"), Switch(
-				"SWITCH"), Throw("SWITCH"), Try("TRY"), VariableDeclaration(
+		Assert("ASSERT"), Break("BREAK"), Case("CASE"), Catch("CATCH"), Continue(
+				"CONTINUE"), Do("DO"), Else("ELSE"), Expression("EXPRESSION"), Finally(
+				"FINALLY"), If("IF"), For("FOR"), Foreach("FOREACH"), Return(
+				"RETURN"), Synchronized("SYNCHRONIZED"), Switch("SWITCH"), Throw(
+				"SWITCH"), Try("TRY"), VariableDeclaration(
 				"VARIABLEDECLARATION"), While("WHILE");
 
 		final public String id;
@@ -134,6 +131,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 		return Collections.unmodifiableList(this.expressions);
 	}
 
+	@Override
 	public SortedSet<String> getAssignedVariables() {
 
 		final SortedSet<String> variables = new TreeSet<String>();
@@ -173,6 +171,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 		return variables;
 	}
 
+	@Override
 	public SortedSet<String> getReferencedVariables() {
 
 		final SortedSet<String> variables = new TreeSet<String>();
