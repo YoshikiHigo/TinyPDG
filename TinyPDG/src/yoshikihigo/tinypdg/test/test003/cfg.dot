@@ -1,0 +1,8 @@
+digraph CFG {
+subgraph cluster0 {
+label = "concatinate <4...10>";
+0.0 [style = filled, label = "StringBuilder text = new StringBuilder(); <5>", fillcolor = aquamarine, shape = ellipse];
+0.1 [style = filled, label = "return text.toString(); <9>", fillcolor = deeppink, shape = ellipse];
+0.0 -> 0.1 [style = solid, label=""];
+}
+}

@@ -590,19 +590,31 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	public boolean visit(final ClassInstanceCreation node) {
 
 		if (this.inMethod) {
+			final StringBuilder text = new StringBuilder();
+			text.append("new ");
+
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ExpressionInfo classInstanceCreation = new ExpressionInfo(
 					ExpressionInfo.CATEGORY.ClassInstanceCreation, startLine,
 					endLine);
-			classInstanceCreation.setText(node.getType().toString());
 
+			text.append(node.getType().toString());
+
+			text.append("(");
 			for (final Object argument : node.arguments()) {
 				((ASTNode) argument).accept(this);
 				final ProgramElementInfo argumentExpression = this.stack.pop();
 				classInstanceCreation
 						.addExpression((ExpressionInfo) argumentExpression);
+
+				text.append(argumentExpression.getText());
+				text.append(",");
 			}
+			if (0 < node.arguments().size()) {
+				text.deleteCharAt(text.length() - 1);
+			}
+			text.append(")");
 
 			if (null != node.getExpression()) {
 				node.getExpression().accept(this);
@@ -611,6 +623,7 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 						.addExpression((ExpressionInfo) expression);
 			}
 
+			classInstanceCreation.setText(text.toString());
 			this.stack.push(classInstanceCreation);
 		}
 
@@ -711,6 +724,8 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 
 		if (this.inMethod) {
 
+			final StringBuilder text = new StringBuilder();
+
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ExpressionInfo methodInvocation = new ExpressionInfo(
@@ -721,17 +736,28 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 				node.getExpression().accept(this);
 				final ProgramElementInfo expression = this.stack.pop();
 				methodInvocation.addExpression((ExpressionInfo) expression);
-				methodInvocation.setText("." + node.getName().toString());
-			} else {
-				methodInvocation.setText(node.getName().toString());
-			}
 
+				text.append(expression.getText());
+				text.append(".");
+			}
+			text.append(node.getName());
+			text.append("(");
 			for (final Object argument : node.arguments()) {
 				((ASTNode) argument).accept(this);
 				final ProgramElementInfo argumentExpression = this.stack.pop();
 				methodInvocation
 						.addExpression((ExpressionInfo) argumentExpression);
+
+				text.append(argumentExpression.getText());
+				text.append(",");
 			}
+			if (0 < node.arguments().size()) {
+				text.deleteCharAt(text.length() - 1);
+			}
+			text.append(")");
+
+			methodInvocation.setText(text.toString());
+			this.stack.push(methodInvocation);
 		}
 
 		return false;
