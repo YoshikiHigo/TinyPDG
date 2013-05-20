@@ -21,6 +21,7 @@ import org.eclipse.jdt.core.dom.AssertStatement;
 import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BooleanLiteral;
+import org.eclipse.jdt.core.dom.BreakStatement;
 import org.eclipse.jdt.core.dom.CastExpression;
 import org.eclipse.jdt.core.dom.CatchClause;
 import org.eclipse.jdt.core.dom.CharacterLiteral;
@@ -28,6 +29,7 @@ import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ConditionalExpression;
 import org.eclipse.jdt.core.dom.ConstructorInvocation;
+import org.eclipse.jdt.core.dom.ContinueStatement;
 import org.eclipse.jdt.core.dom.DoStatement;
 import org.eclipse.jdt.core.dom.EnhancedForStatement;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
@@ -561,20 +563,26 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	public boolean visit(final Assignment node) {
 
 		if (this.inMethod) {
-			node.getLeftHandSide().accept(this);
-
-			final ProgramElementInfo left = this.stack.pop();
-
-			node.getRightHandSide().accept(this);
-
-			final ProgramElementInfo right = this.stack.pop();
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ExpressionInfo assignment = new ExpressionInfo(
 					ExpressionInfo.CATEGORY.Assignment, startLine, endLine);
+
+			node.getLeftHandSide().accept(this);
+			final ProgramElementInfo left = this.stack.pop();
 			assignment.addExpression((ExpressionInfo) left);
+
+			node.getRightHandSide().accept(this);
+			final ProgramElementInfo right = this.stack.pop();
 			assignment.addExpression((ExpressionInfo) right);
+
+			final StringBuilder text = new StringBuilder();
+			text.append(left.getText());
+			text.append(" = ");
+			text.append(right.getText());
+			assignment.setText(text.toString());
+
 			this.stack.push(assignment);
 		}
 
@@ -1293,13 +1301,85 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 			final StatementInfo caseStatement = new StatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.Case, startLine, endLine);
 
+			final StringBuilder text = new StringBuilder();
+
 			if (null != node.getExpression()) {
 				node.getExpression().accept(this);
 				final ProgramElementInfo expression = this.stack.pop();
 				caseStatement.addExpression((ExpressionInfo) expression);
+
+				text.append("case ");
+				text.append(expression.getText());
+			} else {
+				text.append("default");
 			}
 
+			text.append(":");
+			caseStatement.setText(text.toString());
+
 			((BlockInfo) ownerBlock).addStatement(caseStatement);
+		}
+
+		return false;
+	}
+
+	@Override
+	public boolean visit(final BreakStatement node) {
+
+		if (this.inMethod) {
+
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final ProgramElementInfo ownerBlock = this.stack.peek();
+			final StatementInfo breakStatement = new StatementInfo(ownerBlock,
+					StatementInfo.CATEGORY.Break, startLine, endLine);
+
+			final StringBuilder text = new StringBuilder();
+			text.append("break");
+
+			if (null != node.getLabel()) {
+				node.getLabel().accept(this);
+				final ProgramElementInfo label = this.stack.pop();
+				breakStatement.addExpression((ExpressionInfo) label);
+
+				text.append(" ");
+				text.append(label.getText());
+			}
+
+			text.append(";");
+			breakStatement.setText(text.toString());
+			((BlockInfo) ownerBlock).addStatement(breakStatement);
+		}
+
+		return false;
+	}
+
+	@Override
+	public boolean visit(final ContinueStatement node) {
+
+		if (this.inMethod) {
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final ProgramElementInfo ownerBlock = this.stack.peek();
+			final StatementInfo continuekStatement = new StatementInfo(
+					ownerBlock, StatementInfo.CATEGORY.Continue, startLine,
+					endLine);
+
+			final StringBuilder text = new StringBuilder();
+			text.append("continue");
+
+			if (null != node.getLabel()) {
+				node.getLabel().accept(this);
+				final ProgramElementInfo label = this.stack.pop();
+				continuekStatement.addExpression((ExpressionInfo) label);
+
+				text.append(" ");
+				text.append(label.getText());
+			}
+
+			text.append(";");
+			continuekStatement.setText(text.toString());
+			((BlockInfo) ownerBlock).addStatement(continuekStatement);
 		}
 
 		return false;

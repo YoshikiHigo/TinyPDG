@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import yoshikihigo.tinypdg.pe.ExpressionInfo;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
+import yoshikihigo.tinypdg.pe.StatementInfo;
 
 public class CFGNodeFactory {
 
@@ -25,7 +26,21 @@ public class CFGNodeFactory {
 
 		CFGNormalNode node = (CFGNormalNode) this.elementToNodeMap.get(element);
 		if (null == node) {
-			node = new CFGNormalNode(element);
+			if (element instanceof StatementInfo) {
+				switch (((StatementInfo) element).category) {
+				case Break:
+					node = new CFGBreakStatementNode((StatementInfo) element);
+					break;
+				case Continue:
+					node = new CFGContinueStatementNode((StatementInfo) element);
+					break;
+				default:
+					node = new CFGNormalNode(element);
+					break;
+				}
+			} else {
+				node = new CFGNormalNode(element);
+			}
 			this.elementToNodeMap.put(element, node);
 		}
 		return node;

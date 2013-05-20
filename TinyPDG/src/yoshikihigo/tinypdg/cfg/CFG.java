@@ -341,7 +341,7 @@ public class CFG {
 			}
 		}
 
-		for (int index = 1; index < sequentialCFGs.size(); index++) {
+		CFG: for (int index = 1; index < sequentialCFGs.size(); index++) {
 			final CFG anteriorCFG = sequentialCFGs.get(index - 1);
 			final CFG posteriorCFG = sequentialCFGs.get(index);
 
@@ -350,7 +350,7 @@ public class CFG {
 				switch (((StatementInfo) anteriorCore).category) {
 				case Break:
 				case Continue:
-					continue;
+					continue CFG;
 				default:
 				}
 			}
@@ -362,6 +362,10 @@ public class CFG {
 				posteriorCFG.enterNode.addBackwardEdge(edge);
 			}
 		}
+
+		this.exitNodes
+				.addAll(sequentialCFGs.get(sequentialCFGs.size() - 1).exitNodes);
+
 	}
 
 	private void buildTryBlockCFG(final StatementInfo statement) {
