@@ -30,6 +30,8 @@ public class CFG {
 
 	final protected Set<CFGNode<? extends ProgramElementInfo>> exitNodes;
 
+	protected boolean built;
+
 	public CFG(final ProgramElementInfo core, final CFGNodeFactory nodeFactory) {
 		assert null != nodeFactory : "\"nodeFactory\" is null.";
 		this.core = core;
@@ -37,6 +39,7 @@ public class CFG {
 		this.nodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
 		this.enterNode = null;
 		this.exitNodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
+		this.built = false;
 	}
 
 	public boolean isEmpty() {
@@ -60,6 +63,9 @@ public class CFG {
 	}
 
 	public void build() {
+
+		assert !this.built : "this CFG has already built.";
+		this.built = true;
 
 		if (null == this.core) {
 			final CFGNode<? extends ProgramElementInfo> node = nodeFactory
@@ -162,6 +168,7 @@ public class CFG {
 
 		final SequentialCFGs sequentialCFGs = new SequentialCFGs(
 				statement.getStatements());
+		sequentialCFGs.build();
 		final ExpressionInfo condition = statement.getCondition();
 		final CFGNode<? extends ProgramElementInfo> conditionNode = this.nodeFactory
 				.makeControlNode(condition);
@@ -186,15 +193,18 @@ public class CFG {
 
 		final SequentialCFGs sequentialCFGs = new SequentialCFGs(
 				statement.getStatements());
+		sequentialCFGs.build();
 
 		final List<ExpressionInfo> initializers = statement.getInitializers();
 		final ExpressionInfo condition = statement.getCondition();
 		final List<ExpressionInfo> updaters = statement.getUpdaters();
 
 		final SequentialCFGs initializerCFGs = new SequentialCFGs(initializers);
+		initializerCFGs.build();
 		final CFGNode<? extends ProgramElementInfo> conditionNode = this.nodeFactory
 				.makeControlNode(condition);
 		final SequentialCFGs updaterCFGs = new SequentialCFGs(updaters);
+		updaterCFGs.build();
 
 		this.enterNode = initializerCFGs.enterNode;
 		this.exitNodes.add(conditionNode);
@@ -232,8 +242,9 @@ public class CFG {
 	private void buildConditionalBlockCFG(final StatementInfo statement,
 			final boolean loop) {
 
-		final SequentialCFGs sequentialCFGs = new SequentialCFGs(
-				statement.getStatements());
+		final List<StatementInfo> substatements = statement.getStatements();
+		final SequentialCFGs sequentialCFGs = new SequentialCFGs(substatements);
+		sequentialCFGs.build();
 		final ExpressionInfo condition = statement.getCondition();
 		final CFGNode<? extends ProgramElementInfo> conditionNode = this.nodeFactory
 				.makeControlNode(condition);
@@ -241,7 +252,11 @@ public class CFG {
 		this.enterNode = conditionNode;
 		this.nodes.addAll(sequentialCFGs.nodes);
 		this.nodes.add(conditionNode);
-		this.exitNodes.add(conditionNode);
+		if (loop) {
+			this.exitNodes.add(conditionNode);
+		} else {
+			this.exitNodes.addAll(sequentialCFGs.exitNodes);
+		}
 
 		{
 			final CFGEdge edge = new CFGControlEdge(conditionNode,
@@ -266,6 +281,7 @@ public class CFG {
 		final List<StatementInfo> elseStatements = statement.getElseStatement()
 				.getStatements();
 		final SequentialCFGs elseCFG = new SequentialCFGs(elseStatements);
+		elseCFG.build();
 
 		final ExpressionInfo condition = statement.getCondition();
 		final CFGNode<? extends ProgramElementInfo> conditionNode = this.nodeFactory
@@ -286,6 +302,7 @@ public class CFG {
 		final List<StatementInfo> substatements = statement.getStatements();
 		final SequentialCFGs sequentialCFGs = new SequentialCFGs(substatements);
 		sequentialCFGs.build();
+
 		this.enterNode = sequentialCFGs.enterNode;
 		this.exitNodes.addAll(sequentialCFGs.exitNodes);
 		this.nodes.addAll(sequentialCFGs.nodes);
@@ -351,10 +368,11 @@ public class CFG {
 
 		final List<StatementInfo> statements = statement.getStatements();
 		final SequentialCFGs sequentialCFGs = new SequentialCFGs(statements);
+		sequentialCFGs.build();
 
 		final StatementInfo finallyBlock = statement.getFinallyStatement();
 		final CFG finallyCFG = new CFG(finallyBlock, this.nodeFactory);
-		finallyCFG.build();
+		this.build();
 
 		this.enterNode = sequentialCFGs.enterNode;
 		this.nodes.addAll(sequentialCFGs.nodes);
@@ -396,8 +414,12 @@ public class CFG {
 
 		@Override
 		public void build() {
+
+			assert !this.built : "this CFG has already built.";
+			this.built = true;
+
 			final LinkedList<CFG> sequencialCFGs = new LinkedList<CFG>();
-			for (final ProgramElementInfo element : elements) {
+			for (final ProgramElementInfo element : this.elements) {
 				final CFG blockCFG = new CFG(element, CFG.this.nodeFactory);
 				blockCFG.build();
 				if (!blockCFG.isEmpty()) {
