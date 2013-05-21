@@ -6,7 +6,7 @@ public class CFGControlEdge extends CFGEdge {
 
 	final public boolean control;
 
-	public CFGControlEdge(CFGNode<?> fromNode, final CFGNode<?> toNode,
+	CFGControlEdge(CFGNode<?> fromNode, final CFGNode<?> toNode,
 			final boolean control) {
 		super(fromNode, toNode);
 		this.control = control;

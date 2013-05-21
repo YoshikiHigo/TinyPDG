@@ -8,9 +8,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import yoshikihigo.tinypdg.cfg.edge.CFGControlEdge;
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
-import yoshikihigo.tinypdg.cfg.edge.CFGNormalEdge;
 import yoshikihigo.tinypdg.cfg.node.CFGBreakStatementNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
@@ -193,15 +191,15 @@ public class CFG {
 		this.exitNodes.add(conditionNode);
 
 		for (final CFGNode<?> exitNode : sequentialCFGs.exitNodes) {
-			final CFGEdge edge = new CFGNormalEdge(exitNode, conditionNode);
+			final CFGEdge edge = CFGEdge.makeEdge(exitNode, conditionNode);
 			exitNode.addForwardEdge(edge);
 			conditionNode.addBackwardEdge(edge);
 		}
-		final CFGEdge edge = new CFGControlEdge(conditionNode,
+		final CFGEdge edge = CFGEdge.makeEdge(conditionNode,
 				sequentialCFGs.enterNode, true);
 		conditionNode.addForwardEdge(edge);
 		sequentialCFGs.enterNode.addBackwardEdge(edge);
-		
+
 		this.connectCFGBreakStatementNode(statement);
 	}
 
@@ -230,27 +228,27 @@ public class CFG {
 		this.nodes.addAll(updaterCFGs.nodes);
 
 		for (final CFGNode<? extends ProgramElementInfo> initializerExitNode : initializerCFGs.exitNodes) {
-			final CFGEdge edge = new CFGNormalEdge(initializerExitNode,
+			final CFGEdge edge = CFGEdge.makeEdge(initializerExitNode,
 					conditionNode);
 			initializerExitNode.addForwardEdge(edge);
 			conditionNode.addBackwardEdge(edge);
 		}
 		{
-			final CFGEdge controlEdge = new CFGControlEdge(conditionNode,
+			final CFGEdge controlEdge = CFGEdge.makeEdge(conditionNode,
 					sequentialCFGs.enterNode, true);
 			conditionNode.addForwardEdge(controlEdge);
 			sequentialCFGs.enterNode.addBackwardEdge(controlEdge);
 		}
 
 		for (final CFGNode<? extends ProgramElementInfo> sequentialExitNode : sequentialCFGs.exitNodes) {
-			final CFGEdge edge = new CFGNormalEdge(sequentialExitNode,
+			final CFGEdge edge = CFGEdge.makeEdge(sequentialExitNode,
 					updaterCFGs.enterNode);
 			sequentialExitNode.addForwardEdge(edge);
 			updaterCFGs.enterNode.addBackwardEdge(edge);
 		}
 
 		for (final CFGNode<? extends ProgramElementInfo> updaterExitNode : updaterCFGs.exitNodes) {
-			final CFGEdge edge = new CFGNormalEdge(updaterExitNode,
+			final CFGEdge edge = CFGEdge.makeEdge(updaterExitNode,
 					conditionNode);
 			updaterExitNode.addForwardEdge(edge);
 			conditionNode.addBackwardEdge(edge);
@@ -282,7 +280,7 @@ public class CFG {
 		}
 
 		{
-			final CFGEdge edge = new CFGControlEdge(conditionNode,
+			final CFGEdge edge = CFGEdge.makeEdge(conditionNode,
 					sequentialCFGs.enterNode, true);
 			conditionNode.addForwardEdge(edge);
 			sequentialCFGs.enterNode.addBackwardEdge(edge);
@@ -293,13 +291,13 @@ public class CFG {
 				if (exitNode instanceof CFGBreakStatementNode) {
 					this.exitNodes.add(exitNode);
 				} else {
-					final CFGEdge edge = new CFGNormalEdge(exitNode,
+					final CFGEdge edge = CFGEdge.makeEdge(exitNode,
 							conditionNode);
 					exitNode.addForwardEdge(edge);
 					conditionNode.addBackwardEdge(edge);
 				}
 			}
-			
+
 			this.connectCFGBreakStatementNode(statement);
 		}
 	}
@@ -325,7 +323,7 @@ public class CFG {
 			}
 
 			{
-				final CFGControlEdge edge = new CFGControlEdge(conditionNode,
+				final CFGEdge edge = CFGEdge.makeEdge(conditionNode,
 						elseCFG.enterNode, false);
 				conditionNode.addForwardEdge(edge);
 				elseCFG.enterNode.addBackwardEdge(edge);
@@ -365,7 +363,7 @@ public class CFG {
 
 			switch (substatement.category) {
 			case Case: {
-				final CFGEdge edge = new CFGControlEdge(conditionNode,
+				final CFGEdge edge = CFGEdge.makeEdge(conditionNode,
 						subCFG.enterNode, true);
 				conditionNode.addForwardEdge(edge);
 				subCFG.enterNode.addBackwardEdge(edge);
@@ -395,7 +393,7 @@ public class CFG {
 			}
 
 			for (final CFGNode<? extends ProgramElementInfo> anteriorExitNode : anteriorCFG.exitNodes) {
-				final CFGEdge edge = new CFGNormalEdge(anteriorExitNode,
+				final CFGEdge edge = CFGEdge.makeEdge(anteriorExitNode,
 						posteriorCFG.enterNode);
 				anteriorExitNode.addForwardEdge(edge);
 				posteriorCFG.enterNode.addBackwardEdge(edge);
@@ -423,7 +421,7 @@ public class CFG {
 		this.exitNodes.addAll(finallyCFG.exitNodes);
 
 		for (final CFGNode<? extends ProgramElementInfo> sequentialExitNode : sequentialCFGs.exitNodes) {
-			final CFGEdge edge = new CFGNormalEdge(sequentialExitNode,
+			final CFGEdge edge = CFGEdge.makeEdge(sequentialExitNode,
 					finallyCFG.enterNode);
 			sequentialExitNode.addForwardEdge(edge);
 			finallyCFG.enterNode.addBackwardEdge(edge);
@@ -437,7 +435,7 @@ public class CFG {
 
 			this.nodes.addAll(catchCFG.nodes);
 			for (final CFGNode<? extends ProgramElementInfo> catchExitNode : catchCFG.exitNodes) {
-				final CFGEdge edge = new CFGNormalEdge(catchExitNode,
+				final CFGEdge edge = CFGEdge.makeEdge(catchExitNode,
 						finallyCFG.enterNode);
 				catchExitNode.addForwardEdge(edge);
 				finallyCFG.enterNode.addBackwardEdge(edge);
@@ -477,7 +475,7 @@ public class CFG {
 				}
 				for (final CFGNode<? extends ProgramElementInfo> backwardNode : backwardNodes) {
 					for (final CFGNode<? extends ProgramElementInfo> forwardNode : forwardNodes) {
-						final CFGEdge edge = new CFGNormalEdge(backwardNode,
+						final CFGEdge edge = CFGEdge.makeEdge(backwardNode,
 								forwardNode);
 						backwardNode.addForwardEdge(edge);
 						forwardNode.addBackwardEdge(edge);
@@ -488,7 +486,7 @@ public class CFG {
 	}
 
 	private void connectCFGBreakStatementNode(final StatementInfo statement) {
-		
+
 		if (0 < UNHANDLED_BREAK_STATEMENTS.size()) {
 			final CFGBreakStatementNode node = UNHANDLED_BREAK_STATEMENTS
 					.getFirst();
@@ -542,7 +540,7 @@ public class CFG {
 				final CFG anteriorCFG = sequencialCFGs.get(index - 1);
 				final CFG posteriorCFG = sequencialCFGs.get(index);
 				for (final CFGNode<?> exitNode : anteriorCFG.exitNodes) {
-					final CFGEdge edge = new CFGNormalEdge(exitNode,
+					final CFGEdge edge = CFGEdge.makeEdge(exitNode,
 							posteriorCFG.enterNode);
 					exitNode.addForwardEdge(edge);
 					posteriorCFG.enterNode.addBackwardEdge(edge);

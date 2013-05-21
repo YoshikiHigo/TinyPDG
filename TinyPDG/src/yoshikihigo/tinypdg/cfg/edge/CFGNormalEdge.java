@@ -4,7 +4,7 @@ import yoshikihigo.tinypdg.cfg.node.CFGNode;
 
 public class CFGNormalEdge extends CFGEdge {
 
-	public CFGNormalEdge(CFGNode<?> fromNode, final CFGNode<?> toNode) {
+	CFGNormalEdge(CFGNode<?> fromNode, final CFGNode<?> toNode) {
 		super(fromNode, toNode);
 	}
 

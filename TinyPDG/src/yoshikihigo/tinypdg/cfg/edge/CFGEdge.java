@@ -1,14 +1,30 @@
 package yoshikihigo.tinypdg.cfg.edge;
 
+import yoshikihigo.tinypdg.cfg.node.CFGControlNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNode;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 
 public abstract class CFGEdge implements Comparable<CFGEdge> {
 
+	static public CFGEdge makeEdge(final CFGNode<?> fromNode,
+			final CFGNode<?> toNode, boolean control) {
+		assert fromNode instanceof CFGControlNode : "\"fromNode\" is not CFGControlNode.";
+		return new CFGControlEdge(fromNode, toNode, control);
+	}
+
+	static public CFGEdge makeEdge(final CFGNode<?> fromNode,
+			final CFGNode<?> toNode) {
+		if (fromNode instanceof CFGControlNode) {
+			return makeEdge(fromNode, toNode, false);
+		} else {
+			return new CFGNormalEdge(fromNode, toNode);
+		}
+	}
+
 	public final CFGNode<? extends ProgramElementInfo> fromNode;
 	public final CFGNode<? extends ProgramElementInfo> toNode;
 
-	public CFGEdge(final CFGNode<?> fromNode, final CFGNode<?> toNode) {
+	CFGEdge(final CFGNode<?> fromNode, final CFGNode<?> toNode) {
 		if (null == fromNode || null == toNode) {
 			throw new IllegalArgumentException();
 		}
