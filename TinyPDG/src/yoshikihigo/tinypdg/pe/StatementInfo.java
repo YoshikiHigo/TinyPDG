@@ -22,6 +22,8 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo,
 	final private List<StatementInfo> catchStatements;
 	private StatementInfo finallyStatement;
 
+	private String label;
+
 	public StatementInfo(final ProgramElementInfo ownerBlock,
 			final CATEGORY category, final int startLine, final int endLine) {
 
@@ -39,6 +41,8 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo,
 		this.elseStatement = null;
 		this.catchStatements = new ArrayList<StatementInfo>();
 		this.finallyStatement = null;
+
+		this.label = null;
 	}
 
 	public enum CATEGORY {
@@ -209,5 +213,21 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo,
 		}
 
 		return variables;
+	}
+
+	public String getLabel() {
+		return this.label;
+	}
+
+	public void setLabel(final String label) {
+		this.label = label;
+	}
+
+	public String getJumpToLabel() {
+		if (0 == this.expressions.size()) {
+			return null;
+		} else {
+			return this.expressions.get(0).getText();
+		}
 	}
 }

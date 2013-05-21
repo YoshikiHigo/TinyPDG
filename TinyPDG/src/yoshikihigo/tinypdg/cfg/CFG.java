@@ -33,6 +33,8 @@ public class CFG {
 
 	final protected Set<CFGNode<? extends ProgramElementInfo>> exitNodes;
 
+	final static private LinkedList<CFGBreakStatementNode> UNHANDLED_BREAK_STATEMENTS = new LinkedList<CFGBreakStatementNode>();
+
 	protected boolean built;
 
 	public CFG(final ProgramElementInfo core, final CFGNodeFactory nodeFactory) {
@@ -115,7 +117,12 @@ public class CFG {
 				final CFGNode<? extends ProgramElementInfo> node = this.nodeFactory
 						.makeNormalNode(coreStatement);
 				this.enterNode = node;
-				this.exitNodes.add(node);
+				if (StatementInfo.CATEGORY.Break == coreStatement.category) {
+					UNHANDLED_BREAK_STATEMENTS
+							.addFirst((CFGBreakStatementNode) node);
+				} else {
+					this.exitNodes.add(node);
+				}
 				this.nodes.add(node);
 				break;
 			}
@@ -194,6 +201,8 @@ public class CFG {
 				sequentialCFGs.enterNode, true);
 		conditionNode.addForwardEdge(edge);
 		sequentialCFGs.enterNode.addBackwardEdge(edge);
+		
+		this.connectCFGBreakStatementNode(statement);
 	}
 
 	private void buildForBlockCFG(final StatementInfo statement) {
@@ -232,22 +241,22 @@ public class CFG {
 			conditionNode.addForwardEdge(controlEdge);
 			sequentialCFGs.enterNode.addBackwardEdge(controlEdge);
 		}
+
 		for (final CFGNode<? extends ProgramElementInfo> sequentialExitNode : sequentialCFGs.exitNodes) {
-			if (sequentialExitNode instanceof CFGBreakStatementNode) {
-				this.exitNodes.add(sequentialExitNode);
-			} else {
-				final CFGEdge edge = new CFGNormalEdge(sequentialExitNode,
-						updaterCFGs.enterNode);
-				sequentialExitNode.addForwardEdge(edge);
-				updaterCFGs.enterNode.addBackwardEdge(edge);
-			}
+			final CFGEdge edge = new CFGNormalEdge(sequentialExitNode,
+					updaterCFGs.enterNode);
+			sequentialExitNode.addForwardEdge(edge);
+			updaterCFGs.enterNode.addBackwardEdge(edge);
 		}
+
 		for (final CFGNode<? extends ProgramElementInfo> updaterExitNode : updaterCFGs.exitNodes) {
 			final CFGEdge edge = new CFGNormalEdge(updaterExitNode,
 					conditionNode);
 			updaterExitNode.addForwardEdge(edge);
 			conditionNode.addBackwardEdge(edge);
 		}
+
+		this.connectCFGBreakStatementNode(statement);
 	}
 
 	private void buildConditionalBlockCFG(final StatementInfo statement,
@@ -290,6 +299,8 @@ public class CFG {
 					conditionNode.addBackwardEdge(edge);
 				}
 			}
+			
+			this.connectCFGBreakStatementNode(statement);
 		}
 	}
 
@@ -472,6 +483,33 @@ public class CFG {
 						forwardNode.addBackwardEdge(edge);
 					}
 				}
+			}
+		}
+	}
+
+	private void connectCFGBreakStatementNode(final StatementInfo statement) {
+		
+		if (0 < UNHANDLED_BREAK_STATEMENTS.size()) {
+			final CFGBreakStatementNode node = UNHANDLED_BREAK_STATEMENTS
+					.getFirst();
+			final StatementInfo breakStatement = (StatementInfo) node.core;
+			if (null == breakStatement.getJumpToLabel()) {
+				this.exitNodes.add(node);
+				UNHANDLED_BREAK_STATEMENTS.removeFirst();
+			}
+		}
+
+		final Iterator<CFGBreakStatementNode> iterator = UNHANDLED_BREAK_STATEMENTS
+				.iterator();
+		while (iterator.hasNext()) {
+			final CFGBreakStatementNode node = iterator.next();
+			final StatementInfo breakStatement = (StatementInfo) node.core;
+			final String label = breakStatement.getJumpToLabel();
+			if ((null != statement.getLabel())
+					&& (statement.getLabel().equals(label))) {
+				this.exitNodes.add(node);
+				iterator.remove();
+				continue;
 			}
 		}
 	}

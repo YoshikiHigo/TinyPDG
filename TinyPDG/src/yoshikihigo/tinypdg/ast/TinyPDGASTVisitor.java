@@ -38,6 +38,7 @@ import org.eclipse.jdt.core.dom.ForStatement;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.InstanceofExpression;
+import org.eclipse.jdt.core.dom.LabeledStatement;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.NullLiteral;
@@ -1385,4 +1386,17 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 		return false;
 	}
 
+	@Override
+	public boolean visit(final LabeledStatement node) {
+
+		node.getBody().accept(this);
+
+		final ProgramElementInfo ownerBlock = this.stack.peek();
+		final List<StatementInfo> statements = ((BlockInfo) ownerBlock)
+				.getStatements();
+		statements.get(statements.size() - 1).setLabel(
+				node.getLabel().toString());
+
+		return false;
+	}
 }

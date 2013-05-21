@@ -2,7 +2,8 @@ package yoshikihigo.tinypdg.pe;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-abstract public class ProgramElementInfo {
+abstract public class ProgramElementInfo implements
+		Comparable<ProgramElementInfo> {
 
 	final static private AtomicInteger ID_GENERATOR = new AtomicInteger(0);
 
@@ -41,5 +42,17 @@ abstract public class ProgramElementInfo {
 	final public void setText(final String text) {
 		assert null != text : "\"text\" is null.";
 		this.text = text;
+	}
+
+	@Override
+	public int compareTo(final ProgramElementInfo element) {
+		assert null != element : "\"element\" is null.";
+		if (this.id < element.id) {
+			return -1;
+		} else if (this.id > element.id) {
+			return 1;
+		} else {
+			return 0;
+		}
 	}
 }
