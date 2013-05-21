@@ -2,7 +2,7 @@ package yoshikihigo.tinypdg.cfg.node;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -87,6 +87,34 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 		return this.backwardEdges.removeAll(backwardEdges);
 	}
 
+	public boolean removeForwardNode(
+			final CFGNode<? extends ProgramElementInfo> node) {
+		assert null != node : "\"node\" is null.";
+		final Iterator<CFGEdge> iterator = this.forwardEdges.iterator();
+		while (iterator.hasNext()) {
+			final CFGEdge edge = iterator.next();
+			if (0 == edge.toNode.compareTo(node)) {
+				iterator.remove();
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public boolean removeBackwardNode(
+			final CFGNode<? extends ProgramElementInfo> node) {
+		assert null != node : "\"node\" is null.";
+		final Iterator<CFGEdge> iterator = this.backwardEdges.iterator();
+		while (iterator.hasNext()) {
+			final CFGEdge edge = iterator.next();
+			if (0 == edge.fromNode.compareTo(node)) {
+				iterator.remove();
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public SortedSet<CFGNode<? extends ProgramElementInfo>> getForwardNodes() {
 		final SortedSet<CFGNode<? extends ProgramElementInfo>> forwardNodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
 		for (final CFGEdge forwardEdge : this.getForwardEdges()) {
@@ -99,8 +127,8 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 		return Collections.unmodifiableSortedSet(this.forwardEdges);
 	}
 
-	public Set<CFGNode<? extends ProgramElementInfo>> getBackwardNodes() {
-		final Set<CFGNode<? extends ProgramElementInfo>> backwardNodes = new HashSet<CFGNode<? extends ProgramElementInfo>>();
+	public SortedSet<CFGNode<? extends ProgramElementInfo>> getBackwardNodes() {
+		final SortedSet<CFGNode<? extends ProgramElementInfo>> backwardNodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
 		for (final CFGEdge backwardEdge : this.getBackwardEdges()) {
 			backwardNodes.add(backwardEdge.fromNode);
 		}

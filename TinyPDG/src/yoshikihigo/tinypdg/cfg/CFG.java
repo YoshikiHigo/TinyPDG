@@ -1,6 +1,7 @@
 package yoshikihigo.tinypdg.cfg;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -10,8 +11,10 @@ import java.util.TreeSet;
 import yoshikihigo.tinypdg.cfg.edge.CFGControlEdge;
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
 import yoshikihigo.tinypdg.cfg.edge.CFGNormalEdge;
+import yoshikihigo.tinypdg.cfg.node.CFGBreakStatementNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
+import yoshikihigo.tinypdg.cfg.node.CFGPseudoNode;
 import yoshikihigo.tinypdg.pe.BlockInfo;
 import yoshikihigo.tinypdg.pe.ExpressionInfo;
 import yoshikihigo.tinypdg.pe.MethodInfo;
@@ -135,6 +138,10 @@ public class CFG {
 		else {
 			assert false : "unexpected state.";
 		}
+
+		if (null != this.core) {
+			this.removePseudoNodes();
+		}
 	}
 
 	// private LinkedList<CFG> buildSequencialCFGs(
@@ -225,11 +232,15 @@ public class CFG {
 			conditionNode.addForwardEdge(controlEdge);
 			sequentialCFGs.enterNode.addBackwardEdge(controlEdge);
 		}
-		for (final CFGNode<? extends ProgramElementInfo> sequencialExitNode : sequentialCFGs.exitNodes) {
-			final CFGEdge edge = new CFGNormalEdge(sequencialExitNode,
-					updaterCFGs.enterNode);
-			sequencialExitNode.addForwardEdge(edge);
-			updaterCFGs.enterNode.addBackwardEdge(edge);
+		for (final CFGNode<? extends ProgramElementInfo> sequentialExitNode : sequentialCFGs.exitNodes) {
+			if (sequentialExitNode instanceof CFGBreakStatementNode) {
+				this.exitNodes.add(sequentialExitNode);
+			} else {
+				final CFGEdge edge = new CFGNormalEdge(sequentialExitNode,
+						updaterCFGs.enterNode);
+				sequentialExitNode.addForwardEdge(edge);
+				updaterCFGs.enterNode.addBackwardEdge(edge);
+			}
 		}
 		for (final CFGNode<? extends ProgramElementInfo> updaterExitNode : updaterCFGs.exitNodes) {
 			final CFGEdge edge = new CFGNormalEdge(updaterExitNode,
@@ -256,6 +267,9 @@ public class CFG {
 			this.exitNodes.add(conditionNode);
 		} else {
 			this.exitNodes.addAll(sequentialCFGs.exitNodes);
+			if (0 == substatements.size()) {
+				this.exitNodes.add(conditionNode);
+			}
 		}
 
 		{
@@ -267,9 +281,14 @@ public class CFG {
 
 		if (loop) {
 			for (final CFGNode<?> exitNode : sequentialCFGs.exitNodes) {
-				final CFGEdge edge = new CFGNormalEdge(exitNode, conditionNode);
-				exitNode.addForwardEdge(edge);
-				conditionNode.addBackwardEdge(edge);
+				if (exitNode instanceof CFGBreakStatementNode) {
+					this.exitNodes.add(exitNode);
+				} else {
+					final CFGEdge edge = new CFGNormalEdge(exitNode,
+							conditionNode);
+					exitNode.addForwardEdge(edge);
+					conditionNode.addBackwardEdge(edge);
+				}
 			}
 		}
 	}
@@ -278,23 +297,32 @@ public class CFG {
 
 		this.buildConditionalBlockCFG(statement, false);
 
-		final List<StatementInfo> elseStatements = statement.getElseStatement()
-				.getStatements();
-		final SequentialCFGs elseCFG = new SequentialCFGs(elseStatements);
-		elseCFG.build();
-
 		final ExpressionInfo condition = statement.getCondition();
 		final CFGNode<? extends ProgramElementInfo> conditionNode = this.nodeFactory
 				.makeControlNode(condition);
 
-		this.nodes.addAll(elseCFG.nodes);
-		this.exitNodes.addAll(elseCFG.exitNodes);
+		if (null != statement.getElseStatement()) {
+			final List<StatementInfo> elseStatements = statement
+					.getElseStatement().getStatements();
+			final SequentialCFGs elseCFG = new SequentialCFGs(elseStatements);
+			elseCFG.build();
 
-		{
-			final CFGControlEdge edge = new CFGControlEdge(conditionNode,
-					elseCFG.enterNode, false);
-			conditionNode.addForwardEdge(edge);
-			elseCFG.enterNode.addBackwardEdge(edge);
+			this.nodes.addAll(elseCFG.nodes);
+			this.exitNodes.addAll(elseCFG.exitNodes);
+			if (0 == elseStatements.size()) {
+				this.exitNodes.add(conditionNode);
+			}
+
+			{
+				final CFGControlEdge edge = new CFGControlEdge(conditionNode,
+						elseCFG.enterNode, false);
+				conditionNode.addForwardEdge(edge);
+				elseCFG.enterNode.addBackwardEdge(edge);
+			}
+		}
+
+		else {
+			this.exitNodes.add(conditionNode);
 		}
 	}
 
@@ -402,6 +430,48 @@ public class CFG {
 						finallyCFG.enterNode);
 				catchExitNode.addForwardEdge(edge);
 				finallyCFG.enterNode.addBackwardEdge(edge);
+			}
+		}
+	}
+
+	private void removePseudoNodes() {
+
+		final Iterator<CFGNode<? extends ProgramElementInfo>> iterator = this.nodes
+				.iterator();
+		while (iterator.hasNext()) {
+
+			final CFGNode<? extends ProgramElementInfo> node = iterator.next();
+			if (node instanceof CFGPseudoNode) {
+
+				iterator.remove();
+
+				if (0 == node.compareTo(this.enterNode)) {
+					this.enterNode = this.enterNode.getForwardNodes().first();
+				}
+
+				if (this.exitNodes.contains(node)) {
+					this.exitNodes.addAll(node.getBackwardNodes());
+					this.exitNodes.remove(node);
+				}
+
+				final SortedSet<CFGNode<? extends ProgramElementInfo>> backwardNodes = node
+						.getBackwardNodes();
+				final SortedSet<CFGNode<? extends ProgramElementInfo>> forwardNodes = node
+						.getForwardNodes();
+				for (final CFGNode<? extends ProgramElementInfo> backwardNode : backwardNodes) {
+					backwardNode.removeForwardNode(node);
+				}
+				for (final CFGNode<? extends ProgramElementInfo> forwardNode : forwardNodes) {
+					forwardNode.removeBackwardNode(node);
+				}
+				for (final CFGNode<? extends ProgramElementInfo> backwardNode : backwardNodes) {
+					for (final CFGNode<? extends ProgramElementInfo> forwardNode : forwardNodes) {
+						final CFGEdge edge = new CFGNormalEdge(backwardNode,
+								forwardNode);
+						backwardNode.addForwardEdge(edge);
+						forwardNode.addBackwardEdge(edge);
+					}
+				}
 			}
 		}
 	}
