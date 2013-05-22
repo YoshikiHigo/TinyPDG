@@ -1,6 +1,7 @@
 package yoshikihigo.tinypdg.pe;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.SortedSet;
@@ -9,16 +10,16 @@ import java.util.TreeSet;
 public class StatementInfo extends ProgramElementInfo implements BlockInfo,
 		VariableAssignmentAndReference {
 
-	final public ProgramElementInfo ownerBlock;
-	final public CATEGORY category;
-	final public List<ExpressionInfo> expressions;
+	private ProgramElementInfo ownerBlock;
+	private CATEGORY category;
+	private List<ExpressionInfo> expressions;
 
 	final private List<ExpressionInfo> initializers;
 	private ExpressionInfo condition;
 	final private List<ExpressionInfo> updaters;
 
 	final private List<StatementInfo> statements;
-	private StatementInfo elseStatement;
+	private List<StatementInfo> elseStatements;
 	final private List<StatementInfo> catchStatements;
 	private StatementInfo finallyStatement;
 
@@ -38,7 +39,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo,
 		this.updaters = new ArrayList<ExpressionInfo>();
 
 		this.statements = new ArrayList<StatementInfo>();
-		this.elseStatement = null;
+		this.elseStatements = new ArrayList<StatementInfo>();
 		this.catchStatements = new ArrayList<StatementInfo>();
 		this.finallyStatement = null;
 
@@ -48,9 +49,9 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo,
 	public enum CATEGORY {
 
 		Assert("ASSERT"), Break("BREAK"), Case("CASE"), Catch("CATCH"), Continue(
-				"CONTINUE"), Do("DO"), Else("ELSE"), Expression("EXPRESSION"), Finally(
-				"FINALLY"), If("IF"), For("FOR"), Foreach("FOREACH"), Return(
-				"RETURN"), Synchronized("SYNCHRONIZED"), Switch("SWITCH"), Throw(
+				"CONTINUE"), Do("DO"), Expression("EXPRESSION"), If("IF"), For(
+				"FOR"), Foreach("FOREACH"), Return("RETURN"), SimpleBlock(
+				"SimpleBlock"), Synchronized("SYNCHRONIZED"), Switch("SWITCH"), Throw(
 				"SWITCH"), Try("TRY"), VariableDeclaration(
 				"VARIABLEDECLARATION"), While("WHILE");
 
@@ -59,6 +60,24 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo,
 		CATEGORY(final String id) {
 			this.id = id;
 		}
+	}
+
+	public ProgramElementInfo getOwnerBlock() {
+		return this.ownerBlock;
+	}
+
+	public void setOwnerBlock(final ProgramElementInfo ownerBlock) {
+		assert null != "\"ownerBlock\" is null.";
+		this.ownerBlock = ownerBlock;
+	}
+
+	public CATEGORY getCategory() {
+		return this.category;
+	}
+
+	public void setCategory(final CATEGORY category) {
+		assert null != "\"category\" is null.";
+		this.category = category;
 	}
 
 	public void addInitializer(final ExpressionInfo initializer) {
@@ -89,9 +108,26 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo,
 	}
 
 	@Override
+	public void setStatement(final StatementInfo statement) {
+		assert null != statement : "\"statement\" is null.";
+		this.statements.clear();
+		if (StatementInfo.CATEGORY.SimpleBlock == statement.getCategory()) {
+			this.statements.addAll(statement.getStatements());
+		} else {
+			this.statements.add(statement);
+		}
+	}
+
+	@Override
 	public void addStatement(final StatementInfo statement) {
 		assert null != statement : "\"statement\" is null.";
 		this.statements.add(statement);
+	}
+
+	@Override
+	public void addStatements(final Collection<StatementInfo> statements) {
+		assert null != statements : "\"statements\" is null.";
+		this.statements.addAll(statements);
 	}
 
 	@Override
@@ -99,13 +135,18 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo,
 		return Collections.unmodifiableList(this.statements);
 	}
 
-	public void setElseStatement(final StatementInfo elseStatement) {
-		assert null != elseStatement : "\"elseStatement\" is null.";
-		this.elseStatement = elseStatement;
+	public void setElseStatement(final StatementInfo elseBody) {
+		assert null != elseBody : "\"elseStatement\" is null.";
+		this.elseStatements.clear();
+		if (StatementInfo.CATEGORY.SimpleBlock == elseBody.getCategory()) {
+			this.elseStatements.addAll(elseBody.getStatements());
+		} else {
+			this.elseStatements.add(elseBody);
+		}
 	}
 
-	public StatementInfo getElseStatement() {
-		return this.elseStatement;
+	public List<StatementInfo> getElseStatement() {
+		return Collections.unmodifiableList(this.elseStatements);
 	}
 
 	public void addCatchStatement(final StatementInfo catchStatement) {
@@ -160,8 +201,8 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo,
 			variables.addAll(statement.getAssignedVariables());
 		}
 
-		if (null != this.elseStatement) {
-			variables.addAll(this.elseStatement.getAssignedVariables());
+		for (final StatementInfo statement : this.elseStatements) {
+			variables.addAll(statement.getAssignedVariables());
 		}
 
 		for (final StatementInfo catchStatement : this.catchStatements) {
@@ -200,8 +241,8 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo,
 			variables.addAll(statement.getReferencedVariables());
 		}
 
-		if (null != this.elseStatement) {
-			variables.addAll(this.elseStatement.getReferencedVariables());
+		for (final StatementInfo statement : this.elseStatements) {
+			variables.addAll(statement.getReferencedVariables());
 		}
 
 		for (final StatementInfo catchStatement : this.catchStatements) {

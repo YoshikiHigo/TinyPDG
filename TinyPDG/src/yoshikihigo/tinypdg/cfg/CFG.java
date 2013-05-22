@@ -86,15 +86,12 @@ public class CFG {
 
 		else if (this.core instanceof StatementInfo) {
 			final StatementInfo coreStatement = (StatementInfo) this.core;
-			switch (coreStatement.category) {
+			switch (coreStatement.getCategory()) {
 			case Catch:
 				this.buildConditionalBlockCFG(coreStatement, false);
 				break;
 			case Do:
 				this.buildDoBlockCFG(coreStatement);
-				break;
-			case Finally:
-				this.buildSimpleBlockCFG(coreStatement);
 				break;
 			case For:
 				this.buildForBlockCFG(coreStatement);
@@ -121,10 +118,11 @@ public class CFG {
 				final CFGNode<? extends ProgramElementInfo> node = this.nodeFactory
 						.makeNormalNode(coreStatement);
 				this.enterNode = node;
-				if (StatementInfo.CATEGORY.Break == coreStatement.category) {
+				if (StatementInfo.CATEGORY.Break == coreStatement.getCategory()) {
 					this.unhandledBreakStatementNodes
 							.addFirst((CFGBreakStatementNode) node);
-				} else if (StatementInfo.CATEGORY.Continue == coreStatement.category) {
+				} else if (StatementInfo.CATEGORY.Continue == coreStatement
+						.getCategory()) {
 					this.unhandledContinueStatementNodes
 							.addFirst((CFGContinueStatementNode) node);
 				} else {
@@ -242,6 +240,8 @@ public class CFG {
 		this.nodes.addAll(updaterCFGs.nodes);
 		this.unhandledBreakStatementNodes
 				.addAll(sequentialCFGs.unhandledBreakStatementNodes);
+		this.unhandledContinueStatementNodes
+				.addAll(sequentialCFGs.unhandledContinueStatementNodes);
 
 		for (final CFGNode<? extends ProgramElementInfo> initializerExitNode : initializerCFGs.exitNodes) {
 			final CFGEdge edge = CFGEdge.makeEdge(initializerExitNode,
@@ -334,7 +334,7 @@ public class CFG {
 
 		if (null != statement.getElseStatement()) {
 			final List<StatementInfo> elseStatements = statement
-					.getElseStatement().getStatements();
+					.getElseStatement();
 			final SequentialCFGs elseCFG = new SequentialCFGs(elseStatements);
 			elseCFG.build();
 
@@ -395,7 +395,7 @@ public class CFG {
 			this.unhandledContinueStatementNodes
 					.addAll(subCFG.unhandledContinueStatementNodes);
 
-			switch (substatement.category) {
+			switch (substatement.getCategory()) {
 			case Case: {
 				final CFGEdge edge = CFGEdge.makeEdge(conditionNode,
 						subCFG.enterNode, true);
@@ -418,7 +418,7 @@ public class CFG {
 
 			final ProgramElementInfo anteriorCore = anteriorCFG.core;
 			if (anteriorCore instanceof StatementInfo) {
-				switch (((StatementInfo) anteriorCore).category) {
+				switch (((StatementInfo) anteriorCore).getCategory()) {
 				case Break:
 				case Continue:
 					continue CFG;
@@ -437,6 +437,7 @@ public class CFG {
 		this.exitNodes
 				.addAll(sequentialCFGs.get(sequentialCFGs.size() - 1).exitNodes);
 
+		this.connectCFGBreakStatementNode(statement);
 	}
 
 	private void buildTryBlockCFG(final StatementInfo statement) {
@@ -493,7 +494,12 @@ public class CFG {
 				iterator.remove();
 
 				if (0 == node.compareTo(this.enterNode)) {
-					this.enterNode = this.enterNode.getForwardNodes().first();
+					if (0 < this.enterNode.getForwardEdges().size()) {
+						this.enterNode = this.enterNode.getForwardNodes()
+								.first();
+					} else {
+						this.enterNode = null;
+					}
 				}
 
 				if (this.exitNodes.contains(node)) {

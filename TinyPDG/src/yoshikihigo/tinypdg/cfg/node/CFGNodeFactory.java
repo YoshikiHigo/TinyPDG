@@ -27,7 +27,7 @@ public class CFGNodeFactory {
 		CFGNormalNode node = (CFGNormalNode) this.elementToNodeMap.get(element);
 		if (null == node) {
 			if (element instanceof StatementInfo) {
-				switch (((StatementInfo) element).category) {
+				switch (((StatementInfo) element).getCategory()) {
 				case Break:
 					node = new CFGBreakStatementNode((StatementInfo) element);
 					break;

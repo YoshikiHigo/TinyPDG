@@ -4,14 +4,25 @@ import yoshikihigo.tinypdg.cfg.node.CFGBreakStatementNode;
 import yoshikihigo.tinypdg.cfg.node.CFGContinueStatementNode;
 import yoshikihigo.tinypdg.cfg.node.CFGControlNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNode;
+import yoshikihigo.tinypdg.cfg.node.CFGPseudoNode;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 
 public abstract class CFGEdge implements Comparable<CFGEdge> {
 
 	static public CFGEdge makeEdge(final CFGNode<?> fromNode,
 			final CFGNode<?> toNode, boolean control) {
-		assert fromNode instanceof CFGControlNode : "\"fromNode\" is not CFGControlNode.";
-		return new CFGControlEdge(fromNode, toNode, control);
+		assert fromNode instanceof CFGControlNode
+				|| fromNode instanceof CFGPseudoNode : "\"fromNode\" is neither CFGControlNode nor CFGPseudoNode.";
+
+		if (fromNode instanceof CFGControlNode) {
+			return new CFGControlEdge(fromNode, toNode, control);
+		}
+
+		if (fromNode instanceof CFGPseudoNode) {
+			return new CFGNormalEdge(fromNode, toNode);
+		}
+
+		return null;
 	}
 
 	static public CFGEdge makeEdge(final CFGNode<?> fromNode,

@@ -22,6 +22,6 @@ label = "method <5...15>";
 0.6 -> 0.5 [style = solid, label=""];
 0.7 -> 0.6 [style = solid, label="false"];
 0.7 -> 0.8 [style = solid, label="true"];
-0.8 -> 0.3 [style = solid, label=""];
+0.8 -> 0.3 [style = solid, label="jump"];
 }
 }

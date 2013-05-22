@@ -11,12 +11,14 @@ public class ExpressionInfo extends ProgramElementInfo implements
 
 	final public CATEGORY category;
 	final private List<ExpressionInfo> expressions;
+	private ClassInfo anonymousClassDeclaration;
 
 	public ExpressionInfo(final CATEGORY category, final int startLine,
 			final int endLine) {
 		super(startLine, endLine);
 		this.category = category;
 		this.expressions = new ArrayList<ExpressionInfo>();
+		this.anonymousClassDeclaration = null;
 	}
 
 	public enum CATEGORY {
@@ -53,6 +55,16 @@ public class ExpressionInfo extends ProgramElementInfo implements
 		return Collections.unmodifiableList(this.expressions);
 	}
 
+	public void setAnonymousClassDeclaration(
+			final ClassInfo anonymousClassDeclaration) {
+		assert null != anonymousClassDeclaration : "\"anonymousClassDeclaration\" is null.";
+		this.anonymousClassDeclaration = anonymousClassDeclaration;
+	}
+
+	public ClassInfo getAnonymousClassDeclaration() {
+		return this.anonymousClassDeclaration;
+	}
+
 	@Override
 	public SortedSet<String> getAssignedVariables() {
 
@@ -76,6 +88,12 @@ public class ExpressionInfo extends ProgramElementInfo implements
 			for (final ExpressionInfo expression : this.expressions) {
 				variables.addAll(expression.getAssignedVariables());
 			}
+			if (null != this.getAnonymousClassDeclaration()) {
+				for (final MethodInfo method : this
+						.getAnonymousClassDeclaration().getMethods()) {
+					variables.addAll(method.getAssignedVariables());
+				}
+			}
 			break;
 		}
 		return variables;
@@ -97,6 +115,12 @@ public class ExpressionInfo extends ProgramElementInfo implements
 		default:
 			for (final ExpressionInfo expression : this.expressions) {
 				variables.addAll(expression.getReferencedVariables());
+			}
+			if (null != this.getAnonymousClassDeclaration()) {
+				for (final MethodInfo method : this
+						.getAnonymousClassDeclaration().getMethods()) {
+					variables.addAll(method.getReferencedVariables());
+				}
 			}
 			break;
 		}

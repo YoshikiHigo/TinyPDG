@@ -1,15 +1,15 @@
 package yoshikihigo.tinypdg.pe;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
-public class MethodInfo extends ProgramElementInfo implements BlockInfo {
+public class MethodInfo extends ProgramElementInfo implements BlockInfo,
+		VariableAssignmentAndReference {
 
-	static final private AtomicInteger ID_Generator = new AtomicInteger(0);
-
-	final public int id;
 	final public String path;
 	final public String name;
 	final private List<VariableInfo> parameters;
@@ -20,7 +20,6 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 
 		super(startLine, endLine);
 
-		this.id = ID_Generator.getAndIncrement();
 		this.path = path;
 		this.name = name;
 		this.parameters = new ArrayList<VariableInfo>();
@@ -33,13 +32,49 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 	}
 
 	@Override
+	public void setStatement(final StatementInfo statement) {
+		assert null != statement : "\"statement\" is null.";
+		this.statements.clear();
+		if (StatementInfo.CATEGORY.SimpleBlock == statement.getCategory()) {
+			this.statements.addAll(statement.getStatements());
+		} else {
+			this.statements.add(statement);
+		}
+	}
+
+	@Override
 	public void addStatement(final StatementInfo statement) {
 		assert null != statement : "\"statement\" is null.";
 		this.statements.add(statement);
 	}
 
 	@Override
+	public void addStatements(final Collection<StatementInfo> statements) {
+		assert null != statements : "\"statements\" is null.";
+		this.statements.addAll(statements);
+	}
+
+	@Override
 	public List<StatementInfo> getStatements() {
 		return Collections.unmodifiableList(this.statements);
 	}
+
+	@Override
+	public SortedSet<String> getAssignedVariables() {
+		final SortedSet<String> variables = new TreeSet<String>();
+		for (final StatementInfo statement : this.statements) {
+			variables.addAll(statement.getAssignedVariables());
+		}
+		return variables;
+	}
+
+	@Override
+	public SortedSet<String> getReferencedVariables() {
+		final SortedSet<String> variables = new TreeSet<String>();
+		for (final StatementInfo statement : this.statements) {
+			variables.addAll(statement.getReferencedVariables());
+		}
+		return variables;
+	}
+
 }
