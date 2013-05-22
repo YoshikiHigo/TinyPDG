@@ -1,5 +1,7 @@
 package yoshikihigo.tinypdg.cfg.edge;
 
+import yoshikihigo.tinypdg.cfg.node.CFGBreakStatementNode;
+import yoshikihigo.tinypdg.cfg.node.CFGContinueStatementNode;
 import yoshikihigo.tinypdg.cfg.node.CFGControlNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNode;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
@@ -16,6 +18,9 @@ public abstract class CFGEdge implements Comparable<CFGEdge> {
 			final CFGNode<?> toNode) {
 		if (fromNode instanceof CFGControlNode) {
 			return makeEdge(fromNode, toNode, false);
+		} else if (fromNode instanceof CFGBreakStatementNode
+				|| fromNode instanceof CFGContinueStatementNode) {
+			return new CFGJumpEdge(fromNode, toNode);
 		} else {
 			return new CFGNormalEdge(fromNode, toNode);
 		}
