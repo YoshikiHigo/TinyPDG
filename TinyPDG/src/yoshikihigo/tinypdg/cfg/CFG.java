@@ -31,7 +31,7 @@ public class CFG {
 
 	final protected Set<CFGNode<? extends ProgramElementInfo>> exitNodes;
 
-	final static private LinkedList<CFGBreakStatementNode> UNHANDLED_BREAK_STATEMENTS = new LinkedList<CFGBreakStatementNode>();
+	final protected LinkedList<CFGBreakStatementNode> unhandledBreakStatementNodes;
 
 	protected boolean built;
 
@@ -43,6 +43,8 @@ public class CFG {
 		this.enterNode = null;
 		this.exitNodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
 		this.built = false;
+
+		this.unhandledBreakStatementNodes = new LinkedList<CFGBreakStatementNode>();
 	}
 
 	public boolean isEmpty() {
@@ -116,7 +118,7 @@ public class CFG {
 						.makeNormalNode(coreStatement);
 				this.enterNode = node;
 				if (StatementInfo.CATEGORY.Break == coreStatement.category) {
-					UNHANDLED_BREAK_STATEMENTS
+					unhandledBreakStatementNodes
 							.addFirst((CFGBreakStatementNode) node);
 				} else {
 					this.exitNodes.add(node);
@@ -189,6 +191,8 @@ public class CFG {
 		this.nodes.addAll(sequentialCFGs.nodes);
 		this.nodes.add(conditionNode);
 		this.exitNodes.add(conditionNode);
+		this.unhandledBreakStatementNodes
+				.addAll(sequentialCFGs.unhandledBreakStatementNodes);
 
 		for (final CFGNode<?> exitNode : sequentialCFGs.exitNodes) {
 			final CFGEdge edge = CFGEdge.makeEdge(exitNode, conditionNode);
@@ -226,6 +230,8 @@ public class CFG {
 		this.nodes.addAll(initializerCFGs.nodes);
 		this.nodes.add(conditionNode);
 		this.nodes.addAll(updaterCFGs.nodes);
+		this.unhandledBreakStatementNodes
+				.addAll(sequentialCFGs.unhandledBreakStatementNodes);
 
 		for (final CFGNode<? extends ProgramElementInfo> initializerExitNode : initializerCFGs.exitNodes) {
 			final CFGEdge edge = CFGEdge.makeEdge(initializerExitNode,
@@ -278,6 +284,8 @@ public class CFG {
 				this.exitNodes.add(conditionNode);
 			}
 		}
+		this.unhandledBreakStatementNodes
+				.addAll(sequentialCFGs.unhandledBreakStatementNodes);
 
 		{
 			final CFGEdge edge = CFGEdge.makeEdge(conditionNode,
@@ -328,6 +336,8 @@ public class CFG {
 				conditionNode.addForwardEdge(edge);
 				elseCFG.enterNode.addBackwardEdge(edge);
 			}
+			this.unhandledBreakStatementNodes
+					.addAll(elseCFG.unhandledBreakStatementNodes);
 		}
 
 		else {
@@ -343,6 +353,8 @@ public class CFG {
 		this.enterNode = sequentialCFGs.enterNode;
 		this.exitNodes.addAll(sequentialCFGs.exitNodes);
 		this.nodes.addAll(sequentialCFGs.nodes);
+		this.unhandledBreakStatementNodes
+				.addAll(sequentialCFGs.unhandledBreakStatementNodes);
 	}
 
 	private void buildSwitchBlockCFG(final StatementInfo statement) {
@@ -360,6 +372,8 @@ public class CFG {
 			subCFG.build();
 			sequentialCFGs.add(subCFG);
 			this.nodes.addAll(subCFG.nodes);
+			this.unhandledBreakStatementNodes
+					.addAll(subCFG.unhandledBreakStatementNodes);
 
 			switch (substatement.category) {
 			case Case: {
@@ -419,6 +433,8 @@ public class CFG {
 		this.nodes.addAll(sequentialCFGs.nodes);
 		this.nodes.addAll(finallyCFG.exitNodes);
 		this.exitNodes.addAll(finallyCFG.exitNodes);
+		this.unhandledBreakStatementNodes
+				.addAll(sequentialCFGs.unhandledBreakStatementNodes);
 
 		for (final CFGNode<? extends ProgramElementInfo> sequentialExitNode : sequentialCFGs.exitNodes) {
 			final CFGEdge edge = CFGEdge.makeEdge(sequentialExitNode,
@@ -487,27 +503,24 @@ public class CFG {
 
 	private void connectCFGBreakStatementNode(final StatementInfo statement) {
 
-		if (0 < UNHANDLED_BREAK_STATEMENTS.size()) {
-			final CFGBreakStatementNode node = UNHANDLED_BREAK_STATEMENTS
-					.getFirst();
-			final StatementInfo breakStatement = (StatementInfo) node.core;
-			if (null == breakStatement.getJumpToLabel()) {
-				this.exitNodes.add(node);
-				UNHANDLED_BREAK_STATEMENTS.removeFirst();
-			}
-		}
-
-		final Iterator<CFGBreakStatementNode> iterator = UNHANDLED_BREAK_STATEMENTS
+		final Iterator<CFGBreakStatementNode> iterator = unhandledBreakStatementNodes
 				.iterator();
 		while (iterator.hasNext()) {
 			final CFGBreakStatementNode node = iterator.next();
 			final StatementInfo breakStatement = (StatementInfo) node.core;
 			final String label = breakStatement.getJumpToLabel();
-			if ((null != statement.getLabel())
-					&& (statement.getLabel().equals(label))) {
+
+			if (null == label) {
 				this.exitNodes.add(node);
 				iterator.remove();
-				continue;
+			}
+
+			else {
+
+				if (label.equals(statement.getLabel())) {
+					this.exitNodes.add(node);
+					iterator.remove();
+				}
 			}
 		}
 	}
@@ -556,6 +569,8 @@ public class CFG {
 			this.exitNodes.addAll(sequencialCFGs.getLast().exitNodes);
 			for (final CFG cfg : sequencialCFGs) {
 				this.nodes.addAll(cfg.nodes);
+				this.unhandledBreakStatementNodes
+						.addAll(cfg.unhandledBreakStatementNodes);
 			}
 		}
 	}
