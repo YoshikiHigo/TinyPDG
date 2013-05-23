@@ -184,6 +184,7 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 
 		final StringBuilder text = new StringBuilder();
 		for (final Object modifier : node.modifiers()) {
+			method.addModifier(modifier.toString());
 			text.append(modifier.toString());
 			text.append(" ");
 		}
