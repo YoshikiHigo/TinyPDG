@@ -333,7 +333,7 @@ public class PDG {
 			final ExpressionInfo condition = statement.getCondition();
 			if (null != condition) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
-						.makeNode(statement);
+						.makeNode(condition);
 				this.allNodes.add(toPDGNode);
 				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
 						fromPDGNode, toPDGNode, type);

@@ -197,6 +197,7 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 			((ASTNode) o).accept(this);
 			final VariableInfo parameter = (VariableInfo) this.stack.pop();
 			parameter.setCategory(VariableInfo.CATEGORY.PARAMETER);
+			method.addParameter(parameter);
 			text.append(parameter.getText());
 			text.append(",");
 		}
