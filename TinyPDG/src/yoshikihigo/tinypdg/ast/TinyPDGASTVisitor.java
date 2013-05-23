@@ -51,6 +51,7 @@ import org.eclipse.jdt.core.dom.PrefixExpression;
 import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
+import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
 import org.eclipse.jdt.core.dom.SuperFieldAccess;
@@ -76,6 +77,7 @@ import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 import yoshikihigo.tinypdg.pe.StatementInfo;
 import yoshikihigo.tinypdg.pe.TypeInfo;
+import yoshikihigo.tinypdg.pe.VariableInfo;
 
 public class TinyPDGASTVisitor extends NaiveASTFlattener {
 
@@ -161,7 +163,6 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 			((ASTNode) o).accept(this);
 			final ProgramElementInfo method = this.stack.pop();
 			anonymousClass.addMethod((MethodInfo) method);
-
 			text.append(method.getText());
 		}
 
@@ -174,23 +175,27 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	@Override
 	public boolean visit(final MethodDeclaration node) {
 
-		final StringBuilder text = new StringBuilder();
+		final int startLine = this.getStartLineNumber(node);
+		final int endLine = this.getEndLineNumber(node);
+		final String name = node.getName().getIdentifier();
+		final MethodInfo method = new MethodInfo(this.path, name, startLine,
+				endLine);
+		this.stack.push(method);
 
+		final StringBuilder text = new StringBuilder();
 		for (final Object modifier : node.modifiers()) {
 			text.append(modifier.toString());
 			text.append(" ");
 		}
-
 		text.append(node.getReturnType2().toString());
 		text.append(" ");
-
-		final String name = node.getName().getIdentifier();
 		text.append(name);
-
 		text.append("(");
+
 		for (final Object o : node.parameters()) {
 			((ASTNode) o).accept(this);
-			final ProgramElementInfo parameter = this.stack.pop();
+			final VariableInfo parameter = (VariableInfo) this.stack.pop();
+			parameter.setCategory(VariableInfo.CATEGORY.PARAMETER);
 			text.append(parameter.getText());
 			text.append(",");
 		}
@@ -199,24 +204,12 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 		}
 		text.append(")");
 
-		final int startLine = this.getStartLineNumber(node);
-		final int endLine = this.getEndLineNumber(node);
-
-		final MethodInfo method = new MethodInfo(this.path, name, startLine,
-				endLine);
-		this.stack.push(method);
-
-		text.append("{");
-		text.append(System.getProperty("line.separator"));
-
 		if (null != node.getBody()) {
 			node.getBody().accept(this);
 			final StatementInfo body = (StatementInfo) this.stack.pop();
 			method.setStatement(body);
+			text.append(body.getText());
 		}
-
-		text.append("}");
-		text.append(System.getProperty("line.separator"));
 		method.setText(text.toString());
 
 		return false;
@@ -1216,14 +1209,14 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 				node.getThenStatement().accept(this);
 				final StatementInfo thenBody = (StatementInfo) this.stack.pop();
 				ifBlock.setStatement(thenBody);
-				text.append(thenBody.toString());
+				text.append(thenBody.getText());
 			}
 
 			if (null != node.getElseStatement()) {
 				node.getElseStatement().accept(this);
 				final StatementInfo elseBody = (StatementInfo) this.stack.pop();
 				ifBlock.setElseStatement(elseBody);
-				text.append(elseBody.toString());
+				text.append(elseBody.getText());
 			}
 
 			ifBlock.setText(text.toString());
@@ -1530,7 +1523,6 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 			}
 
 			text.append("}");
-			text.append(System.getProperty("line.separator"));
 			simpleBlock.setText(text.toString());
 		}
 
@@ -1568,4 +1560,29 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 		return false;
 	}
 
+	@Override
+	public boolean visit(final SingleVariableDeclaration node) {
+
+		final int startLine = this.getStartLineNumber(node);
+		final int endLine = this.getEndLineNumber(node);
+		final TypeInfo type = new TypeInfo(node.getType().toString(),
+				startLine, endLine);
+		final String name = node.getName().toString();
+		final VariableInfo variable = new VariableInfo(
+				VariableInfo.CATEGORY.LOCAL, type, name, startLine, endLine);
+		this.stack.push(variable);
+
+		final StringBuilder text = new StringBuilder();
+		for (final Object modifier : node.modifiers()) {
+			variable.addModifier(modifier.toString());
+			text.append(modifier.toString());
+			text.append(" ");
+		}
+		text.append(type.getText());
+		text.append(" ");
+		text.append(name);
+		variable.setText(text.toString());
+
+		return false;
+	}
 }

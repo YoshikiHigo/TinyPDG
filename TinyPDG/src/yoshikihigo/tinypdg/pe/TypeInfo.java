@@ -7,5 +7,6 @@ public class TypeInfo extends ProgramElementInfo {
 	public TypeInfo(final String name, final int startLine, final int endLine) {
 		super(startLine, endLine);
 		this.name = name;
+		this.setText(name);
 	}
 }

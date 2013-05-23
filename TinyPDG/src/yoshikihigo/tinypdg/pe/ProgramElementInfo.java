@@ -1,5 +1,7 @@
 package yoshikihigo.tinypdg.pe;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 abstract public class ProgramElementInfo implements
@@ -12,11 +14,15 @@ abstract public class ProgramElementInfo implements
 	final public int id;
 	private String text;
 
+	final private List<String> modifiers;
+
 	public ProgramElementInfo(final int startLine, final int endLine) {
 		this.startLine = startLine;
 		this.endLine = endLine;
 		this.id = ID_GENERATOR.getAndIncrement();
 		this.text = "";
+
+		this.modifiers = new ArrayList<String>();
 	}
 
 	@Override
@@ -45,7 +51,7 @@ abstract public class ProgramElementInfo implements
 	}
 
 	@Override
-	public int compareTo(final ProgramElementInfo element) {
+	final public int compareTo(final ProgramElementInfo element) {
 		assert null != element : "\"element\" is null.";
 		if (this.id < element.id) {
 			return -1;
@@ -54,5 +60,16 @@ abstract public class ProgramElementInfo implements
 		} else {
 			return 0;
 		}
+	}
+
+	final public void addModifier(final String modifier) {
+		assert null != modifier : "\"modifier\" is null.";
+		this.modifiers.add(modifier);
+	}
+
+	final public List<String> getModifiers() {
+		final List<String> modifiers = new ArrayList<String>();
+		modifiers.addAll(this.modifiers);
+		return modifiers;
 	}
 }
