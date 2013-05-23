@@ -1037,8 +1037,12 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 				endLine);
 		this.stack.push(vdFragment);
 
+		node.getName().accept(this);
+		final ExpressionInfo name = (ExpressionInfo) this.stack.pop();
+		vdFragment.addExpression(name);
+
 		final StringBuilder text = new StringBuilder();
-		text.append(node.getName().toString());
+		text.append(name.getText());
 
 		if (null != node.getInitializer()) {
 			node.getInitializer().accept(this);
@@ -1068,13 +1072,13 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 
 			node.getBody().accept(this);
 			final StatementInfo body = (StatementInfo) this.stack.pop();
-			doBlock.setStatement(body);			
+			doBlock.setStatement(body);
 
 			node.getExpression().accept(this);
 			final ExpressionInfo condition = (ExpressionInfo) this.stack.pop();
 			doBlock.setCondition(condition);
 			condition.setOwnerConditinalBlock(doBlock);
-			
+
 			final StringBuilder text = new StringBuilder();
 			text.append("do ");
 			text.append(body.getText());
@@ -1593,4 +1597,5 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 
 		return false;
 	}
+
 }

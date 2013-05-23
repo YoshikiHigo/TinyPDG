@@ -10,6 +10,7 @@ public class PDGMethodEnterNode extends PDGControlNode {
 		final ExpressionInfo methodEnterExpression = new ExpressionInfo(
 				ExpressionInfo.CATEGORY.MethodEnter, method.startLine,
 				method.endLine);
+		methodEnterExpression.setText("Enter");
 		return new PDGMethodEnterNode(methodEnterExpression);
 	}
 

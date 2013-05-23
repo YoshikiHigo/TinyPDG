@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
@@ -25,6 +26,16 @@ import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
 import yoshikihigo.tinypdg.cfg.node.CFGControlNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
+import yoshikihigo.tinypdg.pdg.PDG;
+import yoshikihigo.tinypdg.pdg.edge.PDGControlDependenceEdge;
+import yoshikihigo.tinypdg.pdg.edge.PDGDataDependenceEdge;
+import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
+import yoshikihigo.tinypdg.pdg.edge.PDGExecutionDependenceEdge;
+import yoshikihigo.tinypdg.pdg.node.PDGControlNode;
+import yoshikihigo.tinypdg.pdg.node.PDGMethodEnterNode;
+import yoshikihigo.tinypdg.pdg.node.PDGNode;
+import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
+import yoshikihigo.tinypdg.pdg.node.PDGParameterNode;
 import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 
@@ -135,11 +146,10 @@ public class Writer {
 				int createdGraphNumber = 0;
 				for (final MethodInfo method : methods) {
 
-					// final IntraProceduralPDG pdg = new IntraProceduralPDG(
-					// method, new DefaultPDGNodeFactory(),
-					// new DefaultCFGNodeFactory(), true, true, true,
-					// state, optimize, dissolve);
-					// writePDG(pdg, createdGraphNumber++, writer);
+					final PDG pdg = new PDG(method, new PDGNodeFactory(),
+							new CFGNodeFactory(), true, true, true);
+					pdg.build();
+					writePDG(pdg, createdGraphNumber++, writer);
 				}
 
 				writer.write("}");
@@ -247,90 +257,84 @@ public class Writer {
 		}
 	}
 
-	//
-	// static private void writePDG(final IntraProceduralPDG pdg,
-	// final int createdGraphNumber, final BufferedWriter writer)
-	// throws IOException {
-	//
-	// final CallableUnitInfo method = pdg.getMethodInfo();
-	//
-	// writer.write("subgraph cluster");
-	// writer.write(Integer.toString(createdGraphNumber));
-	// writer.write(" {");
-	// writer.newLine();
-	//
-	// writer.write("label = \"");
-	// writer.write(method.getSignatureText());
-	// writer.write("\";");
-	// writer.newLine();
-	//
-	// final Map<PDGNode<?>, Integer> nodeLabels = new HashMap<PDGNode<?>,
-	// Integer>();
-	// for (final PDGNode<?> node : pdg.getAllNodes()) {
-	// nodeLabels.put(node, nodeLabels.size());
-	// }
-	//
-	// for (final Map.Entry<PDGNode<?>, Integer> entry : nodeLabels.entrySet())
-	// {
-	// writer.write(Integer.toString(createdGraphNumber));
-	// writer.write(".");
-	// writer.write(Integer.toString(entry.getValue()));
-	// writer.write(" [style = filled, label = \"");
-	// writer.write(entry.getKey().getText().replace("\"", "\\\"")
-	// .replace("\\\\\"", "\\\\\\\""));
-	// writer.write("\"");
-	//
-	// if (entry.getKey() instanceof PDGMethodEnterNode) {
-	// writer.write(", fillcolor = aquamarine");
-	// } else if (pdg.getExitNodes().contains(entry.getKey())) {
-	// writer.write(", fillcolor = deeppink");
-	// } else if (entry.getKey() instanceof PDGDataInNode) {
-	// writer.write(", fillcolor = tomato");
-	// } else if (entry.getKey() instanceof PDGDataOutNode) {
-	// writer.write(", fillcolor = darkorange");
-	// } else {
-	// writer.write(", fillcolor = white");
-	// }
-	//
-	// if (entry.getKey() instanceof PDGControlNode) {
-	// writer.write(", shape = diamond");
-	// } else if (entry.getKey() instanceof PDGDataInNode
-	// || entry.getKey() instanceof PDGDataOutNode) {
-	// writer.write(", shape = box");
-	// } else {
-	// writer.write(", shape = ellipse");
-	// }
-	//
-	// writer.write("];");
-	// writer.newLine();
-	// }
-	//
-	// for (final PDGEdge edge : pdg.getAllEdges()) {
-	// writer.write(Integer.toString(createdGraphNumber));
-	// writer.write(".");
-	// writer.write(Integer.toString(nodeLabels.get(edge.getFromNode())));
-	// writer.write(" -> ");
-	// writer.write(Integer.toString(createdGraphNumber));
-	// writer.write(".");
-	// writer.write(Integer.toString(nodeLabels.get(edge.getToNode())));
-	// if (edge instanceof PDGDataDependenceEdge) {
-	// writer.write(" [style = solid, label=\""
-	// + edge.getDependenceString() + "\"]");
-	// } else if (edge instanceof PDGControlDependenceEdge) {
-	// writer.write(" [style = dotted, label=\""
-	// + edge.getDependenceString() + "\"]");
-	// } else if (edge instanceof PDGExecutionDependenceEdge) {
-	// writer.write(" [style = bold, label=\""
-	// + edge.getDependenceString() + "\"]");
-	// }
-	// writer.write(";");
-	// writer.newLine();
-	// }
-	//
-	// writer.write("}");
-	// writer.newLine();
-	// }
-	//
+	static private void writePDG(final PDG pdg, final int createdGraphNumber,
+			final BufferedWriter writer) throws IOException {
+
+		final MethodInfo method = pdg.unit;
+
+		writer.write("subgraph cluster");
+		writer.write(Integer.toString(createdGraphNumber));
+		writer.write(" {");
+		writer.newLine();
+
+		writer.write("label = \"");
+		writer.write(getMethodSignature(method));
+		writer.write("\";");
+		writer.newLine();
+
+		final Map<PDGNode<?>, Integer> nodeLabels = new HashMap<PDGNode<?>, Integer>();
+		for (final PDGNode<?> node : pdg.getAllNodes()) {
+			nodeLabels.put(node, nodeLabels.size());
+		}
+
+		for (final Map.Entry<PDGNode<?>, Integer> entry : nodeLabels.entrySet()) {
+			writer.write(Integer.toString(createdGraphNumber));
+			writer.write(".");
+			writer.write(Integer.toString(entry.getValue()));
+			writer.write(" [style = filled, label = \"");
+			writer.write(entry.getKey().getText().replace("\"", "\\\"")
+					.replace("\\\\\"", "\\\\\\\""));
+			writer.write("\"");
+
+			final PDGNode<?> node = entry.getKey();
+			if (node instanceof PDGMethodEnterNode) {
+				writer.write(", fillcolor = aquamarine");
+			} else if (pdg.getExitNodes().contains(node)) {
+				writer.write(", fillcolor = deeppink");
+			} else if (node instanceof PDGParameterNode) {
+				writer.write(", fillcolor = tomato");
+			} else {
+				writer.write(", fillcolor = white");
+			}
+
+			if (node instanceof PDGControlNode) {
+				writer.write(", shape = diamond");
+			} else if (node instanceof PDGParameterNode) {
+				writer.write(", shape = box");
+			} else {
+				writer.write(", shape = ellipse");
+			}
+
+			writer.write("];");
+			writer.newLine();
+		}
+
+		for (final PDGEdge edge : pdg.getAllEdges()) {
+			writer.write(Integer.toString(createdGraphNumber));
+			writer.write(".");
+			writer.write(Integer.toString(nodeLabels.get(edge.fromNode)));
+			writer.write(" -> ");
+			writer.write(Integer.toString(createdGraphNumber));
+			writer.write(".");
+			writer.write(Integer.toString(nodeLabels.get(edge.toNode)));
+			if (edge instanceof PDGDataDependenceEdge) {
+				writer.write(" [style = solid, label=\""
+						+ edge.getDependenceString() + "\"]");
+			} else if (edge instanceof PDGControlDependenceEdge) {
+				writer.write(" [style = dotted, label=\""
+						+ edge.getDependenceString() + "\"]");
+			} else if (edge instanceof PDGExecutionDependenceEdge) {
+				writer.write(" [style = bold, label=\""
+						+ edge.getDependenceString() + "\"]");
+			}
+			writer.write(";");
+			writer.newLine();
+		}
+
+		writer.write("}");
+		writer.newLine();
+	}
+
 	static private List<File> getFiles(final File file) {
 
 		final List<File> files = new ArrayList<File>();

@@ -24,7 +24,7 @@ public abstract class PDGEdge implements Comparable<PDGEdge> {
 	final public int compareTo(final PDGEdge edge) {
 		assert null != edge : "\"edge\" is null.";
 		final int fromNodeOrder = this.fromNode.compareTo(edge.fromNode);
-		final int toNodeOrder = this.fromNode.compareTo(fromNode);
+		final int toNodeOrder = this.toNode.compareTo(edge.toNode);
 		if (0 != fromNodeOrder) {
 			return fromNodeOrder;
 		} else if (0 != toNodeOrder) {

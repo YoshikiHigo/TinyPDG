@@ -36,18 +36,15 @@ public class PDG {
 	final private List<PDGParameterNode> parameterNodes;
 	final private SortedSet<PDGNode<?>> allNodes;
 
-	final private SortedSet<PDGEdge> forwardEdges;
-	final private SortedSet<PDGEdge> backwardEdges;
+	final public MethodInfo unit;
 
-	final MethodInfo unit;
+	final public boolean buildDataDependence;
+	final public boolean buildControlDependence;
+	final public boolean buildExecutionDependence;
 
-	public final boolean buildDataDependence;
-	public final boolean buildControlDependence;
-	public final boolean buildExecutionDependence;
-
-	public final int dataDependencyDistance;
-	public final int controlDependencyDistance;
-	public final int executionDependencyDistance;
+	final public int dataDependencyDistance;
+	final public int controlDependencyDistance;
+	final public int executionDependencyDistance;
 
 	private CFG cfg;
 
@@ -80,9 +77,6 @@ public class PDG {
 		this.allNodes = new TreeSet<PDGNode<?>>();
 		this.allNodes.add(this.enterNode);
 		this.allNodes.addAll(this.parameterNodes);
-
-		this.forwardEdges = new TreeSet<PDGEdge>();
-		this.backwardEdges = new TreeSet<PDGEdge>();
 
 		this.buildDataDependence = buildDataDependency;
 		this.buildControlDependence = buildControlDependencey;
@@ -133,7 +127,22 @@ public class PDG {
 		return parameters;
 	}
 
-	protected void build() {
+	public final SortedSet<PDGNode<?>> getAllNodes() {
+		final SortedSet<PDGNode<?>> nodes = new TreeSet<PDGNode<?>>();
+		nodes.addAll(this.allNodes);
+		return nodes;
+	}
+
+	public final SortedSet<PDGEdge> getAllEdges() {
+		final SortedSet<PDGEdge> edges = new TreeSet<PDGEdge>();
+		for (final PDGNode<?> node : this.allNodes) {
+			edges.addAll(node.getBackwardEdges());
+			edges.addAll(node.getForwardEdges());
+		}
+		return edges;
+	}
+
+	public void build() {
 
 		this.cfg = new CFG(this.unit, this.cfgNodeFactory);
 		this.cfg.build();
@@ -144,7 +153,9 @@ public class PDG {
 
 		if (this.buildExecutionDependence) {
 			if (!this.cfg.isEmpty()) {
-				final PDGNode<?> node = this.pdgNodeFactory.makeNode(this.unit);
+				final PDGNode<?> node = this.pdgNodeFactory.makeNode(this.cfg
+						.getEnterNode().core);
+				this.allNodes.add(node);
 				final PDGExecutionDependenceEdge edge = new PDGExecutionDependenceEdge(
 						this.enterNode, node);
 				this.enterNode.addForwardEdge(edge);
@@ -152,11 +163,13 @@ public class PDG {
 			}
 		}
 
-		for (final PDGParameterNode parameterNode : this.parameterNodes) {
-			if (!this.cfg.isEmpty()) {
-				this.buildDataDependence(this.cfg.getEnterNode(),
-						parameterNode, parameterNode.core.name,
-						new HashSet<CFGNode<?>>());
+		if (this.buildDataDependence) {
+			for (final PDGParameterNode parameterNode : this.parameterNodes) {
+				if (!this.cfg.isEmpty()) {
+					this.buildDataDependence(this.cfg.getEnterNode(),
+							parameterNode, parameterNode.core.name,
+							new HashSet<CFGNode<?>>());
+				}
 			}
 		}
 
@@ -168,6 +181,7 @@ public class PDG {
 		for (final CFGNode<?> cfgExitNode : this.cfg.getExitNodes()) {
 			final PDGNode<?> pdgExitNode = this.pdgNodeFactory
 					.makeNode(cfgExitNode.core);
+			this.allNodes.add(pdgExitNode);
 			this.exitNodes.add(pdgExitNode);
 		}
 
@@ -195,6 +209,7 @@ public class PDG {
 		}
 
 		final PDGNode<?> pdgNode = this.pdgNodeFactory.makeNode(cfgNode.core);
+		this.allNodes.add(pdgNode);
 		if (this.buildDataDependence) {
 			for (final String variable : pdgNode.core.getAssignedVariables()) {
 				for (final CFGEdge edge : cfgNode.getForwardEdges()) {
@@ -216,6 +231,7 @@ public class PDG {
 			for (final CFGNode<?> toCFGNode : cfgNode.getForwardNodes()) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNode(toCFGNode.core);
+				this.allNodes.add(toPDGNode);
 				final int distance = Math.abs(toPDGNode.core.startLine
 						- pdgNode.core.startLine) + 1;
 				if (distance <= this.executionDependencyDistance) {
@@ -252,6 +268,7 @@ public class PDG {
 
 			final PDGNode<?> toPDGNode = this.pdgNodeFactory
 					.makeNode(cfgNode.core);
+			this.allNodes.add(toPDGNode);
 			final int distance = Math.abs(toPDGNode.core.startLine
 					- fromPDGNode.core.startLine) + 1;
 			if (distance <= this.dataDependencyDistance) {
@@ -289,6 +306,7 @@ public class PDG {
 					.getUpdaters()) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNode(updater);
+				this.allNodes.add(toPDGNode);
 				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
 						fromPDGNode, toPDGNode, true);
 				fromPDGNode.addForwardEdge(edge);
@@ -316,6 +334,7 @@ public class PDG {
 			if (null != condition) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNode(statement);
+				this.allNodes.add(toPDGNode);
 				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
 						fromPDGNode, toPDGNode, type);
 				fromPDGNode.addForwardEdge(edge);
@@ -328,6 +347,7 @@ public class PDG {
 			for (final ExpressionInfo initializer : statement.getInitializers()) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNode(initializer);
+				this.allNodes.add(toPDGNode);
 				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
 						fromPDGNode, toPDGNode, type);
 				fromPDGNode.addForwardEdge(edge);
@@ -346,6 +366,7 @@ public class PDG {
 		case VariableDeclaration:
 			final PDGNode<?> toPDGNode = this.pdgNodeFactory
 					.makeNode(statement);
+			this.allNodes.add(toPDGNode);
 			final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
 					fromPDGNode, toPDGNode, type);
 			fromPDGNode.addForwardEdge(edge);
