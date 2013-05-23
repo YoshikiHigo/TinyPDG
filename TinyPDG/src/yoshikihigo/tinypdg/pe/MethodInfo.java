@@ -7,8 +7,7 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-public class MethodInfo extends ProgramElementInfo implements BlockInfo,
-		VariableAssignmentAndReference {
+public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 
 	final public String path;
 	final public String name;
@@ -29,6 +28,12 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo,
 	public void addParameter(final VariableInfo parameter) {
 		assert null != parameter : "\"variable\" is null.";
 		this.parameters.add(parameter);
+	}
+
+	public SortedSet<VariableInfo> getParameters() {
+		final SortedSet<VariableInfo> parameters = new TreeSet<VariableInfo>();
+		parameters.addAll(this.parameters);
+		return parameters;
 	}
 
 	@Override

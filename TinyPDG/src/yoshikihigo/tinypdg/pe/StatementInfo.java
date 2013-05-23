@@ -7,8 +7,7 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-public class StatementInfo extends ProgramElementInfo implements BlockInfo,
-		VariableAssignmentAndReference {
+public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 
 	private ProgramElementInfo ownerBlock;
 	private CATEGORY category;
@@ -145,7 +144,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo,
 		}
 	}
 
-	public List<StatementInfo> getElseStatement() {
+	public List<StatementInfo> getElseStatements() {
 		return Collections.unmodifiableList(this.elseStatements);
 	}
 

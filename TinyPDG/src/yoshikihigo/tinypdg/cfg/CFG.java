@@ -332,9 +332,9 @@ public class CFG {
 		final CFGNode<? extends ProgramElementInfo> conditionNode = this.nodeFactory
 				.makeControlNode(condition);
 
-		if (null != statement.getElseStatement()) {
+		if (null != statement.getElseStatements()) {
 			final List<StatementInfo> elseStatements = statement
-					.getElseStatement();
+					.getElseStatements();
 			final SequentialCFGs elseCFG = new SequentialCFGs(elseStatements);
 			elseCFG.build();
 
@@ -633,6 +633,31 @@ public class CFG {
 				this.unhandledContinueStatementNodes
 						.addAll(cfg.unhandledContinueStatementNodes);
 			}
+		}
+	}
+
+	public final SortedSet<CFGNode<? extends ProgramElementInfo>> getReachableNodes(
+			final CFGNode<? extends ProgramElementInfo> startNode) {
+		assert null != startNode : "\"startNode\" is null.";
+		final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
+		this.getReachableNodes(startNode, nodes);
+		return nodes;
+	}
+
+	private final void getReachableNodes(
+			final CFGNode<? extends ProgramElementInfo> startNode,
+			final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes) {
+		assert null != startNode : "\"startNode\" is null.";
+		assert null != nodes : "\"nodes\" is null.";
+
+		if (nodes.contains(startNode)) {
+			return;
+		}
+
+		nodes.add(startNode);
+		for (final CFGNode<? extends ProgramElementInfo> node : startNode
+				.getForwardNodes()) {
+			this.getReachableNodes(node, nodes);
 		}
 	}
 }

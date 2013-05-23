@@ -35,14 +35,18 @@ public class CFGNodeFactory {
 					node = new CFGContinueStatementNode((StatementInfo) element);
 					break;
 				default:
-					node = new CFGNormalNode(element);
+					node = new CFGNormalNode((StatementInfo) element);
 					break;
 				}
-			} else {
-				node = new CFGNormalNode(element);
+				this.elementToNodeMap.put(element, node);
 			}
-			this.elementToNodeMap.put(element, node);
+
+			else {
+				assert false : "\"element\" must be StatementInfo.";
+				return null;
+			}
 		}
+
 		return node;
 	}
 

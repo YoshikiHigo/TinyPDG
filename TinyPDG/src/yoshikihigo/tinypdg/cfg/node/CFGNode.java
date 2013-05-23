@@ -9,7 +9,6 @@ import java.util.TreeSet;
 
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
-import yoshikihigo.tinypdg.pe.VariableAssignmentAndReference;
 
 public abstract class CFGNode<T extends ProgramElementInfo> implements
 		Comparable<CFGNode<? extends ProgramElementInfo>> {
@@ -157,16 +156,14 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 
 	public final SortedSet<String> getAssignedVariables() {
 		final SortedSet<String> variables = new TreeSet<String>();
-		final SortedSet<String> v = ((VariableAssignmentAndReference) this.core)
-				.getAssignedVariables();
+		final SortedSet<String> v = this.core.getAssignedVariables();
 		variables.addAll(v);
 		return variables;
 	}
 
 	public final Set<String> getReferencedVariables() {
 		final SortedSet<String> variables = new TreeSet<String>();
-		final SortedSet<String> v = ((VariableAssignmentAndReference) this.core)
-				.getReferencedVariables();
+		final SortedSet<String> v = this.core.getReferencedVariables();
 		variables.addAll(v);
 		return variables;
 	}

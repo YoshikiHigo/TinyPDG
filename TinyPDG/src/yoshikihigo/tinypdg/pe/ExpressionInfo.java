@@ -6,11 +6,11 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-public class ExpressionInfo extends ProgramElementInfo implements
-		VariableAssignmentAndReference {
+public class ExpressionInfo extends ProgramElementInfo {
 
 	final public CATEGORY category;
 	final private List<ExpressionInfo> expressions;
+	private BlockInfo ownerConditionalBlock;
 	private ClassInfo anonymousClassDeclaration;
 
 	public ExpressionInfo(final CATEGORY category, final int startLine,
@@ -18,6 +18,7 @@ public class ExpressionInfo extends ProgramElementInfo implements
 		super(startLine, endLine);
 		this.category = category;
 		this.expressions = new ArrayList<ExpressionInfo>();
+		this.ownerConditionalBlock = null;
 		this.anonymousClassDeclaration = null;
 	}
 
@@ -37,7 +38,7 @@ public class ExpressionInfo extends ProgramElementInfo implements
 				"SUPERMETHODINVOCATION"), This("THIS"), Trinomial("TRINOMIAL"), TypeLiteral(
 				"TYPELITERAL"), VariableDeclarationExpression(
 				"VARIABLEDECLARATIONEXPRESSION"), VariableDeclarationFragment(
-				"VARIABLEDECLARATIONFRAGMENT");
+				"VARIABLEDECLARATIONFRAGMENT"), MethodEnter("METHODENTER");
 
 		final public String id;
 
@@ -53,6 +54,15 @@ public class ExpressionInfo extends ProgramElementInfo implements
 
 	public List<ExpressionInfo> getExpressions() {
 		return Collections.unmodifiableList(this.expressions);
+	}
+
+	public void setOwnerConditinalBlock(final BlockInfo ownerConditionalBlock) {
+		assert null != ownerConditionalBlock : "\"ownerConditionalBlock\" is null.";
+		this.ownerConditionalBlock = ownerConditionalBlock;
+	}
+
+	public BlockInfo getOwnerConditionalBlock() {
+		return this.ownerConditionalBlock;
 	}
 
 	public void setAnonymousClassDeclaration(
