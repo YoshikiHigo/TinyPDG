@@ -7,7 +7,7 @@ public void method1(boolean b1){
 if (b1) {
 System.out.println(number);
 }
-}}; <7>", fillcolor = white, shape = ellipse];
+}}; <7...13>", fillcolor = white, shape = ellipse];
 0.2 [style = filled, label = "a.method1(true); <14>", fillcolor = deeppink, shape = ellipse];
 0.0 -> 0.1 [style = solid, label=""];
 0.1 -> 0.2 [style = solid, label=""];

@@ -175,7 +175,13 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 		final StringBuilder text = new StringBuilder();
 		text.append(this.core.getText());
 		text.append(" <");
-		text.append(this.core.startLine);
+		if (this.core.startLine == this.core.endLine) {
+			text.append(this.core.startLine);
+		} else {
+			text.append(this.core.startLine);
+			text.append("...");
+			text.append(this.core.endLine);
+		}
 		text.append(">");
 		return text.toString();
 	}
