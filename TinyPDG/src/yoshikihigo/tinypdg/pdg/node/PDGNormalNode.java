@@ -1,10 +1,11 @@
 package yoshikihigo.tinypdg.pdg.node;
 
-import yoshikihigo.tinypdg.pe.StatementInfo;
+import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 
-public class PDGNormalNode extends PDGNode<StatementInfo> {
+public abstract class PDGNormalNode<T extends ProgramElementInfo> extends
+		PDGNode<T> {
 
-	PDGNormalNode(final StatementInfo statement) {
-		super(statement);
+	PDGNormalNode(final T element) {
+		super(element);
 	}
 }

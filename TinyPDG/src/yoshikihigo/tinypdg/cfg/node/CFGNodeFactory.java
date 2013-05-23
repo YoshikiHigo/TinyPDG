@@ -35,10 +35,14 @@ public class CFGNodeFactory {
 					node = new CFGContinueStatementNode((StatementInfo) element);
 					break;
 				default:
-					node = new CFGNormalNode((StatementInfo) element);
+					node = new CFGStatementNode((StatementInfo) element);
 					break;
 				}
 				this.elementToNodeMap.put(element, node);
+			}
+			
+			else if(element instanceof ExpressionInfo){
+				node = new CFGExpressionNode((ExpressionInfo)element);
 			}
 
 			else {

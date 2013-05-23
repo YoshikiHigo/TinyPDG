@@ -1,10 +1,10 @@
 package yoshikihigo.tinypdg.cfg.node;
 
-import yoshikihigo.tinypdg.pe.StatementInfo;
+import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 
-public class CFGNormalNode extends CFGNode<StatementInfo> {
+public class CFGNormalNode<T extends ProgramElementInfo> extends CFGNode<T> {
 
-	public CFGNormalNode(final StatementInfo element) {
+	public CFGNormalNode(final T element) {
 		super(element);
 	}
 }
