@@ -117,6 +117,12 @@ public class ExpressionInfo extends ProgramElementInfo {
 			final ExpressionInfo right = this.expressions.get(1);
 			variables.addAll(right.getReferencedVariables());
 			break;
+		case VariableDeclarationFragment:
+			if (1 < this.getExpressions().size()) {
+				variables.addAll(this.getExpressions().get(1)
+						.getReferencedVariables());
+			}
+			break;
 		case Postfix:
 		case Prefix:
 			final ExpressionInfo operand = this.expressions.get(0);
