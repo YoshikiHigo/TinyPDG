@@ -338,7 +338,6 @@ public class PDG {
 						fromPDGNode, toPDGNode, type);
 				fromPDGNode.addForwardEdge(edge);
 				toPDGNode.addBackwardEdge(edge);
-				break;
 			} else {
 				this.buildControlDependence(fromPDGNode, statement);
 			}
@@ -351,7 +350,6 @@ public class PDG {
 						fromPDGNode, toPDGNode, type);
 				fromPDGNode.addForwardEdge(edge);
 				toPDGNode.addBackwardEdge(edge);
-				break;
 			}
 
 			break;
