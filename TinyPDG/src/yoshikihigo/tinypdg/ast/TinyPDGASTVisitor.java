@@ -454,8 +454,21 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 		final int endLine = this.getEndLineNumber(node);
 		final ExpressionInfo qualifiedName = new ExpressionInfo(
 				ExpressionInfo.CATEGORY.QualifiedName, startLine, endLine);
-		qualifiedName.setText(node.getFullyQualifiedName());
 		this.stack.push(qualifiedName);
+
+		node.getQualifier().accept(this);
+		final ProgramElementInfo qualifier = this.stack.pop();
+		qualifiedName.addExpression((ExpressionInfo) qualifier);
+
+		node.getName().accept(this);
+		final ProgramElementInfo name = this.stack.pop();
+		qualifiedName.addExpression((ExpressionInfo) name);
+
+		final StringBuilder text = new StringBuilder();
+		text.append(qualifier.getText());
+		text.append(".");
+		text.append(name.getText());
+		qualifiedName.setText(text.toString());
 
 		return false;
 	}
@@ -634,7 +647,9 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 
 		final StringBuilder text = new StringBuilder();
 		text.append(left.getText());
-		text.append(" = ");
+		text.append(" ");
+		text.append(node.getOperator().toString());
+		text.append(" ");
 		text.append(right.getText());
 		assignment.setText(text.toString());
 
