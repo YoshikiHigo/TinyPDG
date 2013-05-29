@@ -16,8 +16,7 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import yoshikihigo.tinypdg.ast.TinyPDGASTVisitor;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.pdg.PDG;
-import yoshikihigo.tinypdg.pdg.node.PDGMethodEnterNode;
-import yoshikihigo.tinypdg.pdg.node.PDGNode;
+import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
 import yoshikihigo.tinypdg.pe.MethodInfo;
 
@@ -73,31 +72,36 @@ public class Scorpio {
 				}
 			}
 
-			final ConcurrentMap<Integer, List<PDGNode<?>>> mapHashToPDGNodelists = new ConcurrentHashMap<Integer, List<PDGNode<?>>>();
+			final ConcurrentMap<Integer, List<PDGEdge>> mapHashToPDGEdgelists = new ConcurrentHashMap<Integer, List<PDGEdge>>();
 			for (final PDG pdg : pdgs) {
-				for (final PDGNode<?> node : pdg.getAllNodes()) {
-					if (node instanceof PDGMethodEnterNode) {
+				for (final PDGEdge edge : pdg.getAllEdges()) {
 
-					} else {
-						final NormalizedText t = new NormalizedText(node.core);
-						final String normalizedText = t.getText();
-						final int hash = normalizedText.hashCode();
-						List<PDGNode<?>> nodeList = mapHashToPDGNodelists
-								.get(hash);
-						if (null == nodeList) {
-							nodeList = new ArrayList<PDGNode<?>>();
-							mapHashToPDGNodelists.put(hash, nodeList);
-						}
-						nodeList.add(node);
+					final NormalizedText t1 = new NormalizedText(
+							edge.fromNode.core);
+					final String fromNodeText = t1.getText();
+					final NormalizedText t2 = new NormalizedText(
+							edge.toNode.core);
+					final String toNodeText = t2.getText();
+					final StringBuilder edgeText = new StringBuilder();
+					edgeText.append(fromNodeText);
+					edgeText.append("->");
+					edgeText.append(toNodeText);
+					final int hash = edgeText.toString().hashCode();
+
+					List<PDGEdge> edgeList = mapHashToPDGEdgelists.get(hash);
+					if (null == edgeList) {
+						edgeList = new ArrayList<PDGEdge>();
+						mapHashToPDGEdgelists.put(hash, edgeList);
 					}
+					edgeList.add(edge);
 				}
 			}
 
-			final ConcurrentMap<PDGNode<?>, List<PDGNode<?>>> mapPDGNodeToPDGNodelists = new ConcurrentHashMap<PDGNode<?>, List<PDGNode<?>>>();
-			for (final List<PDGNode<?>> list : mapHashToPDGNodelists.values()) {
+			final ConcurrentMap<PDGEdge, List<PDGEdge>> mapPDGEdgeToPDGEdgelists = new ConcurrentHashMap<PDGEdge, List<PDGEdge>>();
+			for (final List<PDGEdge> list : mapHashToPDGEdgelists.values()) {
 				if (1 < list.size()) {
-					for (final PDGNode<?> node : list) {
-						mapPDGNodeToPDGNodelists.put(node, list);
+					for (final PDGEdge edge : list) {
+						mapPDGEdgeToPDGEdgelists.put(edge, list);
 					}
 				}
 			}
