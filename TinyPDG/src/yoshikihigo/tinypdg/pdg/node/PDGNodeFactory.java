@@ -1,9 +1,9 @@
 package yoshikihigo.tinypdg.pdg.node;
 
-import java.util.SortedMap;
 import java.util.SortedSet;
-import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import yoshikihigo.tinypdg.cfg.node.CFGControlNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNode;
@@ -16,10 +16,10 @@ import yoshikihigo.tinypdg.pe.VariableInfo;
 
 public class PDGNodeFactory {
 
-	private final SortedMap<ProgramElementInfo, PDGNode<?>> elementToNodeMap;
+	private final ConcurrentMap<ProgramElementInfo, PDGNode<?>> elementToNodeMap;
 
 	public PDGNodeFactory() {
-		this.elementToNodeMap = new TreeMap<ProgramElementInfo, PDGNode<?>>();
+		this.elementToNodeMap = new ConcurrentHashMap<ProgramElementInfo, PDGNode<?>>();
 	}
 
 	public PDGNode<?> makeNode(final CFGNode<?> node) {

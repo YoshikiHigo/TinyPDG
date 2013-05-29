@@ -1,7 +1,6 @@
 package yoshikihigo.tinypdg.pe;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -9,7 +8,8 @@ import java.util.TreeSet;
 public class ExpressionInfo extends ProgramElementInfo {
 
 	final public CATEGORY category;
-	final private List<ExpressionInfo> expressions;
+	private ProgramElementInfo qualifier;
+	final private List<ProgramElementInfo> expressions;
 	private BlockInfo ownerConditionalBlock;
 	private ClassInfo anonymousClassDeclaration;
 
@@ -17,7 +17,8 @@ public class ExpressionInfo extends ProgramElementInfo {
 			final int endLine) {
 		super(startLine, endLine);
 		this.category = category;
-		this.expressions = new ArrayList<ExpressionInfo>();
+		this.qualifier = null;
+		this.expressions = new ArrayList<ProgramElementInfo>();
 		this.ownerConditionalBlock = null;
 		this.anonymousClassDeclaration = null;
 	}
@@ -25,9 +26,9 @@ public class ExpressionInfo extends ProgramElementInfo {
 	public enum CATEGORY {
 
 		ArrayAccess("ARRAYACCESS"), ArrayCreation("ARRAYCREATION"), ArrayInitializer(
-				"ARRAYINITIALIZER"), Assignment("ASSIGNMENT"), Binomial(
-				"BINOMIAL"), Boolean("BOOLEAN"), Cast("CAST"), Character(
-				"CHARACTER"), ClassInstanceCreation("CLASSINSTANCECREATION"), ConstructorInvocation(
+				"ARRAYINITIALIZER"), Assignment("ASSIGNMENT"), Boolean(
+				"BOOLEAN"), Cast("CAST"), Character("CHARACTER"), ClassInstanceCreation(
+				"CLASSINSTANCECREATION"), ConstructorInvocation(
 				"CONSTRUCTORINVOCATION"), FieldAccess("FIELDACCESS"), Infix(
 				"INFIX"), Instanceof("INSTANCEOF"), MethodInvocation(
 				"METHODINVOCATION"), Null("NULL"), Number("NUMBER"), Parenthesized(
@@ -47,13 +48,24 @@ public class ExpressionInfo extends ProgramElementInfo {
 		}
 	}
 
-	public void addExpression(final ExpressionInfo expression) {
+	public void setQualifier(final ProgramElementInfo qualifier) {
+		assert null != qualifier : "\"qualifier\" is null.";
+		this.qualifier = qualifier;
+	}
+
+	public ProgramElementInfo getQualifier() {
+		return this.qualifier;
+	}
+
+	public void addExpression(final ProgramElementInfo expression) {
 		assert null != expression : "\"expression\" is null.";
 		this.expressions.add(expression);
 	}
 
-	public List<ExpressionInfo> getExpressions() {
-		return Collections.unmodifiableList(this.expressions);
+	public List<ProgramElementInfo> getExpressions() {
+		final List<ProgramElementInfo> expressions = new ArrayList<ProgramElementInfo>();
+		expressions.addAll(this.expressions);
+		return expressions;
 	}
 
 	public void setOwnerConditinalBlock(final BlockInfo ownerConditionalBlock) {
@@ -81,9 +93,9 @@ public class ExpressionInfo extends ProgramElementInfo {
 		final SortedSet<String> variables = new TreeSet<String>();
 		switch (this.category) {
 		case Assignment:
-			final ExpressionInfo left = this.expressions.get(0);
+			final ProgramElementInfo left = this.expressions.get(0);
 			variables.addAll(left.getReferencedVariables());
-			final ExpressionInfo right = this.expressions.get(1);
+			final ProgramElementInfo right = this.expressions.get(2);
 			variables.addAll(right.getAssignedVariables());
 			break;
 		case VariableDeclarationFragment:
@@ -91,11 +103,11 @@ public class ExpressionInfo extends ProgramElementInfo {
 			break;
 		case Postfix:
 		case Prefix:
-			final ExpressionInfo operand = this.expressions.get(0);
+			final ProgramElementInfo operand = this.expressions.get(0);
 			variables.addAll(operand.getReferencedVariables());
 			break;
 		default:
-			for (final ExpressionInfo expression : this.expressions) {
+			for (final ProgramElementInfo expression : this.expressions) {
 				variables.addAll(expression.getAssignedVariables());
 			}
 			if (null != this.getAnonymousClassDeclaration()) {
@@ -114,7 +126,7 @@ public class ExpressionInfo extends ProgramElementInfo {
 		final SortedSet<String> variables = new TreeSet<String>();
 		switch (this.category) {
 		case Assignment:
-			final ExpressionInfo right = this.expressions.get(1);
+			final ProgramElementInfo right = this.expressions.get(2);
 			variables.addAll(right.getReferencedVariables());
 			break;
 		case VariableDeclarationFragment:
@@ -125,14 +137,14 @@ public class ExpressionInfo extends ProgramElementInfo {
 			break;
 		case Postfix:
 		case Prefix:
-			final ExpressionInfo operand = this.expressions.get(0);
+			final ProgramElementInfo operand = this.expressions.get(0);
 			variables.addAll(operand.getReferencedVariables());
 			break;
 		case SimpleName:
 			variables.add(this.getText());
 			break;
 		default:
-			for (final ExpressionInfo expression : this.expressions) {
+			for (final ProgramElementInfo expression : this.expressions) {
 				variables.addAll(expression.getReferencedVariables());
 			}
 			if (null != this.getAnonymousClassDeclaration()) {
