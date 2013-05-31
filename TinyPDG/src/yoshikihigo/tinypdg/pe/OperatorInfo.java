@@ -8,5 +8,6 @@ public class OperatorInfo extends ProgramElementInfo {
 			final int endLine) {
 		super(startLine, endLine);
 		this.name = name;
+		this.setText(name);
 	}
 }

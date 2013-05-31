@@ -15,14 +15,19 @@ public class Slicing {
 
 	final private SortedSet<EdgePairInfo> CHECKED_EDGEPAIRS;
 	final private ConcurrentMap<PDGEdge, List<PDGEdge>> PDGEDGES;
+	final public String pathA;
+	final public String pathB;
 	final public PDGEdge startEdgeA;
 	final public PDGEdge startEdgeB;
 
 	private ClonePairInfo clonepair;
 
-	public Slicing(final PDGEdge startEdgeA, final PDGEdge startEdgeB,
+	public Slicing(final String pathA, final String pathB,
+			final PDGEdge startEdgeA, final PDGEdge startEdgeB,
 			final ConcurrentMap<PDGEdge, List<PDGEdge>> PDGEDGES) {
 		CHECKED_EDGEPAIRS = new TreeSet<EdgePairInfo>();
+		this.pathA = pathA;
+		this.pathB = pathB;
 		this.startEdgeA = startEdgeA;
 		this.startEdgeB = startEdgeB;
 		this.PDGEDGES = PDGEDGES;
@@ -52,7 +57,7 @@ public class Slicing {
 
 		final EdgePairInfo edgepair = new EdgePairInfo(edgeA, edgeB);
 		if (CHECKED_EDGEPAIRS.contains(edgepair)) {
-			return new ClonePairInfo();
+			return new ClonePairInfo(this.pathA, this.pathB);
 		}
 
 		predecessorsA.add(edgeA);
@@ -71,7 +76,8 @@ public class Slicing {
 				backwardEdgesB, predecessorsA, predecessorsB);
 		final ClonePairInfo successor = this.enlargeClonePair(forwardEdgesA,
 				forwardEdgesB, predecessorsA, predecessorsB);
-		final ClonePairInfo clonepair = new ClonePairInfo();
+		final ClonePairInfo clonepair = new ClonePairInfo(this.pathA,
+				this.pathB);
 		clonepair.merge(predicessor);
 		clonepair.merge(successor);
 
@@ -84,7 +90,8 @@ public class Slicing {
 			final SortedSet<PDGEdge> edgesB, final Set<PDGEdge> predecessorsA,
 			final Set<PDGEdge> predecessorsB) {
 
-		final ClonePairInfo clonepair = new ClonePairInfo();
+		final ClonePairInfo clonepair = new ClonePairInfo(this.pathA,
+				this.pathB);
 
 		EDGEA: for (final PDGEdge edgeA : edgesA) {
 

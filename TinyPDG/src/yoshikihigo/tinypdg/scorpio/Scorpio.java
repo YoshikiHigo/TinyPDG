@@ -3,6 +3,8 @@ package yoshikihigo.tinypdg.scorpio;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -19,6 +21,9 @@ import yoshikihigo.tinypdg.pdg.PDG;
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
 import yoshikihigo.tinypdg.pe.MethodInfo;
+import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
+import yoshikihigo.tinypdg.scorpio.io.CSVWriter;
+import yoshikihigo.tinypdg.scorpio.io.Writer;
 
 public class Scorpio {
 
@@ -45,6 +50,14 @@ public class Scorpio {
 				options.addOption(o);
 			}
 
+			{
+				final Option s = new Option("s", "size", true, "size");
+				s.setArgName("size");
+				s.setArgs(1);
+				s.setRequired(true);
+				options.addOption(s);
+			}
+
 			final CommandLineParser parser = new PosixParser();
 			final CommandLine cmd = parser.parse(options, args);
 
@@ -54,6 +67,10 @@ public class Scorpio {
 						.println("specified directory or file does not exist.");
 				System.exit(0);
 			}
+
+			final String output = cmd.getOptionValue("o");
+			final int SIZE_THRESHOLD = Integer
+					.parseInt(cmd.getOptionValue("s"));
 
 			final List<File> files = getFiles(target);
 			final List<PDG> pdgs = new ArrayList<PDG>();
@@ -68,6 +85,7 @@ public class Scorpio {
 				for (final MethodInfo method : methods) {
 					final PDG pdg = new PDG(method, pdgNodeFactory,
 							cfgNodeFactory, true, true, true, 100, 100, 100);
+					pdg.build();
 					pdgs.add(pdg);
 				}
 			}
@@ -88,12 +106,27 @@ public class Scorpio {
 					edgeText.append(toNodeText);
 					final int hash = edgeText.toString().hashCode();
 
+					System.out.println(edge.fromNode.core.getText());
+					System.out.println(t1.getText());
+					System.out.println();
+					System.out.println(edge.toNode.core.getText());
+					System.out.println(t2.getText());
+					System.out.println();
+					
 					List<PDGEdge> edgeList = mapHashToPDGEdgelists.get(hash);
 					if (null == edgeList) {
 						edgeList = new ArrayList<PDGEdge>();
 						mapHashToPDGEdgelists.put(hash, edgeList);
 					}
 					edgeList.add(edge);
+				}
+			}
+
+			final ConcurrentMap<PDGEdge, String> mapPDGEdgeToFilePath = new ConcurrentHashMap<PDGEdge, String>();
+			for (final PDG pdg : pdgs) {
+				final String filepath = pdg.unit.path;
+				for (final PDGEdge edge : pdg.getAllEdges()) {
+					mapPDGEdgeToFilePath.put(edge, filepath);
 				}
 			}
 
@@ -105,6 +138,28 @@ public class Scorpio {
 					}
 				}
 			}
+
+			final SortedSet<ClonePairInfo> clonepairs = new TreeSet<ClonePairInfo>();
+			for (final List<PDGEdge> list : mapPDGEdgeToPDGEdgelists.values()) {
+				for (int i = 0; i < list.size(); i++) {
+					for (int j = 0; j < list.size(); j++) {
+						final String path1 = mapPDGEdgeToFilePath.get(list
+								.get(i));
+						final String path2 = mapPDGEdgeToFilePath.get(list
+								.get(j));
+						final Slicing slicing = new Slicing(path1, path2,
+								list.get(i), list.get(j),
+								mapPDGEdgeToPDGEdgelists);
+						final ClonePairInfo clonepair = slicing.perform();
+						if (SIZE_THRESHOLD <= clonepair.size()) {
+							clonepairs.add(clonepair);
+						}
+					}
+				}
+			}
+
+			final Writer writer = new CSVWriter(output, clonepairs);
+			writer.write();
 
 			System.out.println("done.");
 

@@ -7,7 +7,7 @@ public class NodePairInfo implements Comparable<NodePairInfo> {
 	public final PDGNode<?> nodeA;
 	public final PDGNode<?> nodeB;
 
-	private NodePairInfo(final PDGNode<?> nodeA, final PDGNode<?> nodeB) {
+	public NodePairInfo(final PDGNode<?> nodeA, final PDGNode<?> nodeB) {
 		this.nodeA = nodeA;
 		this.nodeB = nodeB;
 	}

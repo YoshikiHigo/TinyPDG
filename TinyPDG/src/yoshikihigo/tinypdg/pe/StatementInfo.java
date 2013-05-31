@@ -11,7 +11,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 
 	private ProgramElementInfo ownerBlock;
 	private CATEGORY category;
-	private List<ExpressionInfo> expressions;
+	private List<ProgramElementInfo> expressions;
 
 	final private List<ExpressionInfo> initializers;
 	private ExpressionInfo condition;
@@ -31,7 +31,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 
 		this.ownerBlock = ownerBlock;
 		this.category = category;
-		this.expressions = new ArrayList<ExpressionInfo>();
+		this.expressions = new ArrayList<ProgramElementInfo>();
 
 		this.initializers = new ArrayList<ExpressionInfo>();
 		this.condition = null;
@@ -166,13 +166,15 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 		return this.finallyStatement;
 	}
 
-	public void addExpression(final ExpressionInfo expression) {
-		assert null != expression : "\"expression\" is null.";
-		this.expressions.add(expression);
+	public void addExpression(final ProgramElementInfo element) {
+		assert null != element : "\"element\" is null.";
+		this.expressions.add(element);
 	}
 
-	public List<ExpressionInfo> getExpressions() {
-		return Collections.unmodifiableList(this.expressions);
+	public List<ProgramElementInfo> getExpressions() {
+		final List<ProgramElementInfo> list = new ArrayList<ProgramElementInfo>();
+		list.addAll(this.expressions);
+		return list;
 	}
 
 	@Override
@@ -180,7 +182,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 
 		final SortedSet<String> variables = new TreeSet<String>();
 
-		for (final ExpressionInfo expression : this.expressions) {
+		for (final ProgramElementInfo expression : this.expressions) {
 			variables.addAll(expression.getAssignedVariables());
 		}
 
@@ -220,7 +222,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 
 		final SortedSet<String> variables = new TreeSet<String>();
 
-		for (final ExpressionInfo expression : this.expressions) {
+		for (final ProgramElementInfo expression : this.expressions) {
 			variables.addAll(expression.getReferencedVariables());
 		}
 

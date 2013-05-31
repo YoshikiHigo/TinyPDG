@@ -3,8 +3,10 @@ package yoshikihigo.tinypdg.scorpio;
 import java.util.List;
 
 import yoshikihigo.tinypdg.pe.ExpressionInfo;
+import yoshikihigo.tinypdg.pe.OperatorInfo;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 import yoshikihigo.tinypdg.pe.StatementInfo;
+import yoshikihigo.tinypdg.pe.TypeInfo;
 
 public class NormalizedText {
 
@@ -31,13 +33,13 @@ public class NormalizedText {
 			switch (((StatementInfo) this.core).getCategory()) {
 			case Assert: {
 				text.append("assert ");
-				final ExpressionInfo expression = ((StatementInfo) this.core)
+				final ProgramElementInfo expression = ((StatementInfo) this.core)
 						.getExpressions().get(0);
 				final NormalizedText expressionText = new NormalizedText(
 						expression);
 				text.append(expressionText.getText());
 				text.append(" : ");
-				final ExpressionInfo message = ((StatementInfo) this.core)
+				final ProgramElementInfo message = ((StatementInfo) this.core)
 						.getExpressions().get(1);
 				final NormalizedText messageText = new NormalizedText(message);
 				text.append(messageText.getText());
@@ -60,8 +62,14 @@ public class NormalizedText {
 			}
 			case Do:
 				break;
-			case Expression:
+			case Expression: {
+				final ProgramElementInfo expression = ((StatementInfo) this.core)
+						.getExpressions().get(0);
+				final NormalizedText expressionText = new NormalizedText(
+						expression);
+				text.append(expressionText.getText());
 				break;
+			}
 			case For:
 				break;
 			case Foreach:
@@ -70,11 +78,12 @@ public class NormalizedText {
 				break;
 			case Return: {
 				text.append("return ");
-				final ExpressionInfo expression = ((StatementInfo) this.core)
+				final ProgramElementInfo expression = ((StatementInfo) this.core)
 						.getExpressions().get(0);
 				final NormalizedText expressionText = new NormalizedText(
 						expression);
 				text.append(expressionText.getText());
+				text.append(";");
 				break;
 			}
 			case SimpleBlock:
@@ -85,17 +94,31 @@ public class NormalizedText {
 				break;
 			case Throw: {
 				text.append("return ");
-				final ExpressionInfo expression = ((StatementInfo) this.core)
+				final ProgramElementInfo expression = ((StatementInfo) this.core)
 						.getExpressions().get(0);
 				final NormalizedText expressionText = new NormalizedText(
 						expression);
 				text.append(expressionText.getText());
+				text.append(";");
 				break;
 			}
 			case Try:
 				break;
-			case VariableDeclaration:
+			case VariableDeclaration: {
+				final List<ProgramElementInfo> expressions = ((StatementInfo) this.core)
+						.getExpressions();
+				final NormalizedText typeText = new NormalizedText(
+						expressions.get(0));
+				text.append(typeText.getText());
+				text.append(" ");
+				for (int i = 1; i < expressions.size(); i++) {
+					final NormalizedText fragmentText = new NormalizedText(
+							expressions.get(i));
+					text.append(fragmentText.getText());
+				}
+				text.append(";");
 				break;
+			}
 			case While:
 				break;
 			default:
@@ -276,11 +299,11 @@ public class NormalizedText {
 					final NormalizedText qualifierText = new NormalizedText(
 							qualifier);
 					text.append(qualifierText.getText());
+					text.append(".");
 				}
 
 				final ProgramElementInfo name = coreExp.getExpressions().get(0);
-				final NormalizedText nameText = new NormalizedText(name);
-				text.append(nameText.getText());
+				text.append(name.getText());
 
 				text.append("(");
 
@@ -452,7 +475,7 @@ public class NormalizedText {
 				text.append(" = ");
 
 				final ProgramElementInfo right = coreExp.getExpressions()
-						.get(0);
+						.get(1);
 				final NormalizedText rightText = new NormalizedText(right);
 				text.append(rightText.getText());
 				break;
@@ -462,6 +485,14 @@ public class NormalizedText {
 			}
 
 			this.text = text.toString();
+		}
+
+		else if (this.core instanceof TypeInfo) {
+			this.text = this.core.getText();
+		}
+
+		else if (this.core instanceof OperatorInfo) {
+			this.text = this.core.getText();
 		}
 	}
 }

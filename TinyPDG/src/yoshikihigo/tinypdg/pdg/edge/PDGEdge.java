@@ -21,6 +21,24 @@ public abstract class PDGEdge implements Comparable<PDGEdge> {
 	public abstract String getDependenceString();
 
 	@Override
+	public boolean equals(final Object o) {
+
+		if (null == o) {
+			return false;
+		}
+		if (!(o instanceof PDGEdge)) {
+			return false;
+		}
+
+		return 0 == this.compareTo((PDGEdge) o);
+	}
+
+	@Override
+	public int hashCode() {
+		return fromNode.core.id + toNode.core.id;
+	}
+
+	@Override
 	final public int compareTo(final PDGEdge edge) {
 		assert null != edge : "\"edge\" is null.";
 		final int fromNodeOrder = this.fromNode.compareTo(edge.fromNode);
