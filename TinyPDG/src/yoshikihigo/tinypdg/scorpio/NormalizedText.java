@@ -1,14 +1,46 @@
 package yoshikihigo.tinypdg.scorpio;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import yoshikihigo.tinypdg.pe.ExpressionInfo;
 import yoshikihigo.tinypdg.pe.OperatorInfo;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 import yoshikihigo.tinypdg.pe.StatementInfo;
 import yoshikihigo.tinypdg.pe.TypeInfo;
+import yoshikihigo.tinypdg.pe.VariableInfo;
 
 public class NormalizedText {
+
+	public static String normalize(final String text) {
+
+		StringBuilder normalizedText = new StringBuilder(text);
+		final Map<String, String> mapper = new HashMap<String, String>();
+
+		int startIndex = 0;
+		int endIndex = 0;
+		while (true) {
+			startIndex = normalizedText.indexOf("$", startIndex);
+			if (startIndex < 0) {
+				break;
+			}
+			endIndex = normalizedText.indexOf("$", startIndex + 1);
+			assert 0 < endIndex : "invalid state.";
+
+			final String target = normalizedText.substring(startIndex,
+					endIndex + 1);
+			String value = mapper.get(target);
+			if (null == value) {
+				value = "$" + Integer.toString(mapper.size() + 1);
+				mapper.put(target, value);
+			}
+			normalizedText.replace(startIndex, endIndex + 1, value);
+			startIndex++;
+		}
+
+		return normalizedText.toString();
+	}
 
 	public final ProgramElementInfo core;
 	public String text;
@@ -51,7 +83,16 @@ public class NormalizedText {
 				break;
 			}
 			case Case: {
-				text.append("case $:");
+				if (0 < ((StatementInfo) this.core).getExpressions().size()) {
+					text.append("case ");
+					final ProgramElementInfo label = ((StatementInfo) this.core)
+							.getExpressions().get(0);
+					final NormalizedText labelText = new NormalizedText(label);
+					text.append(labelText.getText());
+					text.append(":");
+				} else {
+					text.append("default:");
+				}
 				break;
 			}
 			case Catch:
@@ -181,10 +222,12 @@ public class NormalizedText {
 						.getExpressions().get(0);
 				final NormalizedText leftText = new NormalizedText(left);
 				text.append(leftText.getText());
+				text.append(" ");
 				final ProgramElementInfo operator = ((ExpressionInfo) this.core)
 						.getExpressions().get(1);
 				final NormalizedText operatorText = new NormalizedText(operator);
 				text.append(operatorText.getText());
+				text.append(" ");
 				final ProgramElementInfo right = ((ExpressionInfo) this.core)
 						.getExpressions().get(2);
 				final NormalizedText rightText = new NormalizedText(right);
@@ -192,6 +235,8 @@ public class NormalizedText {
 				break;
 			}
 			case Boolean: {
+				text.append("$");
+				text.append(this.core.getText());
 				text.append("$");
 				break;
 			}
@@ -210,6 +255,8 @@ public class NormalizedText {
 				break;
 			}
 			case Character: {
+				text.append("$");
+				text.append(this.core.getText());
 				text.append("$");
 				break;
 			}
@@ -330,6 +377,8 @@ public class NormalizedText {
 			}
 			case Number: {
 				text.append("$");
+				text.append(this.core.getText());
+				text.append("$");
 				break;
 			}
 			case Parenthesized: {
@@ -375,14 +424,21 @@ public class NormalizedText {
 				text.append(qualifierText.getText());
 
 				text.append(".");
-				text.append("$");
+
+				final ProgramElementInfo name = coreExp.getExpressions().get(0);
+				final NormalizedText nameText = new NormalizedText(name);
+				text.append(nameText.getText());
 				break;
 			}
 			case SimpleName: {
 				text.append("$");
+				text.append(this.core.getText());
+				text.append("$");
 				break;
 			}
 			case String: {
+				text.append("$");
+				text.append(this.core.getText());
 				text.append("$");
 				break;
 			}
@@ -412,7 +468,9 @@ public class NormalizedText {
 			}
 			case SuperFieldAccess: {
 				text.append("super.");
-				text.append("$");
+				final ProgramElementInfo name = coreExp.getExpressions().get(0);
+				final NormalizedText nameText = new NormalizedText(name);
+				text.append(nameText.getText());
 				break;
 			}
 			case SuperMethodInvocation: {
@@ -494,6 +552,15 @@ public class NormalizedText {
 
 		else if (this.core instanceof OperatorInfo) {
 			this.text = this.core.getText();
+		}
+
+		else if (this.core instanceof VariableInfo) {
+			final StringBuilder text = new StringBuilder();
+			text.append(((VariableInfo) this.core).type.getText());
+			text.append(" $");
+			text.append(((VariableInfo) this.core).name);
+			text.append("$");
+			this.text = text.toString();
 		}
 	}
 }

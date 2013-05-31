@@ -97,10 +97,12 @@ public class Scorpio {
 
 					final NormalizedText t1 = new NormalizedText(
 							edge.fromNode.core);
-					final String fromNodeText = t1.getText();
+					final String fromNodeText = NormalizedText.normalize(t1
+							.getText());
 					final NormalizedText t2 = new NormalizedText(
 							edge.toNode.core);
-					final String toNodeText = t2.getText();
+					final String toNodeText = NormalizedText.normalize(t2
+							.getText());
 					final StringBuilder edgeText = new StringBuilder();
 					edgeText.append(fromNodeText);
 					edgeText.append("-");
@@ -110,10 +112,10 @@ public class Scorpio {
 					final int hash = edgeText.toString().hashCode();
 
 					System.out.println(edge.fromNode.core.getText());
-					System.out.println(t1.getText());
+					System.out.println(fromNodeText);
 					System.out.println();
 					System.out.println(edge.toNode.core.getText());
-					System.out.println(t2.getText());
+					System.out.println(toNodeText);
 					System.out.println();
 
 					List<PDGEdge> edgeList = mapHashToPDGEdgelists.get(hash);
