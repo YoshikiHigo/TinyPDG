@@ -22,6 +22,7 @@ import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
 import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
+import yoshikihigo.tinypdg.scorpio.data.EdgePairInfo;
 import yoshikihigo.tinypdg.scorpio.io.CSVWriter;
 import yoshikihigo.tinypdg.scorpio.io.Writer;
 
@@ -102,6 +103,8 @@ public class Scorpio {
 					final String toNodeText = t2.getText();
 					final StringBuilder edgeText = new StringBuilder();
 					edgeText.append(fromNodeText);
+					edgeText.append("-");
+					edgeText.append(edge.type.toString());
 					edgeText.append("->");
 					edgeText.append(toNodeText);
 					final int hash = edgeText.toString().hashCode();
@@ -112,7 +115,7 @@ public class Scorpio {
 					System.out.println(edge.toNode.core.getText());
 					System.out.println(t2.getText());
 					System.out.println();
-					
+
 					List<PDGEdge> edgeList = mapHashToPDGEdgelists.get(hash);
 					if (null == edgeList) {
 						edgeList = new ArrayList<PDGEdge>();
@@ -140,19 +143,33 @@ public class Scorpio {
 			}
 
 			final SortedSet<ClonePairInfo> clonepairs = new TreeSet<ClonePairInfo>();
+			final SortedSet<EdgePairInfo> edgepairsInClonepairs = new TreeSet<EdgePairInfo>();
 			for (final List<PDGEdge> list : mapPDGEdgeToPDGEdgelists.values()) {
 				for (int i = 0; i < list.size(); i++) {
-					for (int j = 0; j < list.size(); j++) {
-						final String path1 = mapPDGEdgeToFilePath.get(list
-								.get(i));
-						final String path2 = mapPDGEdgeToFilePath.get(list
-								.get(j));
+					for (int j = i + 1; j < list.size(); j++) {
+
+						final PDGEdge edgeA = list.get(i);
+						final PDGEdge edgeB = list.get(j);
+
+						final EdgePairInfo edgepair = new EdgePairInfo(edgeA,
+								edgeB);
+						if (edgepairsInClonepairs.contains(edgepair)) {
+							continue;
+						}
+
+						if (edgeA.connectedWith(edgeB)) {
+							continue;
+						}
+
+						final String path1 = mapPDGEdgeToFilePath.get(edgeA);
+						final String path2 = mapPDGEdgeToFilePath.get(edgeB);
 						final Slicing slicing = new Slicing(path1, path2,
-								list.get(i), list.get(j),
-								mapPDGEdgeToPDGEdgelists);
+								edgeA, edgeB, mapPDGEdgeToPDGEdgelists);
 						final ClonePairInfo clonepair = slicing.perform();
 						if (SIZE_THRESHOLD <= clonepair.size()) {
 							clonepairs.add(clonepair);
+							edgepairsInClonepairs.addAll(clonepair
+									.getEdgePairs());
 						}
 					}
 				}

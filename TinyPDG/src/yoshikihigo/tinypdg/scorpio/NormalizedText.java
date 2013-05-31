@@ -68,6 +68,7 @@ public class NormalizedText {
 				final NormalizedText expressionText = new NormalizedText(
 						expression);
 				text.append(expressionText.getText());
+				text.append(";");
 				break;
 			}
 			case For:

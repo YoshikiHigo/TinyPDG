@@ -40,14 +40,6 @@ public class Slicing {
 			final Set<PDGEdge> predecessorsB = new HashSet<PDGEdge>();
 			this.clonepair = this.perform(this.startEdgeA, this.startEdgeB,
 					predecessorsA, predecessorsB);
-
-			// ���ʕ�������菜������
-			// final SortedSet<PDGNode<?>> commonNodes = new
-			// TreeSet<PDGNode<?>>();
-			// commonNodes.addAll(this.clonepair.codecloneA.getAllElements());
-			// commonNodes.retainAll(this.clonepair.codecloneB.getAllElements());
-			// this.clonepair.codecloneA.removeAll(commonNodes);
-			// this.clonepair.codecloneB.removeAll(commonNodes);
 		}
 		return this.clonepair;
 	}
@@ -67,10 +59,8 @@ public class Slicing {
 				.getBackwardEdges();
 		final SortedSet<PDGEdge> backwardEdgesB = edgeB.fromNode
 				.getBackwardEdges();
-		final SortedSet<PDGEdge> forwardEdgesA = edgeA.fromNode
-				.getForwardEdges();
-		final SortedSet<PDGEdge> forwardEdgesB = edgeB.fromNode
-				.getForwardEdges();
+		final SortedSet<PDGEdge> forwardEdgesA = edgeA.toNode.getForwardEdges();
+		final SortedSet<PDGEdge> forwardEdgesB = edgeB.toNode.getForwardEdges();
 
 		final ClonePairInfo predicessor = this.enlargeClonePair(backwardEdgesA,
 				backwardEdgesB, predecessorsA, predecessorsB);
@@ -106,12 +96,16 @@ public class Slicing {
 
 			EDGEB: for (final PDGEdge edgeB : edgesB) {
 
+				if (edgeA == edgeB) {
+					continue EDGEB;
+				}
+
 				if (predecessorsB.contains(edgeB)
 						|| predecessorsA.contains(edgeB)) {
 					continue EDGEB;
 				}
 
-				final List<PDGEdge> equivalentEdgesB = PDGEDGES.get(edgesB);
+				final List<PDGEdge> equivalentEdgesB = PDGEDGES.get(edgeB);
 				if (null == equivalentEdgesB) {
 					continue EDGEB;
 				}
@@ -122,6 +116,8 @@ public class Slicing {
 							|| (0 == edgeA.toNode.compareTo(edgeB.toNode))) {
 						continue EDGEB;
 					}
+
+					clonepair.addEdgePair(new EdgePairInfo(edgeA, edgeB));
 
 					final SortedSet<PDGEdge> newPredicessorsA = new TreeSet<PDGEdge>(
 							predecessorsA);

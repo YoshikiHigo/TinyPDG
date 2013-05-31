@@ -4,7 +4,7 @@ import yoshikihigo.tinypdg.pdg.node.PDGNode;
 
 public abstract class PDGEdge implements Comparable<PDGEdge> {
 
-	final TYPE type;
+	final public TYPE type;
 	final public PDGNode<?> fromNode;
 	final public PDGNode<?> toNode;
 
@@ -50,6 +50,14 @@ public abstract class PDGEdge implements Comparable<PDGEdge> {
 		} else {
 			return this.type.toString().compareTo(edge.type.toString());
 		}
+	}
+
+	public boolean connectedWith(final PDGEdge edge) {
+		assert null != edge : "\"edge\" is null.";
+		return (0 == this.fromNode.compareTo(edge.fromNode))
+				|| (0 == this.fromNode.compareTo(edge.toNode))
+				|| (0 == this.toNode.compareTo(edge.fromNode))
+				|| (0 == this.toNode.compareTo(edge.toNode));
 	}
 
 	public enum TYPE {

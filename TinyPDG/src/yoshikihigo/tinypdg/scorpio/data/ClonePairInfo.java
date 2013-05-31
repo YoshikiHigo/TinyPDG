@@ -3,6 +3,8 @@ package yoshikihigo.tinypdg.scorpio.data;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import yoshikihigo.tinypdg.pdg.node.PDGMethodEnterNode;
+
 public class ClonePairInfo implements Comparable<ClonePairInfo> {
 
 	final public String pathA;
@@ -62,18 +64,30 @@ public class ClonePairInfo implements Comparable<ClonePairInfo> {
 	}
 
 	public int size() {
-		return this.edgePairs.size();
+		return this.getNodePairs().size();
+	}
+
+	public SortedSet<EdgePairInfo> getEdgePairs() {
+		final SortedSet<EdgePairInfo> edgepairs = new TreeSet<EdgePairInfo>();
+		edgepairs.addAll(this.edgePairs);
+		return edgepairs;
 	}
 
 	public SortedSet<NodePairInfo> getNodePairs() {
 		final SortedSet<NodePairInfo> nodepairs = new TreeSet<NodePairInfo>();
 		for (final EdgePairInfo edgepair : this.edgePairs) {
-			final NodePairInfo nodepair1 = new NodePairInfo(
-					edgepair.edgeA.fromNode, edgepair.edgeB.fromNode);
-			nodepairs.add(nodepair1);
-			final NodePairInfo nodepair2 = new NodePairInfo(
-					edgepair.edgeA.toNode, edgepair.edgeB.toNode);
-			nodepairs.add(nodepair2);
+			if (!(edgepair.edgeA.fromNode instanceof PDGMethodEnterNode)
+					&& !(edgepair.edgeB.fromNode instanceof PDGMethodEnterNode)) {
+				final NodePairInfo nodepair1 = new NodePairInfo(
+						edgepair.edgeA.fromNode, edgepair.edgeB.fromNode);
+				nodepairs.add(nodepair1);
+			}
+			if (!(edgepair.edgeA.toNode instanceof PDGMethodEnterNode)
+					&& !(edgepair.edgeB.toNode instanceof PDGMethodEnterNode)) {
+				final NodePairInfo nodepair2 = new NodePairInfo(
+						edgepair.edgeA.toNode, edgepair.edgeB.toNode);
+				nodepairs.add(nodepair2);
+			}
 		}
 		return nodepairs;
 	}

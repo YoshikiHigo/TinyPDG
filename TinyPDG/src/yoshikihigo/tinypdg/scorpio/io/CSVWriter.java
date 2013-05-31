@@ -64,7 +64,7 @@ public class CSVWriter extends Writer {
 
 		text.append(", ");
 
-		final ProgramElementInfo elementB = nodepair.nodeA.core;
+		final ProgramElementInfo elementB = nodepair.nodeB.core;
 		if (elementB.startLine == elementB.endLine) {
 			text.append(Integer.toString(elementB.startLine));
 		} else {
