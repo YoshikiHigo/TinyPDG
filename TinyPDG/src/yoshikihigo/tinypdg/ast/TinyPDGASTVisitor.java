@@ -1044,8 +1044,12 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 				startLine, endLine);
 		this.stack.push(vdExpression);
 
+		final TypeInfo type = new TypeInfo(node.getType().toString(),
+				startLine, endLine);
+		vdExpression.addExpression(type);
+
 		final StringBuilder text = new StringBuilder();
-		text.append(node.getType().toString());
+		text.append(type.getText());
 		text.append(" ");
 
 		for (final Object fragment : node.fragments()) {

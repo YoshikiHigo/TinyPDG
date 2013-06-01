@@ -524,8 +524,16 @@ public class NormalizedText {
 			}
 			case TypeLiteral:
 				break;
-			case VariableDeclarationExpression:
+			case VariableDeclarationExpression: {
+				final List<ProgramElementInfo> expressions = coreExp
+						.getExpressions();
+				text.append(expressions.get(0).getText());
+				text.append(" ");
+				final NormalizedText expressionText = new NormalizedText(
+						expressions.get(1));
+				text.append(expressionText.getText());
 				break;
+			}
 			case VariableDeclarationFragment:
 				final ProgramElementInfo left = coreExp.getExpressions().get(0);
 				final NormalizedText leftText = new NormalizedText(left);
@@ -539,6 +547,7 @@ public class NormalizedText {
 				text.append(rightText.getText());
 				break;
 			default:
+				assert false : "invalid status.";
 				break;
 
 			}
