@@ -128,9 +128,11 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	public boolean visit(final TypeDeclaration node) {
 
 		for (final Object o : node.bodyDeclarations()) {
-			((ASTNode) o).accept(this);
-			final ProgramElementInfo method = this.stack.pop();
-			this.methods.add((MethodInfo) method);
+			if (o instanceof MethodDeclaration) {
+				((ASTNode) o).accept(this);
+				final ProgramElementInfo method = this.stack.pop();
+				this.methods.add((MethodInfo) method);
+			}
 		}
 
 		return false;
@@ -189,8 +191,10 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 			text.append(modifier.toString());
 			text.append(" ");
 		}
-		text.append(node.getReturnType2().toString());
-		text.append(" ");
+		if (null != node.getReturnType2()) {
+			text.append(node.getReturnType2().toString());
+			text.append(" ");
+		}
 		text.append(name);
 		text.append("(");
 
@@ -329,6 +333,7 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 		final int endLine = this.getEndLineNumber(node);
 		final ExpressionInfo expression = new ExpressionInfo(
 				ExpressionInfo.CATEGORY.Null, startLine, endLine);
+		expression.setText("null");
 		this.stack.push(expression);
 
 		return false;
@@ -544,7 +549,6 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 		text.append(expression.getText());
 		text.append(".");
 		text.append(name.getText());
-		text.append(node.getName().toString());
 		fieldAccess.setText(text.toString());
 
 		return false;
@@ -819,12 +823,12 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 		this.stack.push(invocation);
 
 		final StringBuilder text = new StringBuilder();
-		text.append("(");
+		text.append("this(");
 		for (final Object argument : node.arguments()) {
 			((ASTNode) argument).accept(this);
 			final ProgramElementInfo argumentExpression = this.stack.pop();
 			invocation.addExpression((ExpressionInfo) argumentExpression);
-			text.append(argumentExpression);
+			text.append(argumentExpression.getText());
 			text.append(",");
 		}
 		if (0 < node.arguments().size()) {
@@ -832,6 +836,16 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 		}
 		text.append(")");
 		invocation.setText(text.toString());
+
+		this.stack.pop();
+		final ProgramElementInfo ownerBlock = this.stack.peek();
+		final StatementInfo statement = new StatementInfo(ownerBlock,
+				StatementInfo.CATEGORY.Expression, startLine, endLine);
+		this.stack.push(statement);
+
+		statement.addExpression(invocation);
+		text.append(";");
+		statement.setText(text.toString());
 
 		return false;
 	}

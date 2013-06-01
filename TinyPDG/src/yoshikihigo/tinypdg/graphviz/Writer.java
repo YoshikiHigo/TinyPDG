@@ -147,7 +147,7 @@ public class Writer {
 				for (final MethodInfo method : methods) {
 
 					final PDG pdg = new PDG(method, new PDGNodeFactory(),
-							new CFGNodeFactory(), true, true, true);
+							new CFGNodeFactory(), true, true, false);
 					pdg.build();
 					writePDG(pdg, createdGraphNumber++, writer);
 				}
