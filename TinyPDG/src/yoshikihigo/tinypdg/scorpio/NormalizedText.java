@@ -325,8 +325,7 @@ public class NormalizedText {
 				text.append(" instanceof ");
 				final ProgramElementInfo right = coreExp.getExpressions()
 						.get(1);
-				final NormalizedText rightText = new NormalizedText(right);
-				text.append(rightText.getText());
+				text.append(right.getText());
 				break;
 			}
 			case MethodEnter: {
@@ -509,7 +508,7 @@ public class NormalizedText {
 				text.append(": ");
 
 				final ProgramElementInfo elseExp = coreExp.getExpressions()
-						.get(1);
+						.get(2);
 				final NormalizedText elseExpText = new NormalizedText(elseExp);
 				text.append(elseExpText.getText());
 				break;
