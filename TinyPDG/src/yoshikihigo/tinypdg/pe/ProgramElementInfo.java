@@ -18,6 +18,8 @@ abstract public class ProgramElementInfo implements
 
 	final private List<String> modifiers;
 
+	protected BlockInfo ownerConditionalBlock;
+
 	public ProgramElementInfo(final int startLine, final int endLine) {
 		this.startLine = startLine;
 		this.endLine = endLine;
@@ -25,6 +27,8 @@ abstract public class ProgramElementInfo implements
 		this.text = "";
 
 		this.modifiers = new ArrayList<String>();
+
+		this.ownerConditionalBlock = null;
 	}
 
 	@Override
@@ -81,5 +85,14 @@ abstract public class ProgramElementInfo implements
 
 	public SortedSet<String> getReferencedVariables() {
 		return new TreeSet<String>();
+	}
+
+	public void setOwnerConditinalBlock(final BlockInfo ownerConditionalBlock) {
+		assert null != ownerConditionalBlock : "\"ownerConditionalBlock\" is null.";
+		this.ownerConditionalBlock = ownerConditionalBlock;
+	}
+
+	public BlockInfo getOwnerConditionalBlock() {
+		return this.ownerConditionalBlock;
 	}
 }

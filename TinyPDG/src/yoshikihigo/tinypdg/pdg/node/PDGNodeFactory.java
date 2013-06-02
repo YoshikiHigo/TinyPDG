@@ -51,7 +51,11 @@ public class PDGNodeFactory {
 		}
 
 		if (element instanceof ExpressionInfo) {
-			node = new PDGControlNode((ExpressionInfo) element);
+			node = new PDGControlNode(element);
+		}
+
+		else if (element instanceof VariableInfo) {
+			node = new PDGControlNode(element);
 		}
 
 		else if (element instanceof MethodInfo) {

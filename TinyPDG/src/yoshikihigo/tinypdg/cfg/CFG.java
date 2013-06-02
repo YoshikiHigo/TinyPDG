@@ -134,7 +134,7 @@ public class CFG {
 		}
 
 		else if (this.core instanceof ExpressionInfo) {
-			final ExpressionInfo coreExpression = (ExpressionInfo) this.core;
+			final ProgramElementInfo coreExpression = (ProgramElementInfo) this.core;
 			final CFGNode<? extends ProgramElementInfo> node = this.nodeFactory
 					.makeNormalNode(coreExpression);
 			this.enterNode = node;
@@ -188,7 +188,7 @@ public class CFG {
 		final SequentialCFGs sequentialCFGs = new SequentialCFGs(
 				statement.getStatements());
 		sequentialCFGs.build();
-		final ExpressionInfo condition = statement.getCondition();
+		final ProgramElementInfo condition = statement.getCondition();
 		final CFGNode<? extends ProgramElementInfo> conditionNode = this.nodeFactory
 				.makeControlNode(condition);
 
@@ -222,7 +222,7 @@ public class CFG {
 		sequentialCFGs.build();
 
 		final List<ExpressionInfo> initializers = statement.getInitializers();
-		final ExpressionInfo condition = statement.getCondition();
+		final ProgramElementInfo condition = statement.getCondition();
 		final List<ExpressionInfo> updaters = statement.getUpdaters();
 
 		final SequentialCFGs initializerCFGs = new SequentialCFGs(initializers);
@@ -280,7 +280,7 @@ public class CFG {
 		final List<StatementInfo> substatements = statement.getStatements();
 		final SequentialCFGs sequentialCFGs = new SequentialCFGs(substatements);
 		sequentialCFGs.build();
-		final ExpressionInfo condition = statement.getCondition();
+		final ProgramElementInfo condition = statement.getCondition();
 		final CFGNode<? extends ProgramElementInfo> conditionNode = this.nodeFactory
 				.makeControlNode(condition);
 
@@ -328,7 +328,7 @@ public class CFG {
 
 		this.buildConditionalBlockCFG(statement, false);
 
-		final ExpressionInfo condition = statement.getCondition();
+		final ProgramElementInfo condition = statement.getCondition();
 		final CFGNode<? extends ProgramElementInfo> conditionNode = this.nodeFactory
 				.makeControlNode(condition);
 
@@ -377,7 +377,7 @@ public class CFG {
 
 	private void buildSwitchBlockCFG(final StatementInfo statement) {
 
-		final ExpressionInfo condition = statement.getCondition();
+		final ProgramElementInfo condition = statement.getCondition();
 		final CFGNode<? extends ProgramElementInfo> conditionNode = this.nodeFactory
 				.makeControlNode(condition);
 		this.enterNode = conditionNode;

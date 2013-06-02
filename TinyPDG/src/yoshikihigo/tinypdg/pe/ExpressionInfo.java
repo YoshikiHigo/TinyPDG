@@ -10,7 +10,6 @@ public class ExpressionInfo extends ProgramElementInfo {
 	final public CATEGORY category;
 	private ProgramElementInfo qualifier;
 	final private List<ProgramElementInfo> expressions;
-	private BlockInfo ownerConditionalBlock;
 	private ClassInfo anonymousClassDeclaration;
 
 	public ExpressionInfo(final CATEGORY category, final int startLine,
@@ -19,7 +18,6 @@ public class ExpressionInfo extends ProgramElementInfo {
 		this.category = category;
 		this.qualifier = null;
 		this.expressions = new ArrayList<ProgramElementInfo>();
-		this.ownerConditionalBlock = null;
 		this.anonymousClassDeclaration = null;
 	}
 
@@ -66,15 +64,6 @@ public class ExpressionInfo extends ProgramElementInfo {
 		final List<ProgramElementInfo> expressions = new ArrayList<ProgramElementInfo>();
 		expressions.addAll(this.expressions);
 		return expressions;
-	}
-
-	public void setOwnerConditinalBlock(final BlockInfo ownerConditionalBlock) {
-		assert null != ownerConditionalBlock : "\"ownerConditionalBlock\" is null.";
-		this.ownerConditionalBlock = ownerConditionalBlock;
-	}
-
-	public BlockInfo getOwnerConditionalBlock() {
-		return this.ownerConditionalBlock;
 	}
 
 	public void setAnonymousClassDeclaration(

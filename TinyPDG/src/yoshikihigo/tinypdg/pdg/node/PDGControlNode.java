@@ -1,10 +1,10 @@
 package yoshikihigo.tinypdg.pdg.node;
 
-import yoshikihigo.tinypdg.pe.ExpressionInfo;
+import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 
-public class PDGControlNode extends PDGNode<ExpressionInfo> {
+public class PDGControlNode extends PDGNode<ProgramElementInfo> {
 
-	PDGControlNode(final ExpressionInfo condition) {
+	PDGControlNode(final ProgramElementInfo condition) {
 		super(condition);
 	}
 }

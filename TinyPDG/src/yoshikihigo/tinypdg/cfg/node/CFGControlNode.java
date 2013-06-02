@@ -1,10 +1,10 @@
 package yoshikihigo.tinypdg.cfg.node;
 
-import yoshikihigo.tinypdg.pe.ExpressionInfo;
+import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 
-public class CFGControlNode extends CFGNode<ExpressionInfo> {
+public class CFGControlNode extends CFGNode<ProgramElementInfo> {
 
-	public CFGControlNode(final ExpressionInfo expression) {
+	public CFGControlNode(final ProgramElementInfo expression) {
 		super(expression);
 	}
 }

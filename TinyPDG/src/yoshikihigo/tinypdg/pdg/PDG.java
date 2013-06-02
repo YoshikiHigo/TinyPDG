@@ -21,8 +21,8 @@ import yoshikihigo.tinypdg.pdg.node.PDGNode;
 import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
 import yoshikihigo.tinypdg.pdg.node.PDGParameterNode;
 import yoshikihigo.tinypdg.pe.BlockInfo;
-import yoshikihigo.tinypdg.pe.ExpressionInfo;
 import yoshikihigo.tinypdg.pe.MethodInfo;
+import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 import yoshikihigo.tinypdg.pe.StatementInfo;
 import yoshikihigo.tinypdg.pe.VariableInfo;
 
@@ -221,7 +221,7 @@ public class PDG {
 		}
 		if (this.buildControlDependence) {
 			if (pdgNode instanceof PDGControlNode) {
-				final ExpressionInfo condition = ((PDGControlNode) pdgNode).core;
+				final ProgramElementInfo condition = ((PDGControlNode) pdgNode).core;
 				this.buildControlDependence((PDGControlNode) pdgNode,
 						condition.getOwnerConditionalBlock());
 			}
@@ -301,7 +301,7 @@ public class PDG {
 				this.buildControlDependence(fromPDGNode, statement, false);
 			}
 
-			for (final ExpressionInfo updater : ((StatementInfo) block)
+			for (final ProgramElementInfo updater : ((StatementInfo) block)
 					.getUpdaters()) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNormalNode(updater);
@@ -329,7 +329,7 @@ public class PDG {
 		case Try:
 		case While:
 
-			final ExpressionInfo condition = statement.getCondition();
+			final ProgramElementInfo condition = statement.getCondition();
 			if (null != condition) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeControlNode(condition);
@@ -342,7 +342,7 @@ public class PDG {
 				this.buildControlDependence(fromPDGNode, statement);
 			}
 
-			for (final ExpressionInfo initializer : statement.getInitializers()) {
+			for (final ProgramElementInfo initializer : statement.getInitializers()) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNormalNode(initializer);
 				this.allNodes.add(toPDGNode);

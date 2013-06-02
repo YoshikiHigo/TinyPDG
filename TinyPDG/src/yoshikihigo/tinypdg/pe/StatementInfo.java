@@ -14,7 +14,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	private List<ProgramElementInfo> expressions;
 
 	final private List<ExpressionInfo> initializers;
-	private ExpressionInfo condition;
+	private ProgramElementInfo condition;
 	final private List<ExpressionInfo> updaters;
 
 	final private List<StatementInfo> statements;
@@ -84,7 +84,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 		this.initializers.add(initializer);
 	}
 
-	public void setCondition(final ExpressionInfo condition) {
+	public void setCondition(final ProgramElementInfo condition) {
 		assert null != condition : "\"condition\" is null.";
 		this.condition = condition;
 	}
@@ -98,7 +98,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 		return Collections.unmodifiableList(this.initializers);
 	}
 
-	public ExpressionInfo getCondition() {
+	public ProgramElementInfo getCondition() {
 		return this.condition;
 	}
 
@@ -186,7 +186,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 			variables.addAll(expression.getAssignedVariables());
 		}
 
-		for (final ExpressionInfo initializer : this.initializers) {
+		for (final ProgramElementInfo initializer : this.initializers) {
 			variables.addAll(initializer.getAssignedVariables());
 		}
 
@@ -194,7 +194,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 			variables.addAll(this.condition.getAssignedVariables());
 		}
 
-		for (final ExpressionInfo updater : this.updaters) {
+		for (final ProgramElementInfo updater : this.updaters) {
 			variables.addAll(updater.getAssignedVariables());
 		}
 
@@ -226,7 +226,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 			variables.addAll(expression.getReferencedVariables());
 		}
 
-		for (final ExpressionInfo initializer : this.initializers) {
+		for (final ProgramElementInfo initializer : this.initializers) {
 			variables.addAll(initializer.getReferencedVariables());
 		}
 
@@ -234,7 +234,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 			variables.addAll(this.condition.getReferencedVariables());
 		}
 
-		for (final ExpressionInfo updater : this.updaters) {
+		for (final ProgramElementInfo updater : this.updaters) {
 			variables.addAll(updater.getReferencedVariables());
 		}
 

@@ -24,7 +24,8 @@ public class CFGNodeFactory {
 			return new CFGPseudoNode();
 		}
 
-		CFGNormalNode node = (CFGNormalNode) this.elementToNodeMap.get(element);
+		CFGNormalNode<?> node = (CFGNormalNode<?>) this.elementToNodeMap
+				.get(element);
 		if (null == node) {
 			if (element instanceof StatementInfo) {
 				switch (((StatementInfo) element).getCategory()) {
@@ -40,9 +41,9 @@ public class CFGNodeFactory {
 				}
 				this.elementToNodeMap.put(element, node);
 			}
-			
-			else if(element instanceof ExpressionInfo){
-				node = new CFGExpressionNode((ExpressionInfo)element);
+
+			else if (element instanceof ExpressionInfo) {
+				node = new CFGExpressionNode((ExpressionInfo) element);
 			}
 
 			else {
@@ -55,7 +56,7 @@ public class CFGNodeFactory {
 	}
 
 	public synchronized CFGNode<? extends ProgramElementInfo> makeControlNode(
-			final ExpressionInfo expression) {
+			final ProgramElementInfo expression) {
 
 		if (null == expression) {
 			return new CFGPseudoNode();
