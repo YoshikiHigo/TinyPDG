@@ -221,9 +221,10 @@ public class CFG {
 				statement.getStatements());
 		sequentialCFGs.build();
 
-		final List<ExpressionInfo> initializers = statement.getInitializers();
+		final List<ProgramElementInfo> initializers = statement
+				.getInitializers();
 		final ProgramElementInfo condition = statement.getCondition();
-		final List<ExpressionInfo> updaters = statement.getUpdaters();
+		final List<ProgramElementInfo> updaters = statement.getUpdaters();
 
 		final SequentialCFGs initializerCFGs = new SequentialCFGs(initializers);
 		initializerCFGs.build();

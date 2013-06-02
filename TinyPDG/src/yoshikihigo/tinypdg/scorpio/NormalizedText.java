@@ -21,11 +21,11 @@ public class NormalizedText {
 		int startIndex = 0;
 		int endIndex = 0;
 		while (true) {
-			startIndex = normalizedText.indexOf("$", startIndex);
+			startIndex = normalizedText.indexOf("$$", startIndex);
 			if (startIndex < 0) {
 				break;
 			}
-			endIndex = normalizedText.indexOf("$", startIndex + 1);
+			endIndex = normalizedText.indexOf("$$", startIndex + 1);
 			assert 0 < endIndex : "invalid state.";
 
 			final String target = normalizedText.substring(startIndex,
@@ -35,7 +35,7 @@ public class NormalizedText {
 				value = "$" + Integer.toString(mapper.size() + 1);
 				mapper.put(target, value);
 			}
-			normalizedText.replace(startIndex, endIndex + 1, value);
+			normalizedText.replace(startIndex, endIndex + 2, value);
 			startIndex++;
 		}
 
@@ -236,9 +236,9 @@ public class NormalizedText {
 				break;
 			}
 			case Boolean: {
-				text.append("$");
+				text.append("$$");
 				text.append(coreExp.getText());
-				text.append("$");
+				text.append("$$");
 				break;
 			}
 			case Cast: {
@@ -255,9 +255,9 @@ public class NormalizedText {
 				break;
 			}
 			case Character: {
-				text.append("$");
+				text.append("$$");
 				text.append(coreExp.getText());
-				text.append("$");
+				text.append("$$");
 				break;
 			}
 			case ClassInstanceCreation: {
@@ -370,9 +370,9 @@ public class NormalizedText {
 				break;
 			}
 			case Number: {
-				text.append("$");
+				text.append("$$");
 				text.append(coreExp.getText());
-				text.append("$");
+				text.append("$$");
 				break;
 			}
 			case Parenthesized: {
@@ -425,15 +425,15 @@ public class NormalizedText {
 				break;
 			}
 			case SimpleName: {
-				text.append("$");
+				text.append("$$");
 				text.append(coreExp.getText());
-				text.append("$");
+				text.append("$$");
 				break;
 			}
 			case String: {
-				text.append("$");
+				text.append("$$");
 				text.append(coreExp.getText());
-				text.append("$");
+				text.append("$$");
 				break;
 			}
 			case SuperConstructorInvocation: {
@@ -563,9 +563,9 @@ public class NormalizedText {
 		else if (this.core instanceof VariableInfo) {
 			final StringBuilder text = new StringBuilder();
 			text.append(((VariableInfo) this.core).type.getText());
-			text.append(" $");
+			text.append(" $$");
 			text.append(((VariableInfo) this.core).name);
-			text.append("$");
+			text.append("$$");
 			this.text = text.toString();
 		}
 	}

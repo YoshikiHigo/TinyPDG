@@ -1203,10 +1203,10 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
 
 			node.getParameter().accept(this);
-			final ExpressionInfo parameter = (ExpressionInfo) this.stack.pop();
+			final ProgramElementInfo parameter = this.stack.pop();
 
 			node.getExpression().accept(this);
-			final ExpressionInfo expression = (ExpressionInfo) this.stack.pop();
+			final ProgramElementInfo expression = this.stack.pop();
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);

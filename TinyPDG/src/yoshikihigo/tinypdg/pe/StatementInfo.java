@@ -13,9 +13,9 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	private CATEGORY category;
 	private List<ProgramElementInfo> expressions;
 
-	final private List<ExpressionInfo> initializers;
+	final private List<ProgramElementInfo> initializers;
 	private ProgramElementInfo condition;
-	final private List<ExpressionInfo> updaters;
+	final private List<ProgramElementInfo> updaters;
 
 	final private List<StatementInfo> statements;
 	private List<StatementInfo> elseStatements;
@@ -33,9 +33,9 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 		this.category = category;
 		this.expressions = new ArrayList<ProgramElementInfo>();
 
-		this.initializers = new ArrayList<ExpressionInfo>();
+		this.initializers = new ArrayList<ProgramElementInfo>();
 		this.condition = null;
-		this.updaters = new ArrayList<ExpressionInfo>();
+		this.updaters = new ArrayList<ProgramElementInfo>();
 
 		this.statements = new ArrayList<StatementInfo>();
 		this.elseStatements = new ArrayList<StatementInfo>();
@@ -79,7 +79,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 		this.category = category;
 	}
 
-	public void addInitializer(final ExpressionInfo initializer) {
+	public void addInitializer(final ProgramElementInfo initializer) {
 		assert null != initializer : "\"initializer\" is null.";
 		this.initializers.add(initializer);
 	}
@@ -89,21 +89,25 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 		this.condition = condition;
 	}
 
-	public void addUpdater(final ExpressionInfo updater) {
+	public void addUpdater(final ProgramElementInfo updater) {
 		assert null != updater : "\"updater\" is null.";
 		this.updaters.add(updater);
 	}
 
-	public List<ExpressionInfo> getInitializers() {
-		return Collections.unmodifiableList(this.initializers);
+	public List<ProgramElementInfo> getInitializers() {
+		final List<ProgramElementInfo> initializers = new ArrayList<ProgramElementInfo>();
+		initializers.addAll(this.initializers);
+		return initializers;
 	}
 
 	public ProgramElementInfo getCondition() {
 		return this.condition;
 	}
 
-	public List<ExpressionInfo> getUpdaters() {
-		return Collections.unmodifiableList(this.updaters);
+	public List<ProgramElementInfo> getUpdaters() {
+		final List<ProgramElementInfo> updaters = new ArrayList<ProgramElementInfo>();
+		updaters.addAll(this.updaters);
+		return updaters;
 	}
 
 	@Override
