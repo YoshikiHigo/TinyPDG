@@ -73,6 +73,8 @@ public class Scorpio {
 			final int SIZE_THRESHOLD = Integer
 					.parseInt(cmd.getOptionValue("s"));
 
+			final long startTime = System.nanoTime();
+
 			final List<File> files = getFiles(target);
 			final List<PDG> pdgs = new ArrayList<PDG>();
 			final CFGNodeFactory cfgNodeFactory = new CFGNodeFactory();
@@ -180,7 +182,8 @@ public class Scorpio {
 			final Writer writer = new CSVWriter(output, clonepairs);
 			writer.write();
 
-			System.out.println("done.");
+			final long endTime = System.nanoTime();
+			printTime(endTime - startTime);
 
 		} catch (Exception e) {
 			System.err.println(e.getMessage());
@@ -209,5 +212,44 @@ public class Scorpio {
 		}
 
 		return files;
+	}
+
+	private static void printTime(final long time) {
+		final long micro = time / 1000;
+		final long mili = micro / 1000;
+		final long sec = mili / 1000;
+
+		final long hour = sec / 3600;
+		final long minute = (sec % 3600) / 60;
+		final long second = (sec % 3600) % 60;
+
+		System.out.print("elapsed time: ");
+
+		if (1l == hour) {
+			System.out.print(hour);
+			System.out.print(" hour ");
+		} else if (1l < hour) {
+			System.out.print(hour);
+			System.out.print(" hours ");
+		}
+
+		if (1l == minute) {
+			System.out.print(minute);
+			System.out.print(" minute ");
+		} else if (1l < minute) {
+			System.out.print(minute);
+			System.out.print(" minutes ");
+		} else if ((0l == minute) && (1l <= hour)) {
+			System.out.print(" 0 minute ");
+		}
+
+		if (2 <= second) {
+			System.out.print(second);
+			System.out.println(" seconds.");
+		} else {
+			System.out.print(second);
+			System.out.println(" second.");
+		}
+
 	}
 }
