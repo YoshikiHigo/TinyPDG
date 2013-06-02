@@ -610,7 +610,7 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 
 		node.getType().accept(this);
 		final ProgramElementInfo type = this.stack.pop();
-		arrayCreation.addExpression((ExpressionInfo) type);
+		arrayCreation.addExpression(type);
 
 		final StringBuilder text = new StringBuilder();
 		text.append("new ");

@@ -448,7 +448,7 @@ public class CFG {
 
 		final StatementInfo finallyBlock = statement.getFinallyStatement();
 		final CFG finallyCFG = new CFG(finallyBlock, this.nodeFactory);
-		this.build();
+		finallyCFG.build();
 
 		this.enterNode = sequentialCFGs.enterNode;
 		this.nodes.addAll(sequentialCFGs.nodes);

@@ -62,17 +62,17 @@ public class NormalizedText {
 		if (this.core instanceof StatementInfo) {
 
 			final StringBuilder text = new StringBuilder();
-			switch (((StatementInfo) this.core).getCategory()) {
+			final StatementInfo core = (StatementInfo) this.core;
+			switch (core.getCategory()) {
 			case Assert: {
 				text.append("assert ");
-				final ProgramElementInfo expression = ((StatementInfo) this.core)
-						.getExpressions().get(0);
+				final ProgramElementInfo expression = core.getExpressions()
+						.get(0);
 				final NormalizedText expressionText = new NormalizedText(
 						expression);
 				text.append(expressionText.getText());
 				text.append(" : ");
-				final ProgramElementInfo message = ((StatementInfo) this.core)
-						.getExpressions().get(1);
+				final ProgramElementInfo message = core.getExpressions().get(1);
 				final NormalizedText messageText = new NormalizedText(message);
 				text.append(messageText.getText());
 				text.append(";");
@@ -83,10 +83,10 @@ public class NormalizedText {
 				break;
 			}
 			case Case: {
-				if (0 < ((StatementInfo) this.core).getExpressions().size()) {
+				if (0 < core.getExpressions().size()) {
 					text.append("case ");
-					final ProgramElementInfo label = ((StatementInfo) this.core)
-							.getExpressions().get(0);
+					final ProgramElementInfo label = core.getExpressions().get(
+							0);
 					final NormalizedText labelText = new NormalizedText(label);
 					text.append(labelText.getText());
 					text.append(":");
@@ -104,8 +104,8 @@ public class NormalizedText {
 			case Do:
 				break;
 			case Expression: {
-				final ProgramElementInfo expression = ((StatementInfo) this.core)
-						.getExpressions().get(0);
+				final ProgramElementInfo expression = core.getExpressions()
+						.get(0);
 				final NormalizedText expressionText = new NormalizedText(
 						expression);
 				text.append(expressionText.getText());
@@ -119,12 +119,15 @@ public class NormalizedText {
 			case If:
 				break;
 			case Return: {
-				text.append("return ");
-				final ProgramElementInfo expression = ((StatementInfo) this.core)
-						.getExpressions().get(0);
-				final NormalizedText expressionText = new NormalizedText(
-						expression);
-				text.append(expressionText.getText());
+				text.append("return");
+				if (0 < core.getExpressions().size()) {
+					text.append(" ");
+					final ProgramElementInfo expression = core.getExpressions()
+							.get(0);
+					final NormalizedText expressionText = new NormalizedText(
+							expression);
+					text.append(expressionText.getText());
+				}
 				text.append(";");
 				break;
 			}
@@ -525,18 +528,21 @@ public class NormalizedText {
 				text.append(expressionText.getText());
 				break;
 			}
-			case VariableDeclarationFragment:
-				final ProgramElementInfo left = coreExp.getExpressions().get(0);
+			case VariableDeclarationFragment: {
+				final List<ProgramElementInfo> expressions = coreExp
+						.getExpressions();
+				final ProgramElementInfo left = expressions.get(0);
 				final NormalizedText leftText = new NormalizedText(left);
 				text.append(leftText.getText());
 
-				text.append(" = ");
-
-				final ProgramElementInfo right = coreExp.getExpressions()
-						.get(1);
-				final NormalizedText rightText = new NormalizedText(right);
-				text.append(rightText.getText());
+				if (1 < expressions.size()) {
+					text.append(" = ");
+					final ProgramElementInfo right = expressions.get(1);
+					final NormalizedText rightText = new NormalizedText(right);
+					text.append(rightText.getText());
+				}
 				break;
+			}
 			default:
 				assert false : "invalid status.";
 				break;
