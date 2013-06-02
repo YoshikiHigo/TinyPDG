@@ -60,6 +60,13 @@ public abstract class PDGEdge implements Comparable<PDGEdge> {
 				|| (0 == this.toNode.compareTo(edge.toNode));
 	}
 
+	public void remove() {
+		final boolean f = this.fromNode.removeForwardEdge(this);
+		final boolean b = this.toNode.removeBackwardEdge(this);
+		assert f : "invalid status.";
+		assert b : "invalid status.";
+	}
+
 	public enum TYPE {
 		CONTROL {
 			@Override

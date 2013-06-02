@@ -7,6 +7,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -137,12 +138,16 @@ public class Scorpio {
 				}
 			}
 
+			final AtomicLong NUMBER_OF_REMOVAL = new AtomicLong(0);
 			final ConcurrentMap<PDGEdge, List<PDGEdge>> mapPDGEdgeToPDGEdgelists = new ConcurrentHashMap<PDGEdge, List<PDGEdge>>();
 			for (final List<PDGEdge> list : mapHashToPDGEdgelists.values()) {
 				if (1 < list.size()) {
 					for (final PDGEdge edge : list) {
 						mapPDGEdgeToPDGEdgelists.put(edge, list);
 					}
+				} else {
+					list.get(0).remove();
+					NUMBER_OF_REMOVAL.incrementAndGet();
 				}
 			}
 
@@ -170,10 +175,9 @@ public class Scorpio {
 						final Slicing slicing = new Slicing(path1, path2,
 								edgeA, edgeB, mapPDGEdgeToPDGEdgelists);
 						final ClonePairInfo clonepair = slicing.perform();
+						edgepairsInClonepairs.addAll(clonepair.getEdgePairs());
 						if (SIZE_THRESHOLD <= clonepair.size()) {
 							clonepairs.add(clonepair);
-							edgepairsInClonepairs.addAll(clonepair
-									.getEdgePairs());
 						}
 					}
 				}
@@ -181,6 +185,9 @@ public class Scorpio {
 
 			final Writer writer = new CSVWriter(output, clonepairs);
 			writer.write();
+
+			printNumberOfRemoval(NUMBER_OF_REMOVAL.get());
+			printNumberOfComparison(Slicing.getNumberOfComparison());
 
 			final long endTime = System.nanoTime();
 			printTime(endTime - startTime);
@@ -212,6 +219,16 @@ public class Scorpio {
 		}
 
 		return files;
+	}
+
+	private static void printNumberOfRemoval(final long number) {
+		System.out.print("number of removed edges: ");
+		System.out.println(String.format("%1$,3d", number));
+	}
+
+	private static void printNumberOfComparison(final long number) {
+		System.out.print("number of comparisons: ");
+		System.out.println(String.format("%1$,3d", number));
 	}
 
 	private static void printTime(final long time) {
@@ -250,6 +267,5 @@ public class Scorpio {
 			System.out.print(second);
 			System.out.println(" second.");
 		}
-
 	}
 }

@@ -72,6 +72,22 @@ public abstract class PDGNode<T extends ProgramElementInfo> implements
 		return edges;
 	}
 
+	public void remove() {
+
+		for (final PDGEdge edge : this.getBackwardEdges()) {
+			final PDGNode<?> backwardNode = edge.fromNode;
+			backwardNode.removeForwardEdge(edge);
+		}
+
+		for (final PDGEdge edge : this.getForwardEdges()) {
+			final PDGNode<?> forwardNode = edge.toNode;
+			forwardNode.removeBackwardEdge(edge);
+		}
+
+		this.backwardEdges.clear();
+		this.forwardEdges.clear();
+	}
+
 	@Override
 	public int compareTo(final PDGNode<?> node) {
 		assert null != node : "\"node\" is null.";

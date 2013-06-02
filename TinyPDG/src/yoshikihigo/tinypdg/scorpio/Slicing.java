@@ -6,12 +6,19 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
 import yoshikihigo.tinypdg.scorpio.data.EdgePairInfo;
 
 public class Slicing {
+
+	final static private AtomicLong NUMBER_OF_COMPARISON = new AtomicLong(0);
+
+	public static long getNumberOfComparison() {
+		return NUMBER_OF_COMPARISON.get();
+	}
 
 	final private SortedSet<EdgePairInfo> CHECKED_EDGEPAIRS;
 	final private ConcurrentMap<PDGEdge, List<PDGEdge>> PDGEDGES;
@@ -110,6 +117,7 @@ public class Slicing {
 					continue EDGEB;
 				}
 
+				NUMBER_OF_COMPARISON.incrementAndGet();
 				if (equivalentEdgesA == equivalentEdgesB) {
 
 					if ((0 == edgeA.fromNode.compareTo(edgeB.fromNode))
