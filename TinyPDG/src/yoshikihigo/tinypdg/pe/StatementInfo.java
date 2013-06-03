@@ -48,10 +48,10 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	public enum CATEGORY {
 
 		Assert("ASSERT"), Break("BREAK"), Case("CASE"), Catch("CATCH"), Continue(
-				"CONTINUE"), Do("DO"), Empty("Empty"), Expression("EXPRESSION"), If("IF"), For(
-				"FOR"), Foreach("FOREACH"), Return("RETURN"), SimpleBlock(
+				"CONTINUE"), Do("DO"), Empty("Empty"), Expression("EXPRESSION"), If(
+				"IF"), For("FOR"), Foreach("FOREACH"), Return("RETURN"), SimpleBlock(
 				"SimpleBlock"), Synchronized("SYNCHRONIZED"), Switch("SWITCH"), Throw(
-				"SWITCH"), Try("TRY"), VariableDeclaration(
+				"SWITCH"), Try("TRY"), TypeDeclaration("TYPEDECLARATION"), VariableDeclaration(
 				"VARIABLEDECLARATION"), While("WHILE");
 
 		final public String id;

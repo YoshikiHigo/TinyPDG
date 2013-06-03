@@ -139,6 +139,8 @@ public class CFG {
 			case Synchronized:
 				this.buildConditionalBlockCFG(coreStatement, false);
 				break;
+			case TypeDeclaration:
+				break;
 			case Try:
 				this.buildTryBlockCFG(coreStatement);
 				break;

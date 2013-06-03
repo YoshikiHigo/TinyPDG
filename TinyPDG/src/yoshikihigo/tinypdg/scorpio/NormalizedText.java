@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import yoshikihigo.tinypdg.pe.ClassInfo;
 import yoshikihigo.tinypdg.pe.ExpressionInfo;
 import yoshikihigo.tinypdg.pe.OperatorInfo;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
@@ -153,6 +154,14 @@ public class NormalizedText {
 			}
 			case Try:
 				break;
+			case TypeDeclaration: {
+				final ClassInfo typeDeclaration = (ClassInfo) ((StatementInfo) this.core)
+						.getExpressions().get(0);
+				text.append("class ");
+				text.append(typeDeclaration.name);
+				text.append("{}");
+				break;
+			}
 			case VariableDeclaration: {
 				final List<ProgramElementInfo> expressions = ((StatementInfo) this.core)
 						.getExpressions();

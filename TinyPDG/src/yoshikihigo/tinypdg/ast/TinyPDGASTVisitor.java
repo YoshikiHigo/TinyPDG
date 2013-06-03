@@ -64,6 +64,7 @@ import org.eclipse.jdt.core.dom.ThisExpression;
 import org.eclipse.jdt.core.dom.ThrowStatement;
 import org.eclipse.jdt.core.dom.TryStatement;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
+import org.eclipse.jdt.core.dom.TypeDeclarationStatement;
 import org.eclipse.jdt.core.dom.TypeLiteral;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
@@ -128,12 +129,50 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 	@Override
 	public boolean visit(final TypeDeclaration node) {
 
+		final int startLine = this.getStartLineNumber(node);
+		final int endLine = this.getEndLineNumber(node);
+		final ClassInfo typeDeclaration = new ClassInfo(this.path, node
+				.getName().toString(), startLine, endLine);
+		this.stack.push(typeDeclaration);
+
+		final StringBuilder text = new StringBuilder();
+		text.append("class ");
+		text.append(node.getName().toString());
+		text.append("{");
+		text.append(System.getProperty("line.separator"));
 		for (final Object o : node.bodyDeclarations()) {
 			if (o instanceof MethodDeclaration) {
 				((ASTNode) o).accept(this);
 				final ProgramElementInfo method = this.stack.pop();
 				this.methods.add((MethodInfo) method);
+				typeDeclaration.addMethod((MethodInfo) method);
+				text.append(method.getText());
+				text.append(System.getProperty("line.separator"));
 			}
+		}
+		text.append("}");
+		typeDeclaration.setText(text.toString());
+
+		return false;
+	}
+
+	@Override
+	public boolean visit(final TypeDeclarationStatement node) {
+
+		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final ProgramElementInfo ownerBlock = this.stack.peek();
+			final StatementInfo statement = new StatementInfo(ownerBlock,
+					StatementInfo.CATEGORY.TypeDeclaration, startLine, endLine);
+			this.stack.push(statement);
+
+			node.getDeclaration().accept(this);
+			final ProgramElementInfo typeDeclaration = this.stack.pop();
+			statement.addExpression(typeDeclaration);
+
+			statement.setText(typeDeclaration.getText());
 		}
 
 		return false;
@@ -164,10 +203,12 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 		this.stack.push(anonymousClass);
 
 		for (final Object o : node.bodyDeclarations()) {
-			((ASTNode) o).accept(this);
-			final ProgramElementInfo method = this.stack.pop();
-			anonymousClass.addMethod((MethodInfo) method);
-			text.append(method.getText());
+			if (o instanceof MethodDeclaration) {
+				((ASTNode) o).accept(this);
+				final ProgramElementInfo method = this.stack.pop();
+				anonymousClass.addMethod((MethodInfo) method);
+				text.append(method.getText());
+			}
 		}
 
 		text.append("}");
@@ -214,8 +255,8 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 
 		if (null != node.getBody()) {
 			node.getBody().accept(this);
-			final StatementInfo body = (StatementInfo) this.stack.pop();
-			method.setStatement(body);
+			final ProgramElementInfo body = this.stack.pop();
+			method.setStatement((StatementInfo) body);
 			text.append(body.getText());
 		}
 		method.setText(text.toString());
