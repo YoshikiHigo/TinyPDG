@@ -35,6 +35,9 @@ public class CFGNodeFactory {
 				case Continue:
 					node = new CFGContinueStatementNode((StatementInfo) element);
 					break;
+				case Case:
+					node = new CFGSwitchCaseNode((StatementInfo) element);
+					break;
 				default:
 					node = new CFGStatementNode((StatementInfo) element);
 					break;

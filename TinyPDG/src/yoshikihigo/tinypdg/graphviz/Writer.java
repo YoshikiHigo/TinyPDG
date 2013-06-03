@@ -127,6 +127,7 @@ public class Writer {
 				for (final MethodInfo method : methods) {
 					final CFG cfg = new CFG(method, nodeFactory);
 					cfg.build();
+					cfg.removeSwitchCases();
 					writeMethodCFG(cfg, createdGraphNumber++, writer);
 				}
 

@@ -8,12 +8,14 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import yoshikihigo.tinypdg.cfg.edge.CFGControlEdge;
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
 import yoshikihigo.tinypdg.cfg.node.CFGBreakStatementNode;
 import yoshikihigo.tinypdg.cfg.node.CFGContinueStatementNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.cfg.node.CFGPseudoNode;
+import yoshikihigo.tinypdg.cfg.node.CFGSwitchCaseNode;
 import yoshikihigo.tinypdg.pe.BlockInfo;
 import yoshikihigo.tinypdg.pe.ExpressionInfo;
 import yoshikihigo.tinypdg.pe.MethodInfo;
@@ -69,6 +71,35 @@ public class CFG {
 		final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
 		nodes.addAll(this.nodes);
 		return nodes;
+	}
+
+	public void removeSwitchCases() {
+		final Iterator<CFGNode<? extends ProgramElementInfo>> iterator = this.nodes
+				.iterator();
+		while (iterator.hasNext()) {
+			final CFGNode<? extends ProgramElementInfo> node = iterator.next();
+			if (node instanceof CFGSwitchCaseNode) {
+
+				for (final CFGEdge edge : node.getBackwardEdges()) {
+					final CFGNode<?> fromNode = edge.fromNode;
+
+					for (final CFGNode<?> toNode : node.getForwardNodes()) {
+						final CFGEdge newEdge;
+						if (edge instanceof CFGControlEdge) {
+							newEdge = CFGEdge.makeEdge(fromNode, toNode,
+									((CFGControlEdge) edge).control);
+						} else {
+							newEdge = CFGEdge.makeEdge(fromNode, toNode);
+						}
+						fromNode.addForwardEdge(newEdge);
+						toNode.addBackwardEdge(newEdge);
+					}
+				}
+
+				node.remove();
+				iterator.remove();
+			}
+		}
 	}
 
 	public void build() {
@@ -155,33 +186,6 @@ public class CFG {
 			this.removePseudoNodes();
 		}
 	}
-
-	// private LinkedList<CFG> buildSequencialCFGs(
-	// final List<? extends ProgramElementInfo> elements) {
-	//
-	// final LinkedList<CFG> sequencialCFGs = new LinkedList<CFG>();
-	// for (final ProgramElementInfo element : elements) {
-	// final CFG blockCFG = new CFG(element, CFG.this.nodeFactory);
-	// if (!blockCFG.isEmpty()) {
-	// sequencialCFGs.add(blockCFG);
-	// }
-	// }
-	// for (int index = 1; index < sequencialCFGs.size(); index++) {
-	// final CFG anteriorCFG = sequencialCFGs.get(index - 1);
-	// final CFG posteriorCFG = sequencialCFGs.get(index);
-	// for (final CFGNode<?> exitNode : anteriorCFG.exitNodes) {
-	// final CFGEdge edge = new CFGNormalEdge(exitNode,
-	// posteriorCFG.enterNode);
-	// exitNode.addForwardEdge(edge);
-	// anteriorCFG.enterNode.addBackwardEdge(edge);
-	// }
-	// }
-	// if (0 == sequencialCFGs.size()) {
-	// final CFG pseudoCFG = new CFG(this.nodeFactory);
-	// sequencialCFGs.add(pseudoCFG);
-	// }
-	// return sequencialCFGs;
-	// }
 
 	private void buildDoBlockCFG(final StatementInfo statement) {
 

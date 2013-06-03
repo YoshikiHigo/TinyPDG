@@ -4,7 +4,7 @@ import yoshikihigo.tinypdg.cfg.node.CFGNode;
 
 public class CFGJumpEdge extends CFGEdge {
 
-	public CFGJumpEdge(final CFGNode<?> fromNode, final CFGNode<?> toNode) {
+	CFGJumpEdge(final CFGNode<?> fromNode, final CFGNode<?> toNode) {
 		super(fromNode, toNode);
 	}
 

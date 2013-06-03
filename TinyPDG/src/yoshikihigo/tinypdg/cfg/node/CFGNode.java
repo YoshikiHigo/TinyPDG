@@ -1,7 +1,6 @@
 package yoshikihigo.tinypdg.cfg.node;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.SortedSet;
@@ -51,11 +50,7 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 	}
 
 	public boolean removeForwardEdge(final CFGEdge forwardEdge) {
-
-		if (null == forwardEdge) {
-			throw new IllegalArgumentException();
-		}
-
+		assert null != forwardEdge : "\"forwardEdge\" is null.";
 		return this.forwardEdges.remove(forwardEdge);
 	}
 
@@ -69,11 +64,7 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 	}
 
 	public boolean removeBackwardEdge(final CFGEdge backwardEdge) {
-
-		if (null == backwardEdge) {
-			throw new IllegalArgumentException();
-		}
-
+		assert null != backwardEdge : "\"backwardEdge\" is null.";
 		return this.backwardEdges.remove(backwardEdge);
 	}
 
@@ -114,6 +105,24 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 		return false;
 	}
 
+	public void remove() {
+		final SortedSet<CFGEdge> backwardEdges = this.getBackwardEdges();
+		final SortedSet<CFGEdge> forwardEdges = this.getForwardEdges();
+
+		for (final CFGEdge edge : backwardEdges) {
+			final boolean b = edge.fromNode.removeForwardEdge(edge);
+			assert b : "invalid status.";
+		}
+
+		for (final CFGEdge edge : forwardEdges) {
+			final boolean b = edge.toNode.removeBackwardEdge(edge);
+			assert b : "invalid status.";
+		}
+
+		this.backwardEdges.clear();
+		this.forwardEdges.clear();
+	}
+
 	public SortedSet<CFGNode<? extends ProgramElementInfo>> getForwardNodes() {
 		final SortedSet<CFGNode<? extends ProgramElementInfo>> forwardNodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
 		for (final CFGEdge forwardEdge : this.getForwardEdges()) {
@@ -123,7 +132,9 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 	}
 
 	public SortedSet<CFGEdge> getForwardEdges() {
-		return Collections.unmodifiableSortedSet(this.forwardEdges);
+		final SortedSet<CFGEdge> forwardEdges = new TreeSet<CFGEdge>();
+		forwardEdges.addAll(this.forwardEdges);
+		return forwardEdges;
 	}
 
 	public SortedSet<CFGNode<? extends ProgramElementInfo>> getBackwardNodes() {
@@ -134,8 +145,10 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 		return backwardNodes;
 	}
 
-	public Set<CFGEdge> getBackwardEdges() {
-		return Collections.unmodifiableSet(this.backwardEdges);
+	public SortedSet<CFGEdge> getBackwardEdges() {
+		final SortedSet<CFGEdge> backwardEdges = new TreeSet<CFGEdge>();
+		backwardEdges.addAll(this.backwardEdges);
+		return backwardEdges;
 	}
 
 	@Override
