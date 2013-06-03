@@ -74,6 +74,12 @@ public class CFGNodeFactory {
 		return node;
 	}
 
+	public CFGNode<? extends ProgramElementInfo> getNode(
+			final ProgramElementInfo element) {
+		assert null != element : "\"element\" is null.";
+		return this.elementToNodeMap.get(element);
+	}
+
 	public synchronized boolean removeNode(final ProgramElementInfo element) {
 		return null != this.elementToNodeMap.remove(element) ? true : false;
 	}

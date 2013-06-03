@@ -146,6 +146,7 @@ public class PDG {
 
 		this.cfg = new CFG(this.unit, this.cfgNodeFactory);
 		this.cfg.build();
+		this.cfg.removeSwitchCases();
 
 		if (this.buildControlDependence) {
 			this.buildControlDependence(this.enterNode, unit);
@@ -327,8 +328,7 @@ public class PDG {
 		case Synchronized:
 		case Switch:
 		case Try:
-		case While:
-
+		case While: {
 			final ProgramElementInfo condition = statement.getCondition();
 			if (null != condition) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
@@ -342,7 +342,8 @@ public class PDG {
 				this.buildControlDependence(fromPDGNode, statement);
 			}
 
-			for (final ProgramElementInfo initializer : statement.getInitializers()) {
+			for (final ProgramElementInfo initializer : statement
+					.getInitializers()) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNormalNode(initializer);
 				this.allNodes.add(toPDGNode);
@@ -351,8 +352,8 @@ public class PDG {
 				fromPDGNode.addForwardEdge(edge);
 				toPDGNode.addBackwardEdge(edge);
 			}
-
 			break;
+		}
 		case Assert:
 		case Break:
 		case Case:
@@ -360,15 +361,20 @@ public class PDG {
 		case Expression:
 		case Return:
 		case Throw:
-		case VariableDeclaration:
-			final PDGNode<?> toPDGNode = this.pdgNodeFactory
-					.makeNormalNode(statement);
-			this.allNodes.add(toPDGNode);
-			final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
-					fromPDGNode, toPDGNode, type);
-			fromPDGNode.addForwardEdge(edge);
-			toPDGNode.addBackwardEdge(edge);
+		case VariableDeclaration: {
+			final CFGNode<?> cfgNode = this.cfgNodeFactory.getNode(statement);
+			if ((null != cfgNode) && (this.cfg.getAllNodes().contains(cfgNode))) {
+
+				final PDGNode<?> toPDGNode = this.pdgNodeFactory
+						.makeNormalNode(statement);
+				this.allNodes.add(toPDGNode);
+				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
+						fromPDGNode, toPDGNode, type);
+				fromPDGNode.addForwardEdge(edge);
+				toPDGNode.addBackwardEdge(edge);
+			}
 			break;
+		}
 		default:
 		}
 	}

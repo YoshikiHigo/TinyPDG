@@ -103,6 +103,10 @@ public class NormalizedText {
 			}
 			case Do:
 				break;
+			case Empty: {
+				text.append(";");
+				break;
+			}
 			case Expression: {
 				final ProgramElementInfo expression = core.getExpressions()
 						.get(0);

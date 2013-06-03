@@ -33,6 +33,7 @@ import org.eclipse.jdt.core.dom.ConditionalExpression;
 import org.eclipse.jdt.core.dom.ConstructorInvocation;
 import org.eclipse.jdt.core.dom.ContinueStatement;
 import org.eclipse.jdt.core.dom.DoStatement;
+import org.eclipse.jdt.core.dom.EmptyStatement;
 import org.eclipse.jdt.core.dom.EnhancedForStatement;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.FieldAccess;
@@ -1706,6 +1707,23 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 		text.append(" ");
 		text.append(name);
 		variable.setText(text.toString());
+
+		return false;
+	}
+
+	@Override
+	public boolean visit(final EmptyStatement node) {
+
+		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final ProgramElementInfo ownerBlock = this.stack.peek();
+			final StatementInfo emptyStatement = new StatementInfo(ownerBlock,
+					StatementInfo.CATEGORY.Empty, startLine, endLine);
+			this.stack.push(emptyStatement);
+			emptyStatement.setText(";");
+		}
 
 		return false;
 	}

@@ -1,22 +1,18 @@
 digraph {
 subgraph cluster0 {
 label = "getInt <5...24>";
-0.13 [style = filled, label = "value = 0; <20>", fillcolor = white, shape = ellipse];
-0.3 [style = filled, label = "case \"ONE\": <10>", fillcolor = white, shape = ellipse];
-0.8 [style = filled, label = "break; <15>", fillcolor = white, shape = ellipse];
-0.11 [style = filled, label = "break; <18>", fillcolor = white, shape = ellipse];
-0.10 [style = filled, label = "value = 3; <17>", fillcolor = white, shape = ellipse];
-0.14 [style = filled, label = "return value; <23>", fillcolor = deeppink, shape = ellipse];
-0.4 [style = filled, label = "value = 1; <11>", fillcolor = white, shape = ellipse];
-0.2 [style = filled, label = "text <9>", fillcolor = white, shape = diamond];
-0.0 [style = filled, label = "String text <5>", fillcolor = tomato, shape = box];
-0.12 [style = filled, label = "default: <19>", fillcolor = white, shape = ellipse];
-0.6 [style = filled, label = "case \"TWO\": <13>", fillcolor = white, shape = ellipse];
-0.15 [style = filled, label = "Enter <5...24>", fillcolor = aquamarine, shape = diamond];
-0.9 [style = filled, label = "case \"THREE\": <16>", fillcolor = white, shape = ellipse];
+0.9 [style = filled, label = "value = 0; <20>", fillcolor = white, shape = ellipse];
 0.1 [style = filled, label = "int value; <7>", fillcolor = white, shape = ellipse];
-0.5 [style = filled, label = "break; <12>", fillcolor = white, shape = ellipse];
-0.7 [style = filled, label = "value = 2; <14>", fillcolor = white, shape = ellipse];
+0.6 [style = filled, label = "break; <15>", fillcolor = white, shape = ellipse];
+0.11 [style = filled, label = "Enter <5...24>", fillcolor = aquamarine, shape = diamond];
+0.2 [style = filled, label = "text <9>", fillcolor = white, shape = diamond];
+0.4 [style = filled, label = "break; <12>", fillcolor = white, shape = ellipse];
+0.8 [style = filled, label = "break; <18>", fillcolor = white, shape = ellipse];
+0.7 [style = filled, label = "value = 3; <17>", fillcolor = white, shape = ellipse];
+0.0 [style = filled, label = "String text <5>", fillcolor = tomato, shape = box];
+0.5 [style = filled, label = "value = 2; <14>", fillcolor = white, shape = ellipse];
+0.3 [style = filled, label = "value = 1; <11>", fillcolor = white, shape = ellipse];
+0.10 [style = filled, label = "return value; <23>", fillcolor = deeppink, shape = ellipse];
 0.0 -> 0.2 [style = solid, label="text"];
 0.2 -> 0.3 [style = dotted, label="true"];
 0.2 -> 0.4 [style = dotted, label="true"];
@@ -25,16 +21,12 @@ label = "getInt <5...24>";
 0.2 -> 0.7 [style = dotted, label="true"];
 0.2 -> 0.8 [style = dotted, label="true"];
 0.2 -> 0.9 [style = dotted, label="true"];
-0.2 -> 0.10 [style = dotted, label="true"];
-0.2 -> 0.11 [style = dotted, label="true"];
-0.2 -> 0.12 [style = dotted, label="true"];
-0.2 -> 0.13 [style = dotted, label="true"];
-0.4 -> 0.14 [style = solid, label="value"];
-0.7 -> 0.14 [style = solid, label="value"];
-0.10 -> 0.14 [style = solid, label="value"];
-0.13 -> 0.14 [style = solid, label="value"];
-0.15 -> 0.1 [style = dotted, label="true"];
-0.15 -> 0.2 [style = dotted, label="true"];
-0.15 -> 0.14 [style = dotted, label="true"];
+0.3 -> 0.10 [style = solid, label="value"];
+0.5 -> 0.10 [style = solid, label="value"];
+0.7 -> 0.10 [style = solid, label="value"];
+0.9 -> 0.10 [style = solid, label="value"];
+0.11 -> 0.1 [style = dotted, label="true"];
+0.11 -> 0.2 [style = dotted, label="true"];
+0.11 -> 0.10 [style = dotted, label="true"];
 }
 }
