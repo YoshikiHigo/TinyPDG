@@ -128,6 +128,7 @@ public class Writer {
 					final CFG cfg = new CFG(method, nodeFactory);
 					cfg.build();
 					cfg.removeSwitchCases();
+					cfg.removeJumpStatements();
 					writeMethodCFG(cfg, createdGraphNumber++, writer);
 				}
 

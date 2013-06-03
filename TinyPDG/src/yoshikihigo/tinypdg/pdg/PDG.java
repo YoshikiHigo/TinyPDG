@@ -147,6 +147,7 @@ public class PDG {
 		this.cfg = new CFG(this.unit, this.cfgNodeFactory);
 		this.cfg.build();
 		this.cfg.removeSwitchCases();
+		this.cfg.removeJumpStatements();
 
 		if (this.buildControlDependence) {
 			this.buildControlDependence(this.enterNode, unit);

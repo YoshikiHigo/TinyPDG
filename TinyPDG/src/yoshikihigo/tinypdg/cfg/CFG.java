@@ -12,6 +12,7 @@ import yoshikihigo.tinypdg.cfg.edge.CFGControlEdge;
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
 import yoshikihigo.tinypdg.cfg.node.CFGBreakStatementNode;
 import yoshikihigo.tinypdg.cfg.node.CFGContinueStatementNode;
+import yoshikihigo.tinypdg.cfg.node.CFGJumpStatementNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.cfg.node.CFGPseudoNode;
@@ -91,6 +92,29 @@ public class CFG {
 						} else {
 							newEdge = CFGEdge.makeEdge(fromNode, toNode);
 						}
+						fromNode.addForwardEdge(newEdge);
+						toNode.addBackwardEdge(newEdge);
+					}
+				}
+
+				node.remove();
+				iterator.remove();
+			}
+		}
+	}
+
+	public void removeJumpStatements() {
+		final Iterator<CFGNode<? extends ProgramElementInfo>> iterator = this.nodes
+				.iterator();
+		while (iterator.hasNext()) {
+			final CFGNode<? extends ProgramElementInfo> node = iterator.next();
+			if (node instanceof CFGJumpStatementNode) {
+
+				for (final CFGNode<?> fromNode : node.getBackwardNodes()) {
+					for (final CFGNode<?> toNode : node.getForwardNodes()) {
+
+						final CFGEdge newEdge = CFGEdge.makeJumpEdge(fromNode,
+								toNode);
 						fromNode.addForwardEdge(newEdge);
 						toNode.addBackwardEdge(newEdge);
 					}

@@ -11,6 +11,10 @@ public abstract class CFGEdge implements Comparable<CFGEdge> {
 
 	static public CFGEdge makeEdge(final CFGNode<?> fromNode,
 			final CFGNode<?> toNode, boolean control) {
+
+		assert null != fromNode : "\"fromNode\" is null.";
+		assert null != toNode : "\"toNode\" is null.";
+
 		assert fromNode instanceof CFGControlNode
 				|| fromNode instanceof CFGPseudoNode : "\"fromNode\" is neither CFGControlNode nor CFGPseudoNode.";
 
@@ -27,6 +31,10 @@ public abstract class CFGEdge implements Comparable<CFGEdge> {
 
 	static public CFGEdge makeEdge(final CFGNode<?> fromNode,
 			final CFGNode<?> toNode) {
+
+		assert null != fromNode : "\"fromNode\" is null.";
+		assert null != toNode : "\"toNode\" is null.";
+
 		if (fromNode instanceof CFGControlNode) {
 			return makeEdge(fromNode, toNode, false);
 		} else if (fromNode instanceof CFGBreakStatementNode
@@ -37,13 +45,22 @@ public abstract class CFGEdge implements Comparable<CFGEdge> {
 		}
 	}
 
+	static public CFGEdge makeJumpEdge(final CFGNode<?> fromNode,
+			final CFGNode<?> toNode) {
+
+		assert null != fromNode : "\"fromNode\" is null.";
+		assert null != toNode : "\"toNode\" is null.";
+
+		return new CFGJumpEdge(fromNode, toNode);
+	}
+
 	public final CFGNode<? extends ProgramElementInfo> fromNode;
 	public final CFGNode<? extends ProgramElementInfo> toNode;
 
 	CFGEdge(final CFGNode<?> fromNode, final CFGNode<?> toNode) {
-		if (null == fromNode || null == toNode) {
-			throw new IllegalArgumentException();
-		}
+
+		assert null != fromNode : "\"fromNode\" is null.";
+		assert null != toNode : "\"toNode\" is null.";
 
 		this.fromNode = fromNode;
 		this.toNode = toNode;
