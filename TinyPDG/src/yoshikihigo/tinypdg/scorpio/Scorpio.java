@@ -4,27 +4,23 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
-import org.eclipse.jdt.core.dom.CompilationUnit;
 
-import yoshikihigo.tinypdg.ast.TinyPDGASTVisitor;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.pdg.PDG;
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
-import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
-import yoshikihigo.tinypdg.scorpio.data.EdgePairInfo;
+import yoshikihigo.tinypdg.scorpio.data.PDGPairInfo;
 import yoshikihigo.tinypdg.scorpio.io.CSVWriter;
 import yoshikihigo.tinypdg.scorpio.io.Writer;
 
@@ -89,25 +85,28 @@ public class Scorpio {
 			final long startTime = System.nanoTime();
 
 			final List<File> files = getFiles(target);
-			final List<PDG> pdgs = new ArrayList<PDG>();
+			final List<PDG> pdgs = Collections
+					.synchronizedList(new ArrayList<PDG>());
 			final CFGNodeFactory cfgNodeFactory = new CFGNodeFactory();
 			final PDGNodeFactory pdgNodeFactory = new PDGNodeFactory();
-			for (final File file : files) {
-				final CompilationUnit unit = TinyPDGASTVisitor.createAST(file);
-				final List<MethodInfo> methods = new ArrayList<MethodInfo>();
-				final TinyPDGASTVisitor visitor = new TinyPDGASTVisitor(
-						file.getAbsolutePath(), unit, methods);
-				unit.accept(visitor);
-				for (final MethodInfo method : methods) {
-					final PDG pdg = new PDG(method, pdgNodeFactory,
-							cfgNodeFactory, true, true, true, 100, 100, 100);
-					pdg.build();
-					pdgs.add(pdg);
+			final Thread[] pdgGenerationThreads = new Thread[NUMBER_OF_THREADS];
+			for (int i = 0; i < pdgGenerationThreads.length; i++) {
+				pdgGenerationThreads[i] = new Thread(new PDGGenerationThread(
+						files, pdgs, cfgNodeFactory, pdgNodeFactory));
+				pdgGenerationThreads[i].start();
+			}
+			for (final Thread thread : pdgGenerationThreads) {
+				try {
+					thread.join();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
 				}
 			}
 
-			final ConcurrentMap<Integer, List<PDGEdge>> mapHashToPDGEdgelists = new ConcurrentHashMap<Integer, List<PDGEdge>>();
+			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges = Collections
+					.synchronizedSortedMap(new TreeMap<PDG, SortedMap<PDGEdge, Integer>>());
 			for (final PDG pdg : pdgs) {
+				final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash = new TreeMap<PDGEdge, Integer>();
 				for (final PDGEdge edge : pdg.getAllEdges()) {
 
 					final NormalizedText t1 = new NormalizedText(
@@ -126,23 +125,13 @@ public class Scorpio {
 					edgeText.append(toNodeText);
 					final int hash = edgeText.toString().hashCode();
 
-					System.out.println(edge.fromNode.core.getText());
-					System.out.println(fromNodeText);
-					System.out.println();
-					System.out.println(edge.toNode.core.getText());
-					System.out.println(toNodeText);
-					System.out.println();
-
-					List<PDGEdge> edgeList = mapHashToPDGEdgelists.get(hash);
-					if (null == edgeList) {
-						edgeList = new ArrayList<PDGEdge>();
-						mapHashToPDGEdgelists.put(hash, edgeList);
-					}
-					edgeList.add(edge);
+					mappingPDGEdgeToHash.put(edge, hash);
 				}
+				mappingPDGToPDGEdges.put(pdg, mappingPDGEdgeToHash);
 			}
 
-			final ConcurrentMap<PDGEdge, String> mapPDGEdgeToFilePath = new ConcurrentHashMap<PDGEdge, String>();
+			final SortedMap<PDGEdge, String> mapPDGEdgeToFilePath = Collections
+					.synchronizedSortedMap(new TreeMap<PDGEdge, String>());
 			for (final PDG pdg : pdgs) {
 				final String filepath = pdg.unit.path;
 				for (final PDGEdge edge : pdg.getAllEdges()) {
@@ -150,29 +139,23 @@ public class Scorpio {
 				}
 			}
 
-			final AtomicLong NUMBER_OF_REMOVAL = new AtomicLong(0);
-			final ConcurrentMap<PDGEdge, List<PDGEdge>> mapPDGEdgeToPDGEdgelists = new ConcurrentHashMap<PDGEdge, List<PDGEdge>>();
-			for (final List<PDGEdge> list : mapHashToPDGEdgelists.values()) {
-				if (1 < list.size()) {
-					for (final PDGEdge edge : list) {
-						mapPDGEdgeToPDGEdgelists.put(edge, list);
-					}
-				} else {
-					list.get(0).remove();
-					NUMBER_OF_REMOVAL.incrementAndGet();
+			final List<PDGPairInfo> pdgpairs = new ArrayList<PDGPairInfo>();
+			for (int i = 0; i < pdgs.size(); i++) {
+				for (int j = i + 1; j < pdgs.size(); j++) {
+					pdgpairs.add(new PDGPairInfo(pdgs.get(i), pdgs.get(j)));
 				}
 			}
 
 			final SortedSet<ClonePairInfo> clonepairs = Collections
 					.synchronizedSortedSet(new TreeSet<ClonePairInfo>());
-			final SortedSet<EdgePairInfo> edgepairsInClonepairs = Collections
-					.synchronizedSortedSet(new TreeSet<EdgePairInfo>());
-
+			final PDGPairInfo[] pdgpairArray = pdgpairs
+					.toArray(new PDGPairInfo[0]);
+			final PDG[] pdgArray = pdgs.toArray(new PDG[0]);
 			final Thread[] slicingThreads = new Thread[NUMBER_OF_THREADS];
 			for (int i = 0; i < slicingThreads.length; i++) {
-				slicingThreads[i] = new Thread(new SlicingThread(
-						mapPDGEdgeToPDGEdgelists, mapPDGEdgeToFilePath,
-						clonepairs, edgepairsInClonepairs, SIZE_THRESHOLD));
+				slicingThreads[i] = new Thread(new SlicingThread(pdgpairArray,
+						pdgArray, mappingPDGToPDGEdges, mapPDGEdgeToFilePath,
+						clonepairs, SIZE_THRESHOLD));
 				slicingThreads[i].start();
 			}
 
@@ -187,7 +170,6 @@ public class Scorpio {
 			final Writer writer = new CSVWriter(output, clonepairs);
 			writer.write();
 
-			printNumberOfRemoval(NUMBER_OF_REMOVAL.get());
 			printNumberOfComparison(Slicing.getNumberOfComparison());
 
 			final long endTime = System.nanoTime();
