@@ -2,6 +2,7 @@ package yoshikihigo.tinypdg.scorpio;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -60,6 +61,15 @@ public class Scorpio {
 				options.addOption(s);
 			}
 
+			{
+				final Option t = new Option("t", "thread", true,
+						"number of threads");
+				t.setArgName("thread");
+				t.setArgs(1);
+				t.setRequired(false);
+				options.addOption(t);
+			}
+
 			final CommandLineParser parser = new PosixParser();
 			final CommandLine cmd = parser.parse(options, args);
 
@@ -73,6 +83,8 @@ public class Scorpio {
 			final String output = cmd.getOptionValue("o");
 			final int SIZE_THRESHOLD = Integer
 					.parseInt(cmd.getOptionValue("s"));
+			final int NUMBER_OF_THREADS = cmd.hasOption("t") ? Integer
+					.parseInt(cmd.getOptionValue("t")) : 1;
 
 			final long startTime = System.nanoTime();
 
@@ -151,35 +163,24 @@ public class Scorpio {
 				}
 			}
 
-			final SortedSet<ClonePairInfo> clonepairs = new TreeSet<ClonePairInfo>();
-			final SortedSet<EdgePairInfo> edgepairsInClonepairs = new TreeSet<EdgePairInfo>();
-			for (final List<PDGEdge> list : mapPDGEdgeToPDGEdgelists.values()) {
-				for (int i = 0; i < list.size(); i++) {
-					for (int j = i + 1; j < list.size(); j++) {
+			final SortedSet<ClonePairInfo> clonepairs = Collections
+					.synchronizedSortedSet(new TreeSet<ClonePairInfo>());
+			final SortedSet<EdgePairInfo> edgepairsInClonepairs = Collections
+					.synchronizedSortedSet(new TreeSet<EdgePairInfo>());
 
-						final PDGEdge edgeA = list.get(i);
-						final PDGEdge edgeB = list.get(j);
+			final Thread[] slicingThreads = new Thread[NUMBER_OF_THREADS];
+			for (int i = 0; i < slicingThreads.length; i++) {
+				slicingThreads[i] = new Thread(new SlicingThread(
+						mapPDGEdgeToPDGEdgelists, mapPDGEdgeToFilePath,
+						clonepairs, edgepairsInClonepairs, SIZE_THRESHOLD));
+				slicingThreads[i].start();
+			}
 
-						final EdgePairInfo edgepair = new EdgePairInfo(edgeA,
-								edgeB);
-						if (edgepairsInClonepairs.contains(edgepair)) {
-							continue;
-						}
-
-						if (edgeA.connectedWith(edgeB)) {
-							continue;
-						}
-
-						final String path1 = mapPDGEdgeToFilePath.get(edgeA);
-						final String path2 = mapPDGEdgeToFilePath.get(edgeB);
-						final Slicing slicing = new Slicing(path1, path2,
-								edgeA, edgeB, mapPDGEdgeToPDGEdgelists);
-						final ClonePairInfo clonepair = slicing.perform();
-						edgepairsInClonepairs.addAll(clonepair.getEdgePairs());
-						if (SIZE_THRESHOLD <= clonepair.size()) {
-							clonepairs.add(clonepair);
-						}
-					}
+			for (final Thread thread : slicingThreads) {
+				try {
+					thread.join();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
 				}
 			}
 
