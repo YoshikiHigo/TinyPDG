@@ -26,7 +26,7 @@ import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 import yoshikihigo.tinypdg.pe.StatementInfo;
 import yoshikihigo.tinypdg.pe.VariableInfo;
 
-public class PDG {
+public class PDG implements Comparable<PDG> {
 
 	final private PDGNodeFactory pdgNodeFactory;
 	final private CFGNodeFactory cfgNodeFactory;
@@ -113,6 +113,12 @@ public class PDG {
 		this(unit, new PDGNodeFactory(), new CFGNodeFactory(),
 				buildDataDependency, buildControlDependencey,
 				buildExecutionDependency);
+	}
+
+	@Override
+	public int compareTo(final PDG o) {
+		assert null != o : "\"o\" is null.";
+		return this.unit.compareTo(o.unit);
 	}
 
 	public final SortedSet<PDGNode<?>> getExitNodes() {
