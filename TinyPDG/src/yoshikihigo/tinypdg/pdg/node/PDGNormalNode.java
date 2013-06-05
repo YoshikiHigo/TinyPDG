@@ -5,7 +5,7 @@ import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 public abstract class PDGNormalNode<T extends ProgramElementInfo> extends
 		PDGNode<T> {
 
-	PDGNormalNode(final T element) {
+	protected PDGNormalNode(final T element) {
 		super(element);
 	}
 }

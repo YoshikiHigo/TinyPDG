@@ -94,7 +94,7 @@ public abstract class PDGNode<T extends ProgramElementInfo> implements
 		return this.core.compareTo(node.core);
 	}
 
-	public final String getText() {
+	public String getText() {
 		final StringBuilder text = new StringBuilder();
 		text.append(this.core.getText());
 		text.append(" <");

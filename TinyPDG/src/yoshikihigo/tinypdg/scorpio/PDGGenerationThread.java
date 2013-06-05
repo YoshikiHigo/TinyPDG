@@ -8,6 +8,7 @@ import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.pdg.PDG;
 import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
 import yoshikihigo.tinypdg.pe.MethodInfo;
+import yoshikihigo.tinypdg.scorpio.pdg.PDGMergedNode;
 
 public class PDGGenerationThread implements Runnable {
 
@@ -40,6 +41,7 @@ public class PDGGenerationThread implements Runnable {
 					this.cfgNodeFactory, true, true, true, Integer.MAX_VALUE,
 					Integer.MAX_VALUE, Integer.MAX_VALUE);
 			pdg.build();
+			PDGMergedNode.mergeNodes(pdg);
 			this.pdgs.add(pdg);
 		}
 	}

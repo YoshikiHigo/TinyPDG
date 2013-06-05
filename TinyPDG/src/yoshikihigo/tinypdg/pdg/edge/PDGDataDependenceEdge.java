@@ -13,6 +13,18 @@ public class PDGDataDependenceEdge extends PDGEdge {
 	}
 
 	@Override
+	public PDGEdge replaceFromNode(final PDGNode<?> fromNode) {
+		assert null != fromNode : "\"fromNode\" is null.";
+		return new PDGDataDependenceEdge(fromNode, this.toNode, this.data);
+	}
+
+	@Override
+	public PDGEdge replaceToNode(final PDGNode<?> toNode) {
+		assert null != fromNode : "\"toNode\" is null.";
+		return new PDGDataDependenceEdge(this.fromNode, toNode, this.data);
+	}
+
+	@Override
 	public String getDependenceString() {
 		return this.data;
 	}

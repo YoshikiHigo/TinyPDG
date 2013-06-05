@@ -34,7 +34,6 @@ public class PDG implements Comparable<PDG> {
 	final public PDGMethodEnterNode enterNode;
 	final private SortedSet<PDGNode<?>> exitNodes;
 	final private List<PDGParameterNode> parameterNodes;
-	final private SortedSet<PDGNode<?>> allNodes;
 
 	final public MethodInfo unit;
 
@@ -74,9 +73,6 @@ public class PDG implements Comparable<PDG> {
 					.makeNormalNode(variable);
 			this.parameterNodes.add(parameterNode);
 		}
-		this.allNodes = new TreeSet<PDGNode<?>>();
-		this.allNodes.add(this.enterNode);
-		this.allNodes.addAll(this.parameterNodes);
 
 		this.buildDataDependence = buildDataDependency;
 		this.buildControlDependence = buildControlDependencey;
@@ -135,17 +131,59 @@ public class PDG implements Comparable<PDG> {
 
 	public final SortedSet<PDGNode<?>> getAllNodes() {
 		final SortedSet<PDGNode<?>> nodes = new TreeSet<PDGNode<?>>();
-		nodes.addAll(this.allNodes);
+		this.getAllNodes(this.enterNode, nodes);
 		return nodes;
+	}
+
+	private void getAllNodes(final PDGNode<?> node,
+			final SortedSet<PDGNode<?>> nodes) {
+
+		assert null != node : "\"node\" is null.";
+		assert null != nodes : "\"nodes\" is null.";
+
+		if (nodes.contains(node)) {
+			return;
+		}
+
+		nodes.add(node);
+		for (final PDGEdge edge : node.getBackwardEdges()) {
+			this.getAllNodes(edge.fromNode, nodes);
+		}
+		for (final PDGEdge edge : node.getForwardEdges()) {
+			this.getAllNodes(edge.toNode, nodes);
+		}
 	}
 
 	public final SortedSet<PDGEdge> getAllEdges() {
 		final SortedSet<PDGEdge> edges = new TreeSet<PDGEdge>();
-		for (final PDGNode<?> node : this.allNodes) {
-			edges.addAll(node.getBackwardEdges());
-			edges.addAll(node.getForwardEdges());
+		for (final PDGEdge edge : this.enterNode.getForwardEdges()) {
+			this.getAllEdges(edge, edges);
 		}
 		return edges;
+	}
+
+	private void getAllEdges(final PDGEdge edge, final SortedSet<PDGEdge> edges) {
+
+		assert null != edge : "\"edge\" is null.";
+		assert null != edges : "\"edges\" is null.";
+
+		if (edges.contains(edge)) {
+			return;
+		}
+
+		edges.add(edge);
+		for (final PDGEdge backwardEdge : edge.fromNode.getBackwardEdges()) {
+			this.getAllEdges(backwardEdge, edges);
+		}
+		for (final PDGEdge forwardEdge : edge.fromNode.getForwardEdges()) {
+			this.getAllEdges(forwardEdge, edges);
+		}
+		for (final PDGEdge backwardEdge : edge.toNode.getBackwardEdges()) {
+			this.getAllEdges(backwardEdge, edges);
+		}
+		for (final PDGEdge forwardEdge : edge.toNode.getForwardEdges()) {
+			this.getAllEdges(forwardEdge, edges);
+		}
 	}
 
 	public void build() {
@@ -157,13 +195,18 @@ public class PDG implements Comparable<PDG> {
 
 		if (this.buildControlDependence) {
 			this.buildControlDependence(this.enterNode, unit);
+			for (final PDGParameterNode parameterNode : this.parameterNodes) {
+				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
+						this.enterNode, parameterNode, true);
+				this.enterNode.addForwardEdge(edge);
+				parameterNode.addBackwardEdge(edge);
+			}
 		}
 
 		if (this.buildExecutionDependence) {
 			if (!this.cfg.isEmpty()) {
 				final PDGNode<?> node = this.pdgNodeFactory.makeNode(this.cfg
 						.getEnterNode());
-				this.allNodes.add(node);
 				final PDGExecutionDependenceEdge edge = new PDGExecutionDependenceEdge(
 						this.enterNode, node);
 				this.enterNode.addForwardEdge(edge);
@@ -189,7 +232,6 @@ public class PDG implements Comparable<PDG> {
 		for (final CFGNode<?> cfgExitNode : this.cfg.getExitNodes()) {
 			final PDGNode<?> pdgExitNode = this.pdgNodeFactory
 					.makeNode(cfgExitNode);
-			this.allNodes.add(pdgExitNode);
 			this.exitNodes.add(pdgExitNode);
 		}
 
@@ -217,7 +259,6 @@ public class PDG implements Comparable<PDG> {
 		}
 
 		final PDGNode<?> pdgNode = this.pdgNodeFactory.makeNode(cfgNode);
-		this.allNodes.add(pdgNode);
 		if (this.buildDataDependence) {
 			for (final String variable : pdgNode.core.getAssignedVariables()) {
 				for (final CFGEdge edge : cfgNode.getForwardEdges()) {
@@ -239,7 +280,6 @@ public class PDG implements Comparable<PDG> {
 			for (final CFGNode<?> toCFGNode : cfgNode.getForwardNodes()) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNode(toCFGNode);
-				this.allNodes.add(toPDGNode);
 				final int distance = Math.abs(toPDGNode.core.startLine
 						- pdgNode.core.startLine) + 1;
 				if (distance <= this.executionDependencyDistance) {
@@ -275,7 +315,6 @@ public class PDG implements Comparable<PDG> {
 		if (cfgNode.core.getReferencedVariables().contains(variable)) {
 
 			final PDGNode<?> toPDGNode = this.pdgNodeFactory.makeNode(cfgNode);
-			this.allNodes.add(toPDGNode);
 			final int distance = Math.abs(toPDGNode.core.startLine
 					- fromPDGNode.core.startLine) + 1;
 			if (distance <= this.dataDependencyDistance) {
@@ -313,7 +352,6 @@ public class PDG implements Comparable<PDG> {
 					.getUpdaters()) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNormalNode(updater);
-				this.allNodes.add(toPDGNode);
 				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
 						fromPDGNode, toPDGNode, true);
 				fromPDGNode.addForwardEdge(edge);
@@ -340,7 +378,6 @@ public class PDG implements Comparable<PDG> {
 			if (null != condition) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeControlNode(condition);
-				this.allNodes.add(toPDGNode);
 				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
 						fromPDGNode, toPDGNode, type);
 				fromPDGNode.addForwardEdge(edge);
@@ -353,7 +390,6 @@ public class PDG implements Comparable<PDG> {
 					.getInitializers()) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNormalNode(initializer);
-				this.allNodes.add(toPDGNode);
 				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
 						fromPDGNode, toPDGNode, type);
 				fromPDGNode.addForwardEdge(edge);
@@ -374,7 +410,6 @@ public class PDG implements Comparable<PDG> {
 
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNormalNode(statement);
-				this.allNodes.add(toPDGNode);
 				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
 						fromPDGNode, toPDGNode, type);
 				fromPDGNode.addForwardEdge(edge);

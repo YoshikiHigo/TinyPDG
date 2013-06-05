@@ -18,6 +18,10 @@ public abstract class PDGEdge implements Comparable<PDGEdge> {
 		this.toNode = toNode;
 	}
 
+	public abstract PDGEdge replaceFromNode(PDGNode<?> fromNode);
+
+	public abstract PDGEdge replaceToNode(PDGNode<?> toNode);
+
 	public abstract String getDependenceString();
 
 	@Override

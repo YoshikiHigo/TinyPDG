@@ -87,6 +87,7 @@ public class Scorpio {
 
 			final long startTime = System.nanoTime();
 
+			System.out.print("generating PDGs ... ");
 			final PDG[] pdgArray;
 			{
 				final List<File> files = getFiles(target);
@@ -119,7 +120,9 @@ public class Scorpio {
 				}
 				pdgArray = pdgs.toArray(new PDG[0]);
 			}
+			System.out.println("done.");
 
+			System.out.print("calculating hash values for edges ... ");
 			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges = Collections
 					.synchronizedSortedMap(new TreeMap<PDG, SortedMap<PDGEdge, Integer>>());
 			{
@@ -138,7 +141,9 @@ public class Scorpio {
 					}
 				}
 			}
+			System.out.println("done.");
 
+			System.out.print("deteting clone pairs by pairwised slicing ... ");
 			final SortedMap<PDGEdge, String> mapPDGEdgeToFilePath = Collections
 					.synchronizedSortedMap(new TreeMap<PDGEdge, String>());
 			{
@@ -176,6 +181,7 @@ public class Scorpio {
 					}
 				}
 			}
+			System.out.println("done.");
 
 			final Writer writer = new CSVWriter(output, clonepairs);
 			writer.write();

@@ -22,6 +22,21 @@ public class PDGControlDependenceEdge extends PDGEdge {
 	}
 
 	@Override
+	public PDGEdge replaceFromNode(final PDGNode<?> fromNode) {
+		assert null != fromNode : "\"fromNode\" is null.";
+		assert !(fromNode instanceof PDGControlNode) : "\"fromNode\" must be an instanceof PDGControlNode.";
+		return new PDGControlDependenceEdge((PDGControlNode) fromNode,
+				this.toNode, this.trueDependence);
+	}
+
+	@Override
+	public PDGEdge replaceToNode(final PDGNode<?> toNode) {
+		assert null != fromNode : "\"toNode\" is null.";
+		return new PDGControlDependenceEdge((PDGControlNode) this.fromNode,
+				toNode, this.trueDependence);
+	}
+
+	@Override
 	public String getDependenceString() {
 		return this.trueDependence ? "true" : "false";
 	}
