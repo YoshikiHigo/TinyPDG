@@ -14,11 +14,14 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+import org.eclipse.jdt.core.dom.CompilationUnit;
 
+import yoshikihigo.tinypdg.ast.TinyPDGASTVisitor;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.pdg.PDG;
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
+import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
 import yoshikihigo.tinypdg.scorpio.data.PDGPairInfo;
 import yoshikihigo.tinypdg.scorpio.io.CSVWriter;
@@ -84,86 +87,93 @@ public class Scorpio {
 
 			final long startTime = System.nanoTime();
 
-			final List<File> files = getFiles(target);
-			final List<PDG> pdgs = Collections
-					.synchronizedList(new ArrayList<PDG>());
-			final CFGNodeFactory cfgNodeFactory = new CFGNodeFactory();
-			final PDGNodeFactory pdgNodeFactory = new PDGNodeFactory();
-			final Thread[] pdgGenerationThreads = new Thread[NUMBER_OF_THREADS];
-			for (int i = 0; i < pdgGenerationThreads.length; i++) {
-				pdgGenerationThreads[i] = new Thread(new PDGGenerationThread(
-						files, pdgs, cfgNodeFactory, pdgNodeFactory));
-				pdgGenerationThreads[i].start();
-			}
-			for (final Thread thread : pdgGenerationThreads) {
-				try {
-					thread.join();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
+			final PDG[] pdgArray;
+			{
+				final List<File> files = getFiles(target);
+				final List<MethodInfo> methods = new ArrayList<MethodInfo>();
+				for (final File file : files) {
+					final CompilationUnit unit = TinyPDGASTVisitor
+							.createAST(file);
+					final TinyPDGASTVisitor visitor = new TinyPDGASTVisitor(
+							file.getAbsolutePath(), unit, methods);
+					unit.accept(visitor);
 				}
+
+				final SortedSet<PDG> pdgs = Collections
+						.synchronizedSortedSet(new TreeSet<PDG>());
+				final CFGNodeFactory cfgNodeFactory = new CFGNodeFactory();
+				final PDGNodeFactory pdgNodeFactory = new PDGNodeFactory();
+				final Thread[] pdgGenerationThreads = new Thread[NUMBER_OF_THREADS];
+				for (int i = 0; i < pdgGenerationThreads.length; i++) {
+					pdgGenerationThreads[i] = new Thread(
+							new PDGGenerationThread(methods, pdgs,
+									cfgNodeFactory, pdgNodeFactory));
+					pdgGenerationThreads[i].start();
+				}
+				for (final Thread thread : pdgGenerationThreads) {
+					try {
+						thread.join();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+				pdgArray = pdgs.toArray(new PDG[0]);
 			}
 
 			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges = Collections
 					.synchronizedSortedMap(new TreeMap<PDG, SortedMap<PDGEdge, Integer>>());
-			for (final PDG pdg : pdgs) {
-				final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash = new TreeMap<PDGEdge, Integer>();
-				for (final PDGEdge edge : pdg.getAllEdges()) {
-
-					final NormalizedText t1 = new NormalizedText(
-							edge.fromNode.core);
-					final String fromNodeText = NormalizedText.normalize(t1
-							.getText());
-					final NormalizedText t2 = new NormalizedText(
-							edge.toNode.core);
-					final String toNodeText = NormalizedText.normalize(t2
-							.getText());
-					final StringBuilder edgeText = new StringBuilder();
-					edgeText.append(fromNodeText);
-					edgeText.append("-");
-					edgeText.append(edge.type.toString());
-					edgeText.append("->");
-					edgeText.append(toNodeText);
-					final int hash = edgeText.toString().hashCode();
-
-					mappingPDGEdgeToHash.put(edge, hash);
+			{
+				final Thread[] hashCalculationThreads = new Thread[NUMBER_OF_THREADS];
+				for (int i = 0; i < hashCalculationThreads.length; i++) {
+					hashCalculationThreads[i] = new Thread(
+							new HashCalculationThread(pdgArray,
+									mappingPDGToPDGEdges));
+					hashCalculationThreads[i].start();
 				}
-				mappingPDGToPDGEdges.put(pdg, mappingPDGEdgeToHash);
+				for (final Thread thread : hashCalculationThreads) {
+					try {
+						thread.join();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
 			}
 
 			final SortedMap<PDGEdge, String> mapPDGEdgeToFilePath = Collections
 					.synchronizedSortedMap(new TreeMap<PDGEdge, String>());
-			for (final PDG pdg : pdgs) {
-				final String filepath = pdg.unit.path;
-				for (final PDGEdge edge : pdg.getAllEdges()) {
-					mapPDGEdgeToFilePath.put(edge, filepath);
-				}
-			}
-
-			final List<PDGPairInfo> pdgpairs = new ArrayList<PDGPairInfo>();
-			for (int i = 0; i < pdgs.size(); i++) {
-				for (int j = i + 1; j < pdgs.size(); j++) {
-					pdgpairs.add(new PDGPairInfo(pdgs.get(i), pdgs.get(j)));
+			{
+				for (final PDG pdg : pdgArray) {
+					final String filepath = pdg.unit.path;
+					for (final PDGEdge edge : pdg.getAllEdges()) {
+						mapPDGEdgeToFilePath.put(edge, filepath);
+					}
 				}
 			}
 
 			final SortedSet<ClonePairInfo> clonepairs = Collections
 					.synchronizedSortedSet(new TreeSet<ClonePairInfo>());
-			final PDGPairInfo[] pdgpairArray = pdgpairs
-					.toArray(new PDGPairInfo[0]);
-			final PDG[] pdgArray = pdgs.toArray(new PDG[0]);
-			final Thread[] slicingThreads = new Thread[NUMBER_OF_THREADS];
-			for (int i = 0; i < slicingThreads.length; i++) {
-				slicingThreads[i] = new Thread(new SlicingThread(pdgpairArray,
-						pdgArray, mappingPDGToPDGEdges, mapPDGEdgeToFilePath,
-						clonepairs, SIZE_THRESHOLD));
-				slicingThreads[i].start();
-			}
-
-			for (final Thread thread : slicingThreads) {
-				try {
-					thread.join();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
+			{
+				final List<PDGPairInfo> pdgpairs = new ArrayList<PDGPairInfo>();
+				for (int i = 0; i < pdgArray.length; i++) {
+					for (int j = i + 1; j < pdgArray.length; j++) {
+						pdgpairs.add(new PDGPairInfo(pdgArray[i], pdgArray[j]));
+					}
+				}
+				final PDGPairInfo[] pdgpairArray = pdgpairs
+						.toArray(new PDGPairInfo[0]);
+				final Thread[] slicingThreads = new Thread[NUMBER_OF_THREADS];
+				for (int i = 0; i < slicingThreads.length; i++) {
+					slicingThreads[i] = new Thread(new SlicingThread(
+							pdgpairArray, pdgArray, mappingPDGToPDGEdges,
+							mapPDGEdgeToFilePath, clonepairs, SIZE_THRESHOLD));
+					slicingThreads[i].start();
+				}
+				for (final Thread thread : slicingThreads) {
+					try {
+						thread.join();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 

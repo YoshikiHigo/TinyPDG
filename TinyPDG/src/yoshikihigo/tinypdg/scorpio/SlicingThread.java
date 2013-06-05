@@ -66,29 +66,8 @@ public class SlicingThread implements Runnable {
 			final SortedSet<PDGEdge> rightPDGEdges = rightPDG.getAllEdges();
 
 			final SortedMap<Integer, List<PDGEdge>> mappingHashToPDGEdges = new TreeMap<Integer, List<PDGEdge>>();
-			for (final Entry<PDGEdge, Integer> entry : leftMappingPDGEdgeToHash
-					.entrySet()) {
-				final Integer hash = entry.getValue();
-				final PDGEdge edge = entry.getKey();
-				List<PDGEdge> edges = mappingHashToPDGEdges.get(hash);
-				if (null == edges) {
-					edges = new ArrayList<PDGEdge>();
-					mappingHashToPDGEdges.put(hash, edges);
-				}
-				edges.add(edge);
-			}
-
-			for (final Entry<PDGEdge, Integer> entry : rightMappingPDGEdgeToHash
-					.entrySet()) {
-				final Integer hash = entry.getValue();
-				final PDGEdge edge = entry.getKey();
-				List<PDGEdge> edges = mappingHashToPDGEdges.get(hash);
-				if (null == edges) {
-					edges = new ArrayList<PDGEdge>();
-					mappingHashToPDGEdges.put(hash, edges);
-				}
-				edges.add(edge);
-			}
+			this.registerEdges(mappingHashToPDGEdges, leftMappingPDGEdgeToHash);
+			this.registerEdges(mappingHashToPDGEdges, rightMappingPDGEdgeToHash);
 
 			final ConcurrentMap<PDGEdge, List<PDGEdge>> mappingPDGEdgeToPDGEdges = new ConcurrentHashMap<PDGEdge, List<PDGEdge>>();
 			for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
@@ -143,21 +122,11 @@ public class SlicingThread implements Runnable {
 		for (int index = SINGLEINDEX.getAndIncrement(); index < this.pdgs.length; index = SINGLEINDEX
 				.getAndIncrement()) {
 
+			final PDG pdg = this.pdgs[index];
 			final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash = this.mapPDGToPDGEdges
-					.get(this.pdgs[index]);
-
+					.get(pdg);
 			final SortedMap<Integer, List<PDGEdge>> mappingHashToPDGEdges = new TreeMap<Integer, List<PDGEdge>>();
-			for (final Entry<PDGEdge, Integer> entry : mappingPDGEdgeToHash
-					.entrySet()) {
-				final Integer hash = entry.getValue();
-				final PDGEdge edge = entry.getKey();
-				List<PDGEdge> edges = mappingHashToPDGEdges.get(hash);
-				if (null == edges) {
-					edges = new ArrayList<PDGEdge>();
-					mappingHashToPDGEdges.put(hash, edges);
-				}
-				edges.add(edge);
-			}
+			this.registerEdges(mappingHashToPDGEdges, mappingPDGEdgeToHash);
 
 			final ConcurrentMap<PDGEdge, List<PDGEdge>> mappingPDGEdgeToPDGEdges = new ConcurrentHashMap<PDGEdge, List<PDGEdge>>();
 			for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
@@ -200,6 +169,26 @@ public class SlicingThread implements Runnable {
 					}
 				}
 			}
+		}
+	}
+
+	private void registerEdges(
+			final SortedMap<Integer, List<PDGEdge>> mappingHashToPDGEdges,
+			final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash) {
+
+		assert null != mappingHashToPDGEdges : "\"mappingHashToPDGEdges\" is null.";
+		assert null != mappingPDGEdgeToHash : "\"mappingPDGEdgeToHash\" is null.";
+
+		for (final Entry<PDGEdge, Integer> entry : mappingPDGEdgeToHash
+				.entrySet()) {
+			final Integer hash = entry.getValue();
+			final PDGEdge edge = entry.getKey();
+			List<PDGEdge> edges = mappingHashToPDGEdges.get(hash);
+			if (null == edges) {
+				edges = new ArrayList<PDGEdge>();
+				mappingHashToPDGEdges.put(hash, edges);
+			}
+			edges.add(edge);
 		}
 	}
 }
