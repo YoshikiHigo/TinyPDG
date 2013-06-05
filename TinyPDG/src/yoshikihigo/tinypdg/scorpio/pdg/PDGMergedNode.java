@@ -119,17 +119,10 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 	@Override
 	public String getText() {
 		final StringBuilder text = new StringBuilder();
-		text.append(this.originalNodes.first().core.getText());
-		text.append(" <");
-		if (this.originalNodes.first().core.startLine == this.originalNodes
-				.last().core.endLine) {
-			text.append(this.originalNodes.first().core.startLine);
-		} else {
-			text.append(this.originalNodes.first().core.startLine);
-			text.append("...");
-			text.append(this.originalNodes.last().core.endLine);
+		for (final PDGNode<?> node : this.originalNodes) {
+			text.append(node.getText());
+			text.append(System.getProperty("line.separator"));
 		}
-		text.append(">");
 		return text.toString();
 	}
 

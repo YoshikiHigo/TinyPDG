@@ -30,8 +30,8 @@ public class ClonePairInfo implements Comparable<ClonePairInfo> {
 	public CodeFragmentInfo getLeftCodeFragment() {
 		final CodeFragmentInfo codefragment = new CodeFragmentInfo();
 		for (final EdgePairInfo edgepair : this.edgePairs) {
-			codefragment.addElement(edgepair.edgeA.fromNode.core);
-			codefragment.addElement(edgepair.edgeA.toNode.core);
+			codefragment.merge(new CodeFragmentInfo(edgepair.edgeA.fromNode));
+			codefragment.merge(new CodeFragmentInfo(edgepair.edgeA.toNode));
 		}
 		return codefragment;
 	}
@@ -39,13 +39,12 @@ public class ClonePairInfo implements Comparable<ClonePairInfo> {
 	public CodeFragmentInfo getRightCodeFragment() {
 		final CodeFragmentInfo codefragment = new CodeFragmentInfo();
 		for (final EdgePairInfo edgepair : this.edgePairs) {
-			codefragment.addElement(edgepair.edgeB.fromNode.core);
-			codefragment.addElement(edgepair.edgeB.toNode.core);
+			codefragment.merge(new CodeFragmentInfo(edgepair.edgeB.fromNode));
+			codefragment.merge(new CodeFragmentInfo(edgepair.edgeB.toNode));
 		}
 		return codefragment;
 	}
 
-	@Override
 	public int compareTo(final ClonePairInfo clonepair) {
 
 		final int leftOrder = this.getLeftCodeFragment().compareTo(
@@ -64,7 +63,9 @@ public class ClonePairInfo implements Comparable<ClonePairInfo> {
 	}
 
 	public int size() {
-		return this.getNodePairs().size();
+		final CodeFragmentInfo left = this.getLeftCodeFragment();
+		final CodeFragmentInfo right = this.getRightCodeFragment();
+		return Math.min(left.size(), right.size());
 	}
 
 	public SortedSet<EdgePairInfo> getEdgePairs() {

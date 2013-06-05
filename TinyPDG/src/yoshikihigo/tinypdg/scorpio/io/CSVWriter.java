@@ -5,9 +5,11 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.SortedSet;
 
+import yoshikihigo.tinypdg.pdg.node.PDGNode;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
 import yoshikihigo.tinypdg.scorpio.data.NodePairInfo;
+import yoshikihigo.tinypdg.scorpio.pdg.PDGMergedNode;
 
 public class CSVWriter extends Writer {
 
@@ -51,28 +53,39 @@ public class CSVWriter extends Writer {
 
 	private String generateNodePairText(final NodePairInfo nodepair) {
 		final StringBuilder text = new StringBuilder();
-		text.append(", ");
+		text.append(",");
+		text.append(this.generateNodeText(nodepair.nodeA));
+		text.append(",");
+		text.append(this.generateNodeText(nodepair.nodeB));
+		return text.toString();
+	}
 
-		final ProgramElementInfo elementA = nodepair.nodeA.core;
-		if (elementA.startLine == elementA.endLine) {
-			text.append(Integer.toString(elementA.startLine));
+	private String generateNodeText(final PDGNode<?> node) {
+
+		final StringBuilder text = new StringBuilder();
+		if (node instanceof PDGMergedNode) {
+			for (final PDGNode<?> originalNode : ((PDGMergedNode) node)
+					.getOriginalNodes()) {
+				text.append(this.generateProgramElementText(originalNode.core));
+				text.append(":");
+			}
+			text.deleteCharAt(text.length() - 1);
 		} else {
-			text.append(Integer.toString(elementA.startLine));
-			text.append("-");
-			text.append(Integer.toString(elementA.endLine));
+			text.append(this.generateProgramElementText(node.core));
 		}
+		return text.toString();
+	}
 
-		text.append(", ");
+	private String generateProgramElementText(final ProgramElementInfo element) {
 
-		final ProgramElementInfo elementB = nodepair.nodeB.core;
-		if (elementB.startLine == elementB.endLine) {
-			text.append(Integer.toString(elementB.startLine));
+		final StringBuilder text = new StringBuilder();
+		if (element.startLine == element.endLine) {
+			text.append(Integer.toString(element.startLine));
 		} else {
-			text.append(Integer.toString(elementB.startLine));
+			text.append(Integer.toString(element.startLine));
 			text.append("-");
-			text.append(Integer.toString(elementB.endLine));
+			text.append(Integer.toString(element.endLine));
 		}
-
 		return text.toString();
 	}
 }
