@@ -11,9 +11,9 @@ import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
 import yoshikihigo.tinypdg.scorpio.data.NodePairInfo;
 import yoshikihigo.tinypdg.scorpio.pdg.PDGMergedNode;
 
-public class CSVWriter extends Writer {
+public class CSVNodeWriter extends Writer {
 
-	public CSVWriter(final String path,
+	public CSVNodeWriter(final String path,
 			final SortedSet<ClonePairInfo> clonepairs) {
 		super(path, clonepairs);
 	}

@@ -24,7 +24,7 @@ import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
 import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
 import yoshikihigo.tinypdg.scorpio.data.PDGPairInfo;
-import yoshikihigo.tinypdg.scorpio.io.CSVEdgeWriter;
+import yoshikihigo.tinypdg.scorpio.io.BellonWriter;
 import yoshikihigo.tinypdg.scorpio.io.Writer;
 
 public class Scorpio {
@@ -85,8 +85,7 @@ public class Scorpio {
 			final int NUMBER_OF_THREADS = cmd.hasOption("t") ? Integer
 					.parseInt(cmd.getOptionValue("t")) : 1;
 
-			final long startTime = System.nanoTime();
-
+			final long time1 = System.nanoTime();
 			System.out.print("generating PDGs ... ");
 			final PDG[] pdgArray;
 			{
@@ -120,9 +119,11 @@ public class Scorpio {
 				}
 				pdgArray = pdgs.toArray(new PDG[0]);
 			}
-			System.out.println("done.");
+			System.out.print("done: ");
+			final long time2 = System.nanoTime();
+			printTime(time2 - time1);
 
-			System.out.print("calculating hash values for edges ... ");
+			System.out.print("calculating hash values ... ");
 			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges = Collections
 					.synchronizedSortedMap(new TreeMap<PDG, SortedMap<PDGEdge, Integer>>());
 			{
@@ -141,9 +142,11 @@ public class Scorpio {
 					}
 				}
 			}
-			System.out.println("done.");
+			System.out.print("done: ");
+			final long time3 = System.nanoTime();
+			printTime(time3 - time2);
 
-			System.out.print("deteting clone pairs by pairwised slicing ... ");
+			System.out.print("deteting clone pairs ... ");
 			final SortedMap<PDGEdge, String> mapPDGEdgeToFilePath = Collections
 					.synchronizedSortedMap(new TreeMap<PDGEdge, String>());
 			{
@@ -181,15 +184,22 @@ public class Scorpio {
 					}
 				}
 			}
-			System.out.println("done.");
+			System.out.print("done: ");
+			final long time4 = System.nanoTime();
+			printTime(time4 - time3);
 
-			final Writer writer = new CSVEdgeWriter(output, clonepairs);
+			System.out.print("writing to a file ... ");
+			final Writer writer = new BellonWriter(output, clonepairs);
 			writer.write();
+			System.out.print("done: ");
+			final long time5 = System.nanoTime();
+			printTime(time5 - time4);
 
+			System.out.print("total elapsed time: ");
+			printTime(time5 - time1);
+
+			System.out.print("number of comparisons: ");
 			printNumberOfComparison(Slicing.getNumberOfComparison());
-
-			final long endTime = System.nanoTime();
-			printTime(endTime - startTime);
 
 		} catch (Exception e) {
 			System.err.println(e.getMessage());
@@ -226,7 +236,6 @@ public class Scorpio {
 	}
 
 	private static void printNumberOfComparison(final long number) {
-		System.out.print("number of comparisons: ");
 		System.out.println(String.format("%1$,3d", number));
 	}
 
@@ -238,8 +247,6 @@ public class Scorpio {
 		final long hour = sec / 3600;
 		final long minute = (sec % 3600) / 60;
 		final long second = (sec % 3600) % 60;
-
-		System.out.print("elapsed time: ");
 
 		if (1l == hour) {
 			System.out.print(hour);
