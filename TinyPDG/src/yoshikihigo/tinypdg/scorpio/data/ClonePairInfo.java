@@ -68,6 +68,19 @@ public class ClonePairInfo implements Comparable<ClonePairInfo> {
 		return Math.min(left.size(), right.size());
 	}
 
+	public boolean conflict(final ClonePairInfo clonepair) {
+		assert null != clonepair : "\"clonepair\" is null.";
+		return this.getLeftCodeFragment().conflict(
+				clonepair.getLeftCodeFragment())
+				|| this.getRightCodeFragment().conflict(
+						clonepair.getRightCodeFragment())
+				|| this.getLeftCodeFragment().conflict(
+						clonepair.getRightCodeFragment())
+				|| this.getRightCodeFragment().conflict(
+						clonepair.getLeftCodeFragment());
+
+	}
+
 	public SortedSet<EdgePairInfo> getEdgePairs() {
 		final SortedSet<EdgePairInfo> edgepairs = new TreeSet<EdgePairInfo>();
 		edgepairs.addAll(this.edgePairs);

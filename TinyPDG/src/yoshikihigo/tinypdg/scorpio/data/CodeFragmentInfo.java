@@ -55,6 +55,16 @@ public class CodeFragmentInfo implements Comparable<CodeFragmentInfo> {
 		return this.elements.size();
 	}
 
+	public boolean conflict(final CodeFragmentInfo codefragment) {
+		assert null != codefragment : "\"codefragment\" is null.";
+		for (final ProgramElementInfo element : this.elements) {
+			if (codefragment.elements.contains(element)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	@Override
 	public int compareTo(final CodeFragmentInfo o) {
 		assert null != o : "\"o\" is null.";

@@ -1,5 +1,6 @@
 package yoshikihigo.tinypdg.scorpio;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,7 +33,7 @@ public class Slicing {
 	public Slicing(final String pathA, final String pathB,
 			final PDGEdge startEdgeA, final PDGEdge startEdgeB,
 			final ConcurrentMap<PDGEdge, List<PDGEdge>> PDGEDGES) {
-		CHECKED_EDGEPAIRS = new TreeSet<EdgePairInfo>();
+		this.CHECKED_EDGEPAIRS = new TreeSet<EdgePairInfo>();
 		this.pathA = pathA;
 		this.pathB = pathB;
 		this.startEdgeA = startEdgeA;
@@ -55,7 +56,7 @@ public class Slicing {
 			final Set<PDGEdge> predecessorsA, final Set<PDGEdge> predecessorsB) {
 
 		final EdgePairInfo edgepair = new EdgePairInfo(edgeA, edgeB);
-		if (CHECKED_EDGEPAIRS.contains(edgepair)) {
+		if (this.CHECKED_EDGEPAIRS.contains(edgepair)) {
 			return new ClonePairInfo(this.pathA, this.pathB);
 		}
 
@@ -69,26 +70,52 @@ public class Slicing {
 		final SortedSet<PDGEdge> forwardEdgesA = edgeA.toNode.getForwardEdges();
 		final SortedSet<PDGEdge> forwardEdgesB = edgeB.toNode.getForwardEdges();
 
-		final ClonePairInfo predicessor = this.enlargeClonePair(backwardEdgesA,
-				backwardEdgesB, predecessorsA, predecessorsB);
-		final ClonePairInfo successor = this.enlargeClonePair(forwardEdgesA,
-				forwardEdgesB, predecessorsA, predecessorsB);
-		final ClonePairInfo clonepair = new ClonePairInfo(this.pathA,
-				this.pathB);
-		clonepair.merge(predicessor);
-		clonepair.merge(successor);
+		final List<ClonePairInfo> backwardClonepairs = this.enlargeClonePair(
+				backwardEdgesA, backwardEdgesB, predecessorsA, predecessorsB);
+		final List<ClonePairInfo> forwardClonepairs = this.enlargeClonePair(
+				forwardEdgesA, forwardEdgesB, predecessorsA, predecessorsB);
 
-		CHECKED_EDGEPAIRS.add(edgepair);
+		final List<ClonePairInfo> candidates = new ArrayList<ClonePairInfo>();
+		for (final ClonePairInfo clonepair : backwardClonepairs) {
+			for (final ClonePairInfo candidate : candidates) {
+				if (!candidate.conflict(clonepair)) {
+					candidate.merge(clonepair);
+				}
+			}
+			final ClonePairInfo newCandidate = new ClonePairInfo(this.pathA,
+					this.pathB);
+			newCandidate.merge(clonepair);
+			candidates.add(newCandidate);
+		}
+		for (final ClonePairInfo clonepair : forwardClonepairs) {
+			for (final ClonePairInfo candidate : candidates) {
+				if (!candidate.conflict(clonepair)) {
+					candidate.merge(clonepair);
+				}
+			}
+			final ClonePairInfo newCandidate = new ClonePairInfo(this.pathA,
+					this.pathB);
+			newCandidate.merge(clonepair);
+			candidates.add(newCandidate);
+		}
+
+		ClonePairInfo clonepair = new ClonePairInfo(this.pathA, this.pathB);
+		for (final ClonePairInfo candidate : candidates) {
+			if (clonepair.size() < candidate.size()) {
+				clonepair = candidate;
+			}
+		}
+
+		this.CHECKED_EDGEPAIRS.add(edgepair);
 		clonepair.addEdgePair(edgepair);
 		return clonepair;
 	}
 
-	private ClonePairInfo enlargeClonePair(final SortedSet<PDGEdge> edgesA,
-			final SortedSet<PDGEdge> edgesB, final Set<PDGEdge> predecessorsA,
-			final Set<PDGEdge> predecessorsB) {
+	private List<ClonePairInfo> enlargeClonePair(
+			final SortedSet<PDGEdge> edgesA, final SortedSet<PDGEdge> edgesB,
+			final Set<PDGEdge> predecessorsA, final Set<PDGEdge> predecessorsB) {
 
-		final ClonePairInfo clonepair = new ClonePairInfo(this.pathA,
-				this.pathB);
+		final List<ClonePairInfo> clonepairs = new ArrayList<ClonePairInfo>();
 
 		EDGEA: for (final PDGEdge edgeA : edgesA) {
 
@@ -96,7 +123,7 @@ public class Slicing {
 				continue EDGEA;
 			}
 
-			final List<PDGEdge> equivalentEdgesA = PDGEDGES.get(edgeA);
+			final List<PDGEdge> equivalentEdgesA = this.PDGEDGES.get(edgeA);
 			if (null == equivalentEdgesA) {
 				continue EDGEA;
 			}
@@ -112,7 +139,7 @@ public class Slicing {
 					continue EDGEB;
 				}
 
-				final List<PDGEdge> equivalentEdgesB = PDGEDGES.get(edgeB);
+				final List<PDGEdge> equivalentEdgesB = this.PDGEDGES.get(edgeB);
 				if (null == equivalentEdgesB) {
 					continue EDGEB;
 				}
@@ -125,19 +152,18 @@ public class Slicing {
 						continue EDGEB;
 					}
 
-					clonepair.addEdgePair(new EdgePairInfo(edgeA, edgeB));
-
 					final SortedSet<PDGEdge> newPredicessorsA = new TreeSet<PDGEdge>(
 							predecessorsA);
 					final SortedSet<PDGEdge> newPredicessorsB = new TreeSet<PDGEdge>(
 							predecessorsB);
 					final ClonePairInfo successor = this.perform(edgeA, edgeB,
 							newPredicessorsA, newPredicessorsB);
-					clonepair.merge(successor);
+					successor.addEdgePair(new EdgePairInfo(edgeA, edgeB));
+					clonepairs.add(successor);
 				}
 			}
 		}
 
-		return clonepair;
+		return clonepairs;
 	}
 }
