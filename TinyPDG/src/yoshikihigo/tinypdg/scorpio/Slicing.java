@@ -1,7 +1,6 @@
 package yoshikihigo.tinypdg.scorpio;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
@@ -44,60 +43,39 @@ public class Slicing {
 
 	public ClonePairInfo perform() {
 		if (null == this.clonepair) {
-			final Set<PDGEdge> predecessorsA = new HashSet<PDGEdge>();
-			final Set<PDGEdge> predecessorsB = new HashSet<PDGEdge>();
+			final SortedSet<PDGEdge> checkedEdgesA = new TreeSet<PDGEdge>();
+			final SortedSet<PDGEdge> checkedEdgesB = new TreeSet<PDGEdge>();
 			this.clonepair = this.perform(this.startEdgeA, this.startEdgeB,
-					predecessorsA, predecessorsB);
+					checkedEdgesA, checkedEdgesB);
 		}
 		return this.clonepair;
 	}
 
 	private ClonePairInfo perform(final PDGEdge edgeA, final PDGEdge edgeB,
-			final Set<PDGEdge> predecessorsA, final Set<PDGEdge> predecessorsB) {
+			final SortedSet<PDGEdge> checkedEdgesA,
+			final SortedSet<PDGEdge> checkedEdgesB) {
 
 		final EdgePairInfo edgepair = new EdgePairInfo(edgeA, edgeB);
 		if (this.CHECKED_EDGEPAIRS.contains(edgepair)) {
 			return new ClonePairInfo(this.pathA, this.pathB);
 		}
 
-		predecessorsA.add(edgeA);
-		predecessorsB.add(edgeB);
+		checkedEdgesA.add(edgeA);
+		checkedEdgesB.add(edgeB);
 
-		final SortedSet<PDGEdge> backwardEdgesA = edgeA.fromNode
-				.getBackwardEdges();
-		final SortedSet<PDGEdge> backwardEdgesB = edgeB.fromNode
-				.getBackwardEdges();
-		final SortedSet<PDGEdge> forwardEdgesA = edgeA.toNode.getForwardEdges();
-		final SortedSet<PDGEdge> forwardEdgesB = edgeB.toNode.getForwardEdges();
+		final SortedSet<PDGEdge> bEdgesA = edgeA.fromNode.getBackwardEdges();
+		final SortedSet<PDGEdge> bEdgesB = edgeB.fromNode.getBackwardEdges();
+		final SortedSet<PDGEdge> fEdgesA = edgeA.toNode.getForwardEdges();
+		final SortedSet<PDGEdge> fEdgesB = edgeB.toNode.getForwardEdges();
 
-		final List<ClonePairInfo> backwardClonepairs = this.enlargeClonePair(
-				backwardEdgesA, backwardEdgesB, predecessorsA, predecessorsB);
-		final List<ClonePairInfo> forwardClonepairs = this.enlargeClonePair(
-				forwardEdgesA, forwardEdgesB, predecessorsA, predecessorsB);
+		final List<ClonePairInfo> bClonepairs = this.enlargeClonePair(bEdgesA,
+				bEdgesB, checkedEdgesA, checkedEdgesB);
+		final List<ClonePairInfo> fClonepairs = this.enlargeClonePair(fEdgesA,
+				fEdgesB, checkedEdgesA, checkedEdgesB);
 
 		final List<ClonePairInfo> candidates = new ArrayList<ClonePairInfo>();
-		for (final ClonePairInfo clonepair : backwardClonepairs) {
-			for (final ClonePairInfo candidate : candidates) {
-				if (!candidate.conflict(clonepair)) {
-					candidate.merge(clonepair);
-				}
-			}
-			final ClonePairInfo newCandidate = new ClonePairInfo(this.pathA,
-					this.pathB);
-			newCandidate.merge(clonepair);
-			candidates.add(newCandidate);
-		}
-		for (final ClonePairInfo clonepair : forwardClonepairs) {
-			for (final ClonePairInfo candidate : candidates) {
-				if (!candidate.conflict(clonepair)) {
-					candidate.merge(clonepair);
-				}
-			}
-			final ClonePairInfo newCandidate = new ClonePairInfo(this.pathA,
-					this.pathB);
-			newCandidate.merge(clonepair);
-			candidates.add(newCandidate);
-		}
+		this.makeCandidates(candidates, bClonepairs);
+		this.makeCandidates(candidates, fClonepairs);
 
 		ClonePairInfo clonepair = new ClonePairInfo(this.pathA, this.pathB);
 		for (final ClonePairInfo candidate : candidates) {
@@ -111,15 +89,34 @@ public class Slicing {
 		return clonepair;
 	}
 
+	private void makeCandidates(final List<ClonePairInfo> candidates,
+			final List<ClonePairInfo> clonepairs) {
+
+		assert null != candidates : "\"candidates\" is null.";
+		assert null != clonepairs : "\"clonepairs\" is null.";
+
+		for (final ClonePairInfo clonepair : clonepairs) {
+			for (final ClonePairInfo candidate : candidates) {
+				if (!candidate.conflict(clonepair)) {
+					candidate.merge(clonepair);
+				}
+			}
+			final ClonePairInfo newCandidate = new ClonePairInfo(this.pathA,
+					this.pathB);
+			newCandidate.merge(clonepair);
+			candidates.add(newCandidate);
+		}
+	}
+
 	private List<ClonePairInfo> enlargeClonePair(
 			final SortedSet<PDGEdge> edgesA, final SortedSet<PDGEdge> edgesB,
-			final Set<PDGEdge> predecessorsA, final Set<PDGEdge> predecessorsB) {
+			final Set<PDGEdge> checkedEdgesA, final Set<PDGEdge> checkedEdgesB) {
 
 		final List<ClonePairInfo> clonepairs = new ArrayList<ClonePairInfo>();
 
 		EDGEA: for (final PDGEdge edgeA : edgesA) {
 
-			if (predecessorsA.contains(edgeA) || predecessorsB.contains(edgeA)) {
+			if (checkedEdgesA.contains(edgeA) || checkedEdgesB.contains(edgeA)) {
 				continue EDGEA;
 			}
 
@@ -130,12 +127,8 @@ public class Slicing {
 
 			EDGEB: for (final PDGEdge edgeB : edgesB) {
 
-				if (edgeA == edgeB) {
-					continue EDGEB;
-				}
-
-				if (predecessorsB.contains(edgeB)
-						|| predecessorsA.contains(edgeB)) {
+				if (checkedEdgesB.contains(edgeB)
+						|| checkedEdgesA.contains(edgeB)) {
 					continue EDGEB;
 				}
 
@@ -144,22 +137,25 @@ public class Slicing {
 					continue EDGEB;
 				}
 
+				if (edgeA == edgeB) {
+					continue EDGEB;
+				}
+
 				NUMBER_OF_COMPARISON.incrementAndGet();
 				if (equivalentEdgesA == equivalentEdgesB) {
 
-					if ((0 == edgeA.fromNode.compareTo(edgeB.fromNode))
-							|| (0 == edgeA.toNode.compareTo(edgeB.toNode))) {
+					if ((edgeA.fromNode == edgeB.fromNode)
+							|| (edgeA.toNode == edgeB.toNode)) {
 						continue EDGEB;
 					}
 
-					final SortedSet<PDGEdge> newPredicessorsA = new TreeSet<PDGEdge>(
-							predecessorsA);
-					final SortedSet<PDGEdge> newPredicessorsB = new TreeSet<PDGEdge>(
-							predecessorsB);
-					final ClonePairInfo successor = this.perform(edgeA, edgeB,
-							newPredicessorsA, newPredicessorsB);
-					successor.addEdgePair(new EdgePairInfo(edgeA, edgeB));
-					clonepairs.add(successor);
+					final SortedSet<PDGEdge> newCheckedEdgesA = new TreeSet<PDGEdge>(
+							checkedEdgesA);
+					final SortedSet<PDGEdge> newCheckedEdgesB = new TreeSet<PDGEdge>(
+							checkedEdgesB);
+					final ClonePairInfo clonepair = this.perform(edgeA, edgeB,
+							newCheckedEdgesA, newCheckedEdgesB);
+					clonepairs.add(clonepair);
 				}
 			}
 		}

@@ -24,7 +24,7 @@ import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
 import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
 import yoshikihigo.tinypdg.scorpio.data.PDGPairInfo;
-import yoshikihigo.tinypdg.scorpio.io.CSVWriter;
+import yoshikihigo.tinypdg.scorpio.io.CSVEdgeWriter;
 import yoshikihigo.tinypdg.scorpio.io.Writer;
 
 public class Scorpio {
@@ -183,7 +183,7 @@ public class Scorpio {
 			}
 			System.out.println("done.");
 
-			final Writer writer = new CSVWriter(output, clonepairs);
+			final Writer writer = new CSVEdgeWriter(output, clonepairs);
 			writer.write();
 
 			printNumberOfComparison(Slicing.getNumberOfComparison());
