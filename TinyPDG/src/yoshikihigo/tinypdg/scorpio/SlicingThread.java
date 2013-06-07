@@ -178,7 +178,7 @@ public class SlicingThread implements Runnable {
 					.toArray(new ClonePairInfo[0]);
 			for (int i = 0; i < pairs.length; i++) {
 				for (int j = i + 1; j < pairs.length; j++) {
-					if (this.same(pairs[i], pairs[j], 0.7f)) {
+					if (this.sameOnOkValue(pairs[i], pairs[j], 0.7f)) {
 						if (pairs[i].size() <= pairs[j].size()) {
 							clonepairs.remove(pairs[i]);
 						}
@@ -211,8 +211,8 @@ public class SlicingThread implements Runnable {
 		}
 	}
 
-	private boolean same(final ClonePairInfo pair1, final ClonePairInfo pair2,
-			final float threshold) {
+	private boolean sameOnGoodValue(final ClonePairInfo pair1,
+			final ClonePairInfo pair2, final float threshold) {
 
 		final SortedSet<PDGEdge> edges1A = pair1.getLeftEdges();
 		final SortedSet<PDGEdge> edges2A = pair2.getLeftEdges();
@@ -237,5 +237,29 @@ public class SlicingThread implements Runnable {
 				/ (float) unionB.size());
 
 		return threshold <= good;
+	}
+
+	private boolean sameOnOkValue(final ClonePairInfo pair1,
+			final ClonePairInfo pair2, final float threshold) {
+
+		final SortedSet<PDGEdge> edges1A = pair1.getLeftEdges();
+		final SortedSet<PDGEdge> edges2A = pair2.getLeftEdges();
+		final SortedSet<PDGEdge> intersectionA = new TreeSet<PDGEdge>();
+		intersectionA.addAll(edges1A);
+		intersectionA.retainAll(edges2A);
+
+		final SortedSet<PDGEdge> edges1B = pair1.getRightEdges();
+		final SortedSet<PDGEdge> edges2B = pair2.getRightEdges();
+		final SortedSet<PDGEdge> intersectionB = new TreeSet<PDGEdge>();
+		intersectionB.addAll(edges1B);
+		intersectionB.retainAll(edges2B);
+
+		final float ok = Math.min(Math.max((float) intersectionA.size()
+				/ (float) edges1A.size(), (float) intersectionA.size()
+				/ (float) edges2A.size()), Math.max(
+				(float) intersectionB.size() / (float) edges1B.size(),
+				(float) intersectionB.size() / (float) edges2B.size()));
+
+		return threshold <= ok;
 	}
 }
