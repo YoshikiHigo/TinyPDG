@@ -3,6 +3,7 @@ package yoshikihigo.tinypdg.scorpio.data;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGMethodEnterNode;
 
 public class ClonePairInfo implements Comparable<ClonePairInfo> {
@@ -43,6 +44,22 @@ public class ClonePairInfo implements Comparable<ClonePairInfo> {
 			codefragment.merge(new CodeFragmentInfo(edgepair.edgeB.toNode));
 		}
 		return codefragment;
+	}
+
+	public SortedSet<PDGEdge> getLeftEdges() {
+		final SortedSet<PDGEdge> edges = new TreeSet<PDGEdge>();
+		for (final EdgePairInfo pair : this.edgePairs) {
+			edges.add(pair.edgeA);
+		}
+		return edges;
+	}
+
+	public SortedSet<PDGEdge> getRightEdges() {
+		final SortedSet<PDGEdge> edges = new TreeSet<PDGEdge>();
+		for (final EdgePairInfo pair : this.edgePairs) {
+			edges.add(pair.edgeB);
+		}
+		return edges;
 	}
 
 	public int compareTo(final ClonePairInfo clonepair) {

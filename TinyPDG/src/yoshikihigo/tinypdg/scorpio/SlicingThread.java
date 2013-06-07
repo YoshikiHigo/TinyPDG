@@ -51,6 +51,8 @@ public class SlicingThread implements Runnable {
 	@Override
 	public void run() {
 
+		final SortedSet<ClonePairInfo> clonepairs = new TreeSet<ClonePairInfo>();
+
 		for (int index = PAIRINDEX.getAndIncrement(); index < this.pdgpairs.length; index = PAIRINDEX
 				.getAndIncrement()) {
 
@@ -112,7 +114,7 @@ public class SlicingThread implements Runnable {
 						final ClonePairInfo clonepair = slicing.perform();
 						edgepairsInClonepairs.addAll(clonepair.getEdgePairs());
 						if (this.SIZE_THRESHOLD <= clonepair.size()) {
-							this.clonepairs.add(clonepair);
+							clonepairs.add(clonepair);
 						}
 					}
 				}
@@ -164,12 +166,29 @@ public class SlicingThread implements Runnable {
 						final ClonePairInfo clonepair = slicing.perform();
 						edgepairsInClonepairs.addAll(clonepair.getEdgePairs());
 						if (this.SIZE_THRESHOLD <= clonepair.size()) {
-							this.clonepairs.add(clonepair);
+							clonepairs.add(clonepair);
 						}
 					}
 				}
 			}
 		}
+
+		{
+			final ClonePairInfo[] pairs = clonepairs
+					.toArray(new ClonePairInfo[0]);
+			for (int i = 0; i < pairs.length; i++) {
+				for (int j = i + 1; j < pairs.length; i++) {
+					if (this.same(pairs[i], pairs[j], 0.7f)) {
+						if (pairs[i].size() <= pairs[j].size()) {
+							clonepairs.remove(pairs[i]);
+						}
+					}
+				}
+			}
+		}
+
+		this.clonepairs.addAll(clonepairs);
+
 	}
 
 	private void registerEdges(
@@ -190,5 +209,23 @@ public class SlicingThread implements Runnable {
 			}
 			edges.add(edge);
 		}
+	}
+
+	private boolean same(final ClonePairInfo pair1, final ClonePairInfo pair2,
+			final float threshold) {
+
+		final SortedSet<PDGEdge> edges1A = pair1.getLeftEdges();
+		final SortedSet<PDGEdge> edges2A = pair2.getLeftEdges();
+		final SortedSet<PDGEdge> commonEdgesA = new TreeSet<PDGEdge>();
+		commonEdgesA.addAll(edges1A);
+		commonEdgesA.retainAll(edges2A);
+
+		final SortedSet<PDGEdge> edges1B = pair1.getRightEdges();
+		final SortedSet<PDGEdge> edges2B = pair2.getRightEdges();
+		final SortedSet<PDGEdge> commonEdgesB = new TreeSet<PDGEdge>();
+		commonEdgesB.addAll(edges1B);
+		commonEdgesB.retainAll(edges2B);
+
+		return false;
 	}
 }
