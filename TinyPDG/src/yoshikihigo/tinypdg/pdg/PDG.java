@@ -37,23 +37,23 @@ public class PDG implements Comparable<PDG> {
 
 	final public MethodInfo unit;
 
-	final public boolean buildDataDependence;
 	final public boolean buildControlDependence;
+	final public boolean buildDataDependence;
 	final public boolean buildExecutionDependence;
 
-	final public int dataDependencyDistance;
 	final public int controlDependencyDistance;
+	final public int dataDependencyDistance;
 	final public int executionDependencyDistance;
 
 	private CFG cfg;
 
 	public PDG(final MethodInfo unit, final PDGNodeFactory pdgNodeFactory,
 			final CFGNodeFactory cfgNodeFactory,
-			final boolean buildDataDependency,
-			final boolean buildControlDependencey,
-			final boolean buildExecutionDependency,
-			final int dataDependencyDistance,
+			final boolean buildControlDependence,
+			final boolean buildDataDependence,
+			final boolean buildExecutionDependence,
 			final int controlDependencyDistance,
+			final int dataDependencyDistance,
 			final int executionDependencyDistance) {
 
 		assert null != unit : "\"unit\" is null";
@@ -74,23 +74,23 @@ public class PDG implements Comparable<PDG> {
 			this.parameterNodes.add(parameterNode);
 		}
 
-		this.buildDataDependence = buildDataDependency;
-		this.buildControlDependence = buildControlDependencey;
-		this.buildExecutionDependence = buildExecutionDependency;
+		this.buildControlDependence = buildControlDependence;
+		this.buildDataDependence = buildDataDependence;
+		this.buildExecutionDependence = buildExecutionDependence;
 
-		this.dataDependencyDistance = dataDependencyDistance;
 		this.controlDependencyDistance = controlDependencyDistance;
+		this.dataDependencyDistance = dataDependencyDistance;
 		this.executionDependencyDistance = executionDependencyDistance;
 	}
 
 	public PDG(final MethodInfo unit, final PDGNodeFactory pdgNodeFactory,
 			final CFGNodeFactory cfgNodeFactory,
-			final boolean buildDataDependency,
 			final boolean buildControlDependency,
+			final boolean buildDataDependency,
 			final boolean buildExecutionDependency) {
 
-		this(unit, pdgNodeFactory, cfgNodeFactory, buildDataDependency,
-				buildControlDependency, buildExecutionDependency,
+		this(unit, pdgNodeFactory, cfgNodeFactory, buildControlDependency,
+				buildDataDependency, buildExecutionDependency,
 				Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
 	}
 
@@ -103,11 +103,11 @@ public class PDG implements Comparable<PDG> {
 		this(unit, new PDGNodeFactory(), new CFGNodeFactory());
 	}
 
-	public PDG(final MethodInfo unit, final boolean buildDataDependency,
-			final boolean buildControlDependencey,
+	public PDG(final MethodInfo unit, final boolean buildControlDependency,
+			final boolean buildDataDependencey,
 			final boolean buildExecutionDependency) {
 		this(unit, new PDGNodeFactory(), new CFGNodeFactory(),
-				buildDataDependency, buildControlDependencey,
+				buildControlDependency, buildDataDependencey,
 				buildExecutionDependency);
 	}
 

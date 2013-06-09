@@ -69,6 +69,42 @@ public class Scorpio {
 				options.addOption(t);
 			}
 
+			{
+				final Option C = new Option("C", "control", true,
+						"use of control dependency");
+				C.setArgName("on or off");
+				C.setArgs(1);
+				C.setRequired(false);
+				options.addOption(C);
+			}
+
+			{
+				final Option D = new Option("D", "data", true,
+						"use of data dependency");
+				D.setArgName("on or off");
+				D.setArgs(1);
+				D.setRequired(false);
+				options.addOption(D);
+			}
+
+			{
+				final Option E = new Option("E", "execution", true,
+						"use of execution dependency");
+				E.setArgName("on or off");
+				E.setArgs(1);
+				E.setRequired(false);
+				options.addOption(E);
+			}
+
+			{
+				final Option M = new Option("M", "merging", true,
+						"merging consecutive similar nodes");
+				M.setArgName("on or off");
+				M.setArgs(1);
+				M.setRequired(false);
+				options.addOption(M);
+			}
+
 			final CommandLineParser parser = new PosixParser();
 			final CommandLine cmd = parser.parse(options, args);
 
@@ -84,6 +120,58 @@ public class Scorpio {
 					.parseInt(cmd.getOptionValue("s"));
 			final int NUMBER_OF_THREADS = cmd.hasOption("t") ? Integer
 					.parseInt(cmd.getOptionValue("t")) : 1;
+
+			boolean useOfControl = !cmd.hasOption("C");
+			if (!useOfControl) {
+				if (cmd.getOptionValue("C").equals("on")) {
+					useOfControl = true;
+				} else if (cmd.getOptionValue("C").equals("off")) {
+					useOfControl = false;
+				} else {
+					System.err
+							.println("option of \"-C\" must be \"on\" or \"off\".");
+				}
+			}
+
+			boolean useOfData = !cmd.hasOption("D");
+			if (!useOfData) {
+				if (cmd.getOptionValue("D").equals("on")) {
+					useOfData = true;
+				} else if (cmd.getOptionValue("D").equals("off")) {
+					useOfData = false;
+				} else {
+					System.err
+							.println("option of \"-D\" must be \"on\" or \"off\".");
+				}
+			}
+
+			boolean useOfExecution = !cmd.hasOption("E");
+			if (!useOfExecution) {
+				if (cmd.getOptionValue("E").equals("on")) {
+					useOfExecution = true;
+				} else if (cmd.getOptionValue("E").equals("off")) {
+					useOfExecution = false;
+				} else {
+					System.err
+							.println("option of \"-E\" must be \"on\" or \"off\".");
+				}
+			}
+
+			boolean useOfMerging = !cmd.hasOption("M");
+			if (!useOfMerging) {
+				if (cmd.getOptionValue("M").equals("on")) {
+					useOfMerging = true;
+				} else if (cmd.getOptionValue("M").equals("off")) {
+					useOfMerging = false;
+				} else {
+					System.err
+							.println("option of \"-M\" must be \"on\" or \"off\".");
+				}
+			}
+
+			if (!useOfExecution && useOfMerging) {
+				useOfMerging = false;
+			}
 
 			final long time1 = System.nanoTime();
 			System.out.print("generating PDGs ... ");
@@ -107,7 +195,9 @@ public class Scorpio {
 				for (int i = 0; i < pdgGenerationThreads.length; i++) {
 					pdgGenerationThreads[i] = new Thread(
 							new PDGGenerationThread(methods, pdgs,
-									cfgNodeFactory, pdgNodeFactory));
+									cfgNodeFactory, pdgNodeFactory,
+									useOfControl, useOfData, useOfExecution,
+									useOfMerging));
 					pdgGenerationThreads[i].start();
 				}
 				for (final Thread thread : pdgGenerationThreads) {

@@ -18,10 +18,16 @@ public class PDGGenerationThread implements Runnable {
 	final private SortedSet<PDG> pdgs;
 	final private CFGNodeFactory cfgNodeFactory;
 	final private PDGNodeFactory pdgNodeFactory;
+	final private boolean useOfControl;
+	final private boolean useOfData;
+	final private boolean useOfExecution;
+	final private boolean useOfMerging;
 
 	public PDGGenerationThread(final List<MethodInfo> methods,
 			final SortedSet<PDG> pdgs, final CFGNodeFactory cfgNodeFactory,
-			final PDGNodeFactory pdgNodeFactory) {
+			final PDGNodeFactory pdgNodeFactory, final boolean useOfControl,
+			final boolean useOfData, final boolean useOfExecution,
+			final boolean useOfMerging) {
 		assert null != methods : "\"methods\" is null.";
 		assert null != pdgs : "\"pdgs\" is null.";
 		assert null != cfgNodeFactory : "\"cfgNodeFactory\" is null.";
@@ -30,6 +36,10 @@ public class PDGGenerationThread implements Runnable {
 		this.pdgs = pdgs;
 		this.cfgNodeFactory = cfgNodeFactory;
 		this.pdgNodeFactory = pdgNodeFactory;
+		this.useOfControl = useOfControl;
+		this.useOfData = useOfData;
+		this.useOfExecution = useOfExecution;
+		this.useOfMerging = useOfMerging;
 	}
 
 	@Override
@@ -38,10 +48,13 @@ public class PDGGenerationThread implements Runnable {
 				.getAndIncrement()) {
 			final MethodInfo method = this.methods.get(index);
 			final PDG pdg = new PDG(method, this.pdgNodeFactory,
-					this.cfgNodeFactory, true, true, true, Integer.MAX_VALUE,
-					Integer.MAX_VALUE, Integer.MAX_VALUE);
+					this.cfgNodeFactory, this.useOfControl, this.useOfData,
+					this.useOfExecution, Integer.MAX_VALUE, Integer.MAX_VALUE,
+					Integer.MAX_VALUE);
 			pdg.build();
-			PDGMergedNode.mergeNodes(pdg);
+			if (this.useOfMerging) {
+				PDGMergedNode.mergeNodes(pdg);
+			}
 			this.pdgs.add(pdg);
 		}
 	}
