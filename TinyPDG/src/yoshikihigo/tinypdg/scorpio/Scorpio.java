@@ -24,6 +24,7 @@ import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
 import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
 import yoshikihigo.tinypdg.scorpio.data.PDGPairInfo;
+import yoshikihigo.tinypdg.scorpio.io.BellonWriter;
 import yoshikihigo.tinypdg.scorpio.io.CSVEdgeWriter;
 import yoshikihigo.tinypdg.scorpio.io.Writer;
 
@@ -197,7 +198,7 @@ public class Scorpio {
 							new PDGGenerationThread(methods, pdgs,
 									cfgNodeFactory, pdgNodeFactory,
 									useOfControl, useOfData, useOfExecution,
-									useOfMerging));
+									useOfMerging, SIZE_THRESHOLD));
 					pdgGenerationThreads[i].start();
 				}
 				for (final Thread thread : pdgGenerationThreads) {
@@ -236,18 +237,7 @@ public class Scorpio {
 			final long time3 = System.nanoTime();
 			printTime(time3 - time2);
 
-			System.out.print("deteting clone pairs ... ");
-			final SortedMap<PDGEdge, String> mapPDGEdgeToFilePath = Collections
-					.synchronizedSortedMap(new TreeMap<PDGEdge, String>());
-			{
-				for (final PDG pdg : pdgArray) {
-					final String filepath = pdg.unit.path;
-					for (final PDGEdge edge : pdg.getAllEdges()) {
-						mapPDGEdgeToFilePath.put(edge, filepath);
-					}
-				}
-			}
-
+			System.out.print("detecting clone pairs ... ");
 			final SortedSet<ClonePairInfo> clonepairs = Collections
 					.synchronizedSortedSet(new TreeSet<ClonePairInfo>());
 			{
@@ -263,7 +253,7 @@ public class Scorpio {
 				for (int i = 0; i < slicingThreads.length; i++) {
 					slicingThreads[i] = new Thread(new SlicingThread(
 							pdgpairArray, pdgArray, mappingPDGToPDGEdges,
-							mapPDGEdgeToFilePath, clonepairs, SIZE_THRESHOLD));
+							clonepairs, SIZE_THRESHOLD));
 					slicingThreads[i].start();
 				}
 				for (final Thread thread : slicingThreads) {
@@ -279,7 +269,7 @@ public class Scorpio {
 			printTime(time4 - time3);
 
 			System.out.print("writing to a file ... ");
-			final Writer writer = new CSVEdgeWriter(output, clonepairs);
+			final Writer writer = new BellonWriter(output, clonepairs);
 			writer.write();
 			System.out.print("done: ");
 			final long time5 = System.nanoTime();

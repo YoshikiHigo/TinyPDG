@@ -1,11 +1,12 @@
 package yoshikihigo.tinypdg.scorpio;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
@@ -20,8 +21,8 @@ public class Slicing {
 		return NUMBER_OF_COMPARISON.get();
 	}
 
-	final private SortedSet<EdgePairInfo> CHECKED_EDGEPAIRS;
-	final private ConcurrentMap<PDGEdge, List<PDGEdge>> PDGEDGES;
+	final private SortedSet<EdgePairInfo> checkedEdgepairs;
+	final private SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges;
 	final public String pathA;
 	final public String pathB;
 	final public PDGEdge startEdgeA;
@@ -31,13 +32,14 @@ public class Slicing {
 
 	public Slicing(final String pathA, final String pathB,
 			final PDGEdge startEdgeA, final PDGEdge startEdgeB,
-			final ConcurrentMap<PDGEdge, List<PDGEdge>> PDGEDGES) {
-		this.CHECKED_EDGEPAIRS = new TreeSet<EdgePairInfo>();
+			final SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges,
+			final SortedSet<EdgePairInfo> checkedEdgepairs) {
+		this.checkedEdgepairs = checkedEdgepairs;
 		this.pathA = pathA;
 		this.pathB = pathB;
 		this.startEdgeA = startEdgeA;
 		this.startEdgeB = startEdgeB;
-		this.PDGEDGES = PDGEDGES;
+		this.mappingPDGEdgeToPDGEdges = mappingPDGEdgeToPDGEdges;
 		this.clonepair = null;
 	}
 
@@ -56,7 +58,7 @@ public class Slicing {
 			final SortedSet<PDGEdge> checkedEdgesB) {
 
 		final EdgePairInfo edgepair = new EdgePairInfo(edgeA, edgeB);
-		if (this.CHECKED_EDGEPAIRS.contains(edgepair)) {
+		if (this.checkedEdgepairs.contains(edgepair)) {
 			return new ClonePairInfo(this.pathA, this.pathB);
 		}
 
@@ -68,10 +70,25 @@ public class Slicing {
 		final SortedSet<PDGEdge> fEdgesA = edgeA.toNode.getForwardEdges();
 		final SortedSet<PDGEdge> fEdgesB = edgeB.toNode.getForwardEdges();
 
-		final List<ClonePairInfo> bClonepairs = this.enlargeClonePair(bEdgesA,
-				bEdgesB, checkedEdgesA, checkedEdgesB);
-		final List<ClonePairInfo> fClonepairs = this.enlargeClonePair(fEdgesA,
-				fEdgesB, checkedEdgesA, checkedEdgesB);
+		final PDGEdgeComparator comparator = new PDGEdgeComparator(
+				this.mappingPDGEdgeToPDGEdges);
+		final SortedSet<PDGEdge> bSortedEdgesA = new TreeSet<PDGEdge>(
+				comparator);
+		bSortedEdgesA.addAll(bEdgesA);
+		final SortedSet<PDGEdge> bSortedEdgesB = new TreeSet<PDGEdge>(
+				comparator);
+		bSortedEdgesB.addAll(bEdgesB);
+		final SortedSet<PDGEdge> fSortedEdgesA = new TreeSet<PDGEdge>(
+				comparator);
+		fSortedEdgesA.addAll(fEdgesA);
+		final SortedSet<PDGEdge> fSortedEdgesB = new TreeSet<PDGEdge>(
+				comparator);
+		fSortedEdgesB.addAll(fEdgesB);
+
+		final List<ClonePairInfo> bClonepairs = this.enlargeClonePair(
+				bSortedEdgesA, bSortedEdgesB, checkedEdgesA, checkedEdgesB);
+		final List<ClonePairInfo> fClonepairs = this.enlargeClonePair(
+				fSortedEdgesA, fSortedEdgesB, checkedEdgesA, checkedEdgesB);
 
 		final List<ClonePairInfo> candidates = new ArrayList<ClonePairInfo>();
 		this.makeCandidates(candidates, bClonepairs);
@@ -84,7 +101,7 @@ public class Slicing {
 			}
 		}
 
-		this.CHECKED_EDGEPAIRS.add(edgepair);
+		this.checkedEdgepairs.add(edgepair);
 		clonepair.addEdgePair(edgepair);
 		return clonepair;
 	}
@@ -120,7 +137,8 @@ public class Slicing {
 				continue EDGEA;
 			}
 
-			final List<PDGEdge> equivalentEdgesA = this.PDGEDGES.get(edgeA);
+			final PDGEdge[] equivalentEdgesA = this.mappingPDGEdgeToPDGEdges
+					.get(edgeA);
 			if (null == equivalentEdgesA) {
 				continue EDGEA;
 			}
@@ -132,7 +150,8 @@ public class Slicing {
 					continue EDGEB;
 				}
 
-				final List<PDGEdge> equivalentEdgesB = this.PDGEDGES.get(edgeB);
+				final PDGEdge[] equivalentEdgesB = this.mappingPDGEdgeToPDGEdges
+						.get(edgeB);
 				if (null == equivalentEdgesB) {
 					continue EDGEB;
 				}
@@ -161,5 +180,37 @@ public class Slicing {
 		}
 
 		return clonepairs;
+	}
+
+	class PDGEdgeComparator implements Comparator<PDGEdge> {
+
+		final private SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDFEdge;
+
+		PDGEdgeComparator(
+				final SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges) {
+			this.mappingPDGEdgeToPDFEdge = mappingPDGEdgeToPDGEdges;
+		}
+
+		@Override
+		public int compare(final PDGEdge o1, final PDGEdge o2) {
+
+			PDGEdge[] edgesA = this.mappingPDGEdgeToPDFEdge.get(o1);
+			PDGEdge[] edgesB = this.mappingPDGEdgeToPDFEdge.get(o2);
+
+			if (null == edgesA) {
+				edgesA = new PDGEdge[0];
+			}
+			if (null == edgesB) {
+				edgesB = new PDGEdge[0];
+			}
+
+			if (edgesA.length < edgesB.length) {
+				return -1;
+			} else if (edgesA.length > edgesB.length) {
+				return 1;
+			} else {
+				return o1.compareTo(o2);
+			}
+		}
 	}
 }

@@ -8,6 +8,10 @@ public class EdgePairInfo implements Comparable<EdgePairInfo> {
 	public final PDGEdge edgeB;
 
 	public EdgePairInfo(final PDGEdge edgeA, final PDGEdge edgeB) {
+
+		assert null != edgeA : "\"edgeA\" is null.";
+		assert null != edgeB : "\"edgeB\" is null.";
+
 		this.edgeA = edgeA;
 		this.edgeB = edgeB;
 	}

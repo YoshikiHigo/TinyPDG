@@ -22,12 +22,13 @@ public class PDGGenerationThread implements Runnable {
 	final private boolean useOfData;
 	final private boolean useOfExecution;
 	final private boolean useOfMerging;
+	final private int threshold;
 
 	public PDGGenerationThread(final List<MethodInfo> methods,
 			final SortedSet<PDG> pdgs, final CFGNodeFactory cfgNodeFactory,
 			final PDGNodeFactory pdgNodeFactory, final boolean useOfControl,
 			final boolean useOfData, final boolean useOfExecution,
-			final boolean useOfMerging) {
+			final boolean useOfMerging, final int threshold) {
 		assert null != methods : "\"methods\" is null.";
 		assert null != pdgs : "\"pdgs\" is null.";
 		assert null != cfgNodeFactory : "\"cfgNodeFactory\" is null.";
@@ -40,6 +41,7 @@ public class PDGGenerationThread implements Runnable {
 		this.useOfData = useOfData;
 		this.useOfExecution = useOfExecution;
 		this.useOfMerging = useOfMerging;
+		this.threshold = threshold;
 	}
 
 	@Override
@@ -51,7 +53,12 @@ public class PDGGenerationThread implements Runnable {
 					this.cfgNodeFactory, this.useOfControl, this.useOfData,
 					this.useOfExecution, Integer.MAX_VALUE, Integer.MAX_VALUE,
 					Integer.MAX_VALUE);
+
 			pdg.build();
+			if (pdg.getAllNodes().size() < this.threshold) {
+				continue;
+			}
+
 			if (this.useOfMerging) {
 				PDGMergedNode.mergeNodes(pdg);
 			}
