@@ -4,7 +4,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
@@ -32,40 +34,43 @@ public class Bellon {
 		final Bellon bellon = new Bellon(threshold, oracle, detectionResult);
 
 		final List<ClonePairInfo> references = bellon.getClonepairs(new File(
-				args[1]));
+				args[1]), true);
 		final List<ClonePairInfo> candidates = bellon.getClonepairs(new File(
-				args[2]));
+				args[2]), false);
 
-		int okCandidate = 0;
-		int goodCandidate = 0;
-		for (final ClonePairInfo candidate : candidates) {
+		final Set<ClonePairInfo> okReferences = bellon.getOKDetectedReferences(
+				candidates, references);
+		final Set<ClonePairInfo> goodReferences = bellon
+				.getGoodDetectedReferences(candidates, references);
 
-			final boolean isOK = bellon.isOKClone(candidate, references);
-			if (isOK) {
-				okCandidate++;
-			}
+		final Set<ClonePairInfo> okCandidates = bellon.getOKDetectedReferences(
+				references, candidates);
+		final Set<ClonePairInfo> goodCandidates = bellon
+				.getGoodDetectedReferences(references, candidates);
 
-			final boolean isGood = bellon.isGoodClone(candidate, references);
-			if (isGood) {
-				goodCandidate++;
-			}
-		}
+		final int numberOfOKContiguousReferences = bellon
+				.getNumberOfContiguousClone(okReferences);
+		final int numberOfOKNoncontiguousReferences = bellon
+				.getNumberOfNoncontiguousClone(okReferences);
+		final int numberOfGOODContiguousReferences = bellon
+				.getNumberOfContiguousClone(goodReferences);
+		final int numberOfGOODNoncontiguousReferences = bellon
+				.getNumberOfNoncontiguousClone(goodReferences);
 
-		int okReference = 0;
-		int goodReference = 0;
-		for (final ClonePairInfo reference : references) {
+		final int numberOfOKReferences = okReferences.size();
+		final int numberOfGOODReferences = goodReferences.size();
 
-			final boolean isOK = bellon.isOKClone(reference, candidates);
-			if (isOK) {
-				okReference++;
-			}
+		final int numberOfOKCandidates = okCandidates.size();
+		final int numberOfGOODCandidates = goodCandidates.size();
 
-			final boolean isGood = bellon.isGoodClone(reference, candidates);
-			if (isGood) {
-				goodReference++;
-			}
-		}
-
+		System.out.print("\"detected configuous references with OK\"");
+		System.out.print(", ");
+		System.out.print("\"detected non-configuous references with OK\"");
+		System.out.print(", ");
+		System.out.print("\"detected configuous references with GOOD\"");
+		System.out.print(", ");
+		System.out.print("\"detected non-configuous references with GOOD\"");
+		System.out.print(", ");
 		System.out.print("\"ok recall\"");
 		System.out.print(", ");
 		System.out.print("\"good recall\"");
@@ -74,16 +79,25 @@ public class Bellon {
 		System.out.print(", ");
 		System.out.println("\"good precision\"");
 
-		System.out.print(Float.toString((float) okReference
+		System.out.print(Integer.toString(numberOfOKContiguousReferences));
+		System.out.print(", ");
+		System.out.print(Integer.toString(numberOfOKNoncontiguousReferences));
+		System.out.print(", ");
+		System.out.print(Integer.toString(numberOfGOODContiguousReferences));
+		System.out.print(", ");
+		System.out.print(Integer.toString(numberOfGOODNoncontiguousReferences));
+		System.out.print(", ");
+
+		System.out.print(Float.toString((float) numberOfOKReferences
 				/ (float) references.size()));
 		System.out.print(", ");
-		System.out.print(Float.toString((float) goodReference
+		System.out.print(Float.toString((float) numberOfGOODReferences
 				/ (float) references.size()));
 		System.out.print(", ");
-		System.out.print(Float.toString((float) okCandidate
+		System.out.print(Float.toString((float) numberOfOKCandidates
 				/ (float) candidates.size()));
 		System.out.print(", ");
-		System.out.println(Float.toString((float) goodCandidate
+		System.out.println(Float.toString((float) numberOfGOODCandidates
 				/ (float) candidates.size()));
 	}
 
@@ -94,7 +108,8 @@ public class Bellon {
 		this.detectionResult = detectionResult;
 	}
 
-	private List<ClonePairInfo> getClonepairs(final File file) {
+	private List<ClonePairInfo> getClonepairs(final File file,
+			final boolean oracle) {
 
 		final List<ClonePairInfo> clonepairs = new ArrayList<ClonePairInfo>();
 
@@ -103,7 +118,7 @@ public class Bellon {
 					file));
 			while (reader.ready()) {
 				final String line = reader.readLine();
-				final ClonePairInfo pair = this.getClonepair(line);
+				final ClonePairInfo pair = this.getClonepair(line, oracle);
 				clonepairs.add(pair);
 			}
 
@@ -117,7 +132,7 @@ public class Bellon {
 		return clonepairs;
 	}
 
-	private ClonePairInfo getClonepair(final String line) {
+	private ClonePairInfo getClonepair(final String line, final boolean oracle) {
 
 		final StringTokenizer lineTokenizer = new StringTokenizer(line, "\t");
 		final String leftPath = lineTokenizer.nextToken();
@@ -126,6 +141,12 @@ public class Bellon {
 		final String rightPath = lineTokenizer.nextToken();
 		final String rightStartLine = lineTokenizer.nextToken();
 		final String rightEndLine = lineTokenizer.nextToken();
+		final int type;
+		if (oracle) {
+			type = Integer.parseInt(lineTokenizer.nextToken());
+		} else {
+			type = 0;
+		}
 		final String leftGaps = lineTokenizer.nextToken();
 		final String rightGaps = lineTokenizer.nextToken();
 
@@ -153,7 +174,7 @@ public class Bellon {
 			}
 		}
 
-		return new ClonePairInfo(leftFragment, rightFragment);
+		return new ClonePairInfo(leftFragment, rightFragment, type);
 	}
 
 	private boolean isOKClone(final ClonePairInfo candidate,
@@ -228,5 +249,51 @@ public class Bellon {
 		}
 
 		return false;
+	}
+
+	private Set<ClonePairInfo> getOKDetectedReferences(
+			final List<ClonePairInfo> candidates,
+			final List<ClonePairInfo> references) {
+
+		final Set<ClonePairInfo> detectedReferences = new HashSet<ClonePairInfo>();
+		for (final ClonePairInfo reference : references) {
+			if (this.isOKClone(reference, candidates)) {
+				detectedReferences.add(reference);
+			}
+		}
+		return detectedReferences;
+	}
+
+	private Set<ClonePairInfo> getGoodDetectedReferences(
+			final List<ClonePairInfo> candidates,
+			final List<ClonePairInfo> references) {
+
+		final Set<ClonePairInfo> detectedReferences = new HashSet<ClonePairInfo>();
+		for (final ClonePairInfo reference : references) {
+			if (this.isGoodClone(reference, candidates)) {
+				detectedReferences.add(reference);
+			}
+		}
+		return detectedReferences;
+	}
+
+	private int getNumberOfContiguousClone(final Set<ClonePairInfo> pairs) {
+		int number = 0;
+		for (final ClonePairInfo pair : pairs) {
+			if ((1 == pair.type) || (2 == pair.type)) {
+				number++;
+			}
+		}
+		return number;
+	}
+
+	private int getNumberOfNoncontiguousClone(final Set<ClonePairInfo> pairs) {
+		int number = 0;
+		for (final ClonePairInfo pair : pairs) {
+			if (3 == pair.type) {
+				number++;
+			}
+		}
+		return number;
 	}
 }
