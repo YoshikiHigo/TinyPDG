@@ -16,4 +16,8 @@ public class ClonePairInfo {
 	ClonePairInfo(final CodeFragmentInfo left, final CodeFragmentInfo right) {
 		this(left, right, 0);
 	}
+
+	int size() {
+		return Math.min(this.left.size(), this.right.size());
+	}
 }

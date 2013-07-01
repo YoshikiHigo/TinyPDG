@@ -19,24 +19,26 @@ public class Bellon {
 
 	public static void main(final String[] args) {
 
-		if (3 != args.length) {
-			System.err.println("the number of command opetions must be three.");
+		if (4 != args.length) {
+			System.err.println("the number of command opetions must be four.");
 			System.err
 					.println("the first one is a threshold for matching with oracle.");
-			System.err.println("the second one is file of oracle.");
-			System.err.println("the third one is file of detection result.");
+			System.err.println("the second one is minimum length of clones.");
+			System.err.println("the thrid one is file of oracle.");
+			System.err.println("the fourth one is file of detection result.");
 			System.exit(0);
 		}
 
 		final float threshold = Float.parseFloat(args[0]);
-		final String oracle = args[1];
-		final String detectionResult = args[2];
+		final int minimum = Integer.parseInt(args[1]);
+		final String oracle = args[2];
+		final String detectionResult = args[3];
 		final Bellon bellon = new Bellon(threshold, oracle, detectionResult);
 
 		final List<ClonePairInfo> references = bellon.getClonepairs(new File(
-				args[1]), true);
+				oracle), minimum, true);
 		final List<ClonePairInfo> candidates = bellon.getClonepairs(new File(
-				args[2]), false);
+				detectionResult), minimum, false);
 
 		final Set<ClonePairInfo> okReferences = bellon.getOKDetectedReferences(
 				candidates, references);
@@ -109,7 +111,7 @@ public class Bellon {
 	}
 
 	private List<ClonePairInfo> getClonepairs(final File file,
-			final boolean oracle) {
+			final int minimum, final boolean oracle) {
 
 		final List<ClonePairInfo> clonepairs = new ArrayList<ClonePairInfo>();
 
@@ -119,7 +121,9 @@ public class Bellon {
 			while (reader.ready()) {
 				final String line = reader.readLine();
 				final ClonePairInfo pair = this.getClonepair(line, oracle);
-				clonepairs.add(pair);
+				if (minimum <= pair.size()) {
+					clonepairs.add(pair);
+				}
 			}
 
 			reader.close();
