@@ -20,4 +20,13 @@ public class ClonePairInfo {
 	int size() {
 		return Math.min(this.left.size(), this.right.size());
 	}
+	
+	@Override
+	public String toString(){
+		final StringBuilder text = new StringBuilder();
+		text.append(this.left.toString());
+		text.append("\t");
+		text.append(this.right.toString());
+		return text.toString();
+	}
 }

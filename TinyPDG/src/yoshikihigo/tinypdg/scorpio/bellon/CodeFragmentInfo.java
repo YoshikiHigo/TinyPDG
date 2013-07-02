@@ -12,4 +12,16 @@ class CodeFragmentInfo extends TreeSet<Integer> {
 			this.add(line);
 		}
 	}
+	
+	@Override
+	public String toString(){
+		final StringBuilder text = new StringBuilder();
+		text.append(this.path);
+		text.append("\t");
+		for(final Integer line : this){
+			text.append(line);
+			text.append(",");
+		}
+		return text.toString();
+	}
 }
