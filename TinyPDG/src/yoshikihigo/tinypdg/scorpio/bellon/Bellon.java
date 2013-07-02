@@ -1,14 +1,10 @@
 package yoshikihigo.tinypdg.scorpio.bellon;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.StringTokenizer;
 import java.util.TreeSet;
 
 public class Bellon {
@@ -35,10 +31,10 @@ public class Bellon {
 		final String detectionResult = args[3];
 		final Bellon bellon = new Bellon(threshold, oracle, detectionResult);
 
-		final List<ClonePairInfo> references = bellon.getClonepairs(new File(
-				oracle), minimum, true);
-		final List<ClonePairInfo> candidates = bellon.getClonepairs(new File(
-				detectionResult), minimum, false);
+		final List<ClonePairInfo> references = ClonePairInfo.getClonepairs(
+				new File(oracle), minimum, true);
+		final List<ClonePairInfo> candidates = ClonePairInfo.getClonepairs(
+				new File(detectionResult), minimum, false);
 
 		final Set<ClonePairInfo> okReferences = bellon.getOKDetectedReferences(
 				candidates, references);
@@ -108,77 +104,6 @@ public class Bellon {
 		this.threshold = threshold;
 		this.oracle = oracle;
 		this.detectionResult = detectionResult;
-	}
-
-	private List<ClonePairInfo> getClonepairs(final File file,
-			final int minimum, final boolean oracle) {
-
-		final List<ClonePairInfo> clonepairs = new ArrayList<ClonePairInfo>();
-
-		try {
-			final BufferedReader reader = new BufferedReader(new FileReader(
-					file));
-			while (reader.ready()) {
-				final String line = reader.readLine();
-				final ClonePairInfo pair = this.getClonepair(line, oracle);
-				if (minimum <= pair.size()) {
-					clonepairs.add(pair);
-				}
-			}
-
-			reader.close();
-
-		} catch (final Exception e) {
-			e.printStackTrace();
-			System.exit(0);
-		}
-
-		return clonepairs;
-	}
-
-	private ClonePairInfo getClonepair(final String line, final boolean oracle) {
-
-		final StringTokenizer lineTokenizer = new StringTokenizer(line, "\t");
-		final String leftPath = lineTokenizer.nextToken();
-		final String leftStartLine = lineTokenizer.nextToken();
-		final String leftEndLine = lineTokenizer.nextToken();
-		final String rightPath = lineTokenizer.nextToken();
-		final String rightStartLine = lineTokenizer.nextToken();
-		final String rightEndLine = lineTokenizer.nextToken();
-		final int type;
-		if (oracle) {
-			type = Integer.parseInt(lineTokenizer.nextToken());
-		} else {
-			type = 0;
-		}
-		final String leftGaps = lineTokenizer.nextToken();
-		final String rightGaps = lineTokenizer.nextToken();
-
-		final CodeFragmentInfo leftFragment = new CodeFragmentInfo(leftPath,
-				Integer.parseInt(leftStartLine), Integer.parseInt(leftEndLine));
-		final CodeFragmentInfo rightFragment = new CodeFragmentInfo(rightPath,
-				Integer.parseInt(rightStartLine),
-				Integer.parseInt(rightEndLine));
-
-		if (!leftGaps.equals("-")) {
-			final StringTokenizer gapTokenizer = new StringTokenizer(leftGaps,
-					", ");
-			while (gapTokenizer.hasMoreTokens()) {
-				final String gap = gapTokenizer.nextToken();
-				leftFragment.remove(Integer.parseInt(gap));
-			}
-		}
-
-		if (!rightGaps.equals("-")) {
-			final StringTokenizer gapTokenizer = new StringTokenizer(rightGaps,
-					", ");
-			while (gapTokenizer.hasMoreTokens()) {
-				final String gap = gapTokenizer.nextToken();
-				rightFragment.remove(Integer.parseInt(gap));
-			}
-		}
-
-		return new ClonePairInfo(leftFragment, rightFragment, type);
 	}
 
 	private boolean isOKClone(final ClonePairInfo candidate,
