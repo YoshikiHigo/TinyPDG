@@ -201,7 +201,6 @@ public class Bellon {
 		for (final ClonePairInfo reference : references) {
 			if (this.isGoodClone(reference, candidates)) {
 				detectedReferences.add(reference);
-				System.out.println(reference);
 			}
 		}
 		return detectedReferences;
