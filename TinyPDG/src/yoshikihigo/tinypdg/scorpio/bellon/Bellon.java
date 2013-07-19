@@ -132,7 +132,7 @@ public class Bellon {
 						(float) rightIntersection.size()
 								/ (float) reference.right.size()));
 
-				if (0.7f <= ok) {
+				if (this.threshold <= ok) {
 					return true;
 				}
 			}
@@ -171,7 +171,7 @@ public class Bellon {
 						(float) rightIntersection.size()
 								/ (float) rightUnion.size());
 
-				if (0.7f <= good) {
+				if (this.threshold <= good) {
 					return true;
 				}
 			}
