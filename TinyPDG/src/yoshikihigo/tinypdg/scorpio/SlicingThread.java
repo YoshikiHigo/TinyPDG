@@ -128,14 +128,9 @@ public class SlicingThread implements Runnable {
 							continue;
 						}
 
-						final EdgePairInfo edgepair = new EdgePairInfo(edgeA,
-								edgeB);
-						if (checkedNodepairs.contains(new NodePairInfo(
-								edgepair.edgeA.fromNode,
-								edgepair.edgeB.fromNode))
-								|| checkedNodepairs.contains(new NodePairInfo(
-										edgepair.edgeA.toNode,
-										edgepair.edgeB.toNode))) {
+						final NodePairInfo nodepair = new NodePairInfo(
+								edgeA.fromNode, edgeB.fromNode);
+						if (checkedNodepairs.contains(nodepair)) {
 							continue;
 						}
 
@@ -207,14 +202,9 @@ public class SlicingThread implements Runnable {
 						final PDGEdge edgeA = edges[x];
 						final PDGEdge edgeB = edges[y];
 
-						final EdgePairInfo edgepair = new EdgePairInfo(edgeA,
-								edgeB);
-						if (checkedNodepairs.contains(new NodePairInfo(
-								edgepair.edgeA.fromNode,
-								edgepair.edgeB.fromNode))
-								|| checkedNodepairs.contains(new NodePairInfo(
-										edgepair.edgeA.toNode,
-										edgepair.edgeB.toNode))) {
+						final NodePairInfo nodepair = new NodePairInfo(
+								edgeA.fromNode, edgeB.fromNode);
+						if (checkedNodepairs.contains(nodepair)) {
 							continue;
 						}
 
