@@ -10,8 +10,9 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
+import yoshikihigo.tinypdg.pdg.node.PDGNode;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
-import yoshikihigo.tinypdg.scorpio.data.EdgePairInfo;
+import yoshikihigo.tinypdg.scorpio.data.NodePairInfo;
 
 public class Slicing {
 
@@ -21,54 +22,57 @@ public class Slicing {
 		return NUMBER_OF_COMPARISON.get();
 	}
 
-	final private SortedSet<EdgePairInfo> checkedEdgepairs;
+	final private SortedSet<NodePairInfo> checkedNodepairs;
+	final private SortedMap<PDGNode<?>, PDGNode<?>[]> mappingPDGNodeToPDGNodes;
 	final private SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges;
 	final public String pathA;
 	final public String pathB;
-	final public PDGEdge startEdgeA;
-	final public PDGEdge startEdgeB;
+	final public PDGNode<?> startNodeA;
+	final public PDGNode<?> startNodeB;
 
 	private ClonePairInfo clonepair;
 
 	public Slicing(final String pathA, final String pathB,
-			final PDGEdge startEdgeA, final PDGEdge startEdgeB,
+			final PDGNode<?> startNodeA, final PDGNode<?> startNodeB,
+			final SortedMap<PDGNode<?>, PDGNode<?>[]> mappingPDGNodeToPDGNodes,
 			final SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges,
-			final SortedSet<EdgePairInfo> checkedEdgepairs) {
-		this.checkedEdgepairs = checkedEdgepairs;
+			final SortedSet<NodePairInfo> checkedNodepairs) {
+		this.checkedNodepairs = checkedNodepairs;
 		this.pathA = pathA;
 		this.pathB = pathB;
-		this.startEdgeA = startEdgeA;
-		this.startEdgeB = startEdgeB;
+		this.startNodeA = startNodeA;
+		this.startNodeB = startNodeB;
+		this.mappingPDGNodeToPDGNodes = mappingPDGNodeToPDGNodes;
 		this.mappingPDGEdgeToPDGEdges = mappingPDGEdgeToPDGEdges;
 		this.clonepair = null;
 	}
 
 	public ClonePairInfo perform() {
 		if (null == this.clonepair) {
-			final SortedSet<PDGEdge> checkedEdgesA = new TreeSet<PDGEdge>();
-			final SortedSet<PDGEdge> checkedEdgesB = new TreeSet<PDGEdge>();
-			this.clonepair = this.perform(this.startEdgeA, this.startEdgeB,
-					checkedEdgesA, checkedEdgesB);
+			final SortedSet<PDGNode<?>> checkedNodesA = new TreeSet<PDGNode<?>>();
+			final SortedSet<PDGNode<?>> checkedNodesB = new TreeSet<PDGNode<?>>();
+			this.clonepair = this.perform(this.startNodeA, this.startNodeB,
+					checkedNodesA, checkedNodesB);
 		}
 		return this.clonepair;
 	}
 
-	private ClonePairInfo perform(final PDGEdge edgeA, final PDGEdge edgeB,
-			final SortedSet<PDGEdge> checkedEdgesA,
-			final SortedSet<PDGEdge> checkedEdgesB) {
+	private ClonePairInfo perform(final PDGNode<?> nodeA,
+			final PDGNode<?> nodeB, final SortedSet<PDGNode<?>> checkedNodesA,
+			final SortedSet<PDGNode<?>> checkedNodesB) {
 
-		final EdgePairInfo edgepair = new EdgePairInfo(edgeA, edgeB);
-		if (this.checkedEdgepairs.contains(edgepair)) {
+		final NodePairInfo nodepair = new NodePairInfo(nodeA, nodeB);
+		if (this.checkedNodepairs.contains(nodepair)) {
 			return new ClonePairInfo(this.pathA, this.pathB);
 		}
 
-		checkedEdgesA.add(edgeA);
-		checkedEdgesB.add(edgeB);
+		checkedNodesA.add(nodeA);
+		checkedNodesB.add(nodeB);
 
-		final SortedSet<PDGEdge> bEdgesA = edgeA.fromNode.getBackwardEdges();
-		final SortedSet<PDGEdge> bEdgesB = edgeB.fromNode.getBackwardEdges();
-		final SortedSet<PDGEdge> fEdgesA = edgeA.toNode.getForwardEdges();
-		final SortedSet<PDGEdge> fEdgesB = edgeB.toNode.getForwardEdges();
+		final SortedSet<PDGEdge> bEdgesA = nodeA.getBackwardEdges();
+		final SortedSet<PDGEdge> bEdgesB = nodeB.getBackwardEdges();
+		final SortedSet<PDGEdge> fEdgesA = nodeA.getForwardEdges();
+		final SortedSet<PDGEdge> fEdgesB = nodeB.getForwardEdges();
 
 		final PDGEdgeComparator comparator = new PDGEdgeComparator(
 				this.mappingPDGEdgeToPDGEdges);
@@ -85,10 +89,10 @@ public class Slicing {
 				comparator);
 		fSortedEdgesB.addAll(fEdgesB);
 
-		final List<ClonePairInfo> bClonepairs = this.enlargeClonePair(
-				bSortedEdgesA, bSortedEdgesB, checkedEdgesA, checkedEdgesB);
-		final List<ClonePairInfo> fClonepairs = this.enlargeClonePair(
-				fSortedEdgesA, fSortedEdgesB, checkedEdgesA, checkedEdgesB);
+		final List<ClonePairInfo> bClonepairs = this.enlargeBackwardClonePair(
+				bSortedEdgesA, bSortedEdgesB, checkedNodesA, checkedNodesB);
+		final List<ClonePairInfo> fClonepairs = this.enlargeForwardClonePair(
+				fSortedEdgesA, fSortedEdgesB, checkedNodesA, checkedNodesB);
 
 		final List<ClonePairInfo> candidates = new ArrayList<ClonePairInfo>();
 		this.makeCandidates(candidates, bClonepairs);
@@ -101,8 +105,8 @@ public class Slicing {
 			}
 		}
 
-		this.checkedEdgepairs.add(edgepair);
-		clonepair.addEdgePair(edgepair);
+		this.checkedNodepairs.add(nodepair);
+		clonepair.addNodePair(nodepair);
 		return clonepair;
 	}
 
@@ -125,34 +129,36 @@ public class Slicing {
 		}
 	}
 
-	private List<ClonePairInfo> enlargeClonePair(
+	private List<ClonePairInfo> enlargeBackwardClonePair(
 			final SortedSet<PDGEdge> edgesA, final SortedSet<PDGEdge> edgesB,
-			final Set<PDGEdge> checkedEdgesA, final Set<PDGEdge> checkedEdgesB) {
+			final Set<PDGNode<?>> checkedNodesA,
+			final Set<PDGNode<?>> checkedNodesB) {
 
 		final List<ClonePairInfo> clonepairs = new ArrayList<ClonePairInfo>();
 
 		EDGEA: for (final PDGEdge edgeA : edgesA) {
 
-			if (checkedEdgesA.contains(edgeA) || checkedEdgesB.contains(edgeA)) {
+			if (checkedNodesA.contains(edgeA.fromNode)
+					|| checkedNodesB.contains(edgeA.fromNode)) {
 				continue EDGEA;
 			}
 
-			final PDGEdge[] equivalentEdgesA = this.mappingPDGEdgeToPDGEdges
-					.get(edgeA);
-			if (null == equivalentEdgesA) {
+			final PDGNode<?>[] equivalentNodesA = this.mappingPDGNodeToPDGNodes
+					.get(edgeA.fromNode);
+			if (null == equivalentNodesA) {
 				continue EDGEA;
 			}
 
 			EDGEB: for (final PDGEdge edgeB : edgesB) {
 
-				if (checkedEdgesB.contains(edgeB)
-						|| checkedEdgesA.contains(edgeB)) {
+				if (checkedNodesB.contains(edgeB.fromNode)
+						|| checkedNodesA.contains(edgeB.fromNode)) {
 					continue EDGEB;
 				}
 
-				final PDGEdge[] equivalentEdgesB = this.mappingPDGEdgeToPDGEdges
-						.get(edgeB);
-				if (null == equivalentEdgesB) {
+				final PDGNode<?>[] equivalentNodesB = this.mappingPDGNodeToPDGNodes
+						.get(edgeB.fromNode);
+				if (null == equivalentNodesB) {
 					continue EDGEB;
 				}
 
@@ -161,19 +167,77 @@ public class Slicing {
 				}
 
 				NUMBER_OF_COMPARISON.incrementAndGet();
-				if (equivalentEdgesA == equivalentEdgesB) {
+				if (equivalentNodesA == equivalentNodesB) {
 
-					if ((edgeA.fromNode == edgeB.fromNode)
-							|| (edgeA.toNode == edgeB.toNode)) {
+					if (edgeA.fromNode == edgeB.fromNode) {
 						continue EDGEB;
 					}
 
-					final SortedSet<PDGEdge> newCheckedEdgesA = new TreeSet<PDGEdge>(
-							checkedEdgesA);
-					final SortedSet<PDGEdge> newCheckedEdgesB = new TreeSet<PDGEdge>(
-							checkedEdgesB);
-					final ClonePairInfo clonepair = this.perform(edgeA, edgeB,
-							newCheckedEdgesA, newCheckedEdgesB);
+					final SortedSet<PDGNode<?>> newCheckedNodesA = new TreeSet<PDGNode<?>>(
+							checkedNodesA);
+					final SortedSet<PDGNode<?>> newCheckedNodesB = new TreeSet<PDGNode<?>>(
+							checkedNodesB);
+					final ClonePairInfo clonepair = this.perform(
+							edgeA.fromNode, edgeB.fromNode, newCheckedNodesA,
+							newCheckedNodesB);
+					clonepairs.add(clonepair);
+				}
+			}
+		}
+
+		return clonepairs;
+	}
+
+	private List<ClonePairInfo> enlargeForwardClonePair(
+			final SortedSet<PDGEdge> edgesA, final SortedSet<PDGEdge> edgesB,
+			final Set<PDGNode<?>> checkedNodesA,
+			final Set<PDGNode<?>> checkedNodesB) {
+
+		final List<ClonePairInfo> clonepairs = new ArrayList<ClonePairInfo>();
+
+		EDGEA: for (final PDGEdge edgeA : edgesA) {
+
+			if (checkedNodesA.contains(edgeA.toNode)
+					|| checkedNodesB.contains(edgeA.toNode)) {
+				continue EDGEA;
+			}
+
+			final PDGNode<?>[] equivalentNodesA = this.mappingPDGNodeToPDGNodes
+					.get(edgeA.toNode);
+			if (null == equivalentNodesA) {
+				continue EDGEA;
+			}
+
+			EDGEB: for (final PDGEdge edgeB : edgesB) {
+
+				if (checkedNodesB.contains(edgeB.toNode)
+						|| checkedNodesA.contains(edgeB.toNode)) {
+					continue EDGEB;
+				}
+
+				final PDGNode<?>[] equivalentNodesB = this.mappingPDGNodeToPDGNodes
+						.get(edgeB.toNode);
+				if (null == equivalentNodesB) {
+					continue EDGEB;
+				}
+
+				if (edgeA == edgeB) {
+					continue EDGEB;
+				}
+
+				NUMBER_OF_COMPARISON.incrementAndGet();
+				if (equivalentNodesA == equivalentNodesB) {
+
+					if (edgeA.toNode == edgeB.toNode) {
+						continue EDGEB;
+					}
+
+					final SortedSet<PDGNode<?>> newCheckedNodesA = new TreeSet<PDGNode<?>>(
+							checkedNodesA);
+					final SortedSet<PDGNode<?>> newCheckedNodesB = new TreeSet<PDGNode<?>>(
+							checkedNodesB);
+					final ClonePairInfo clonepair = this.perform(edgeA.toNode,
+							edgeB.toNode, newCheckedNodesA, newCheckedNodesB);
 					clonepairs.add(clonepair);
 				}
 			}

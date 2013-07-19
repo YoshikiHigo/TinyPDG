@@ -6,22 +6,27 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import yoshikihigo.tinypdg.pdg.PDG;
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
+import yoshikihigo.tinypdg.pdg.node.PDGNode;
 
 public class HashCalculationThread implements Runnable {
 
 	final static private AtomicInteger INDEX = new AtomicInteger(0);
 
 	final private PDG[] pdgs;
+	final private SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mappingPDGToPDGNodes;
 	final private SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges;
 
 	public HashCalculationThread(
 			final PDG[] pdgs,
+			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mappingPDGToPDGNodes,
 			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges) {
 
 		assert null != pdgs : "\"pdgs\" is null.";
+		assert null != mappingPDGToPDGNodes : "\"mappingPDGToPDGNodes\" is null.";
 		assert null != mappingPDGToPDGEdges : "\"mappingPDGToPDGEdges\" is null.";
 
 		this.pdgs = pdgs;
+		this.mappingPDGToPDGNodes = mappingPDGToPDGNodes;
 		this.mappingPDGToPDGEdges = mappingPDGToPDGEdges;
 	}
 
@@ -32,6 +37,18 @@ public class HashCalculationThread implements Runnable {
 				.getAndIncrement()) {
 
 			final PDG pdg = this.pdgs[index];
+
+			final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHash = new TreeMap<PDGNode<?>, Integer>();
+			for (final PDGNode<?> node : pdg.getAllNodes()) {
+
+				final NormalizedText t1 = new NormalizedText(node.core);
+				final String t2 = NormalizedText.normalize(t1.getText());
+				final int hash = t2.hashCode();
+
+				mappingPDGNodeToHash.put(node, hash);
+			}
+			this.mappingPDGToPDGNodes.put(pdg, mappingPDGNodeToHash);
+
 			final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash = new TreeMap<PDGEdge, Integer>();
 			for (final PDGEdge edge : pdg.getAllEdges()) {
 

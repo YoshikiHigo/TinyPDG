@@ -3,63 +3,60 @@ package yoshikihigo.tinypdg.scorpio.data;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
-import yoshikihigo.tinypdg.pdg.node.PDGMethodEnterNode;
+import yoshikihigo.tinypdg.pdg.node.PDGNode;
 
 public class ClonePairInfo implements Comparable<ClonePairInfo> {
 
 	final public String pathA;
 	final public String pathB;
-	final private SortedSet<EdgePairInfo> edgePairs;
+	final private SortedSet<NodePairInfo> nodePairs;
 
 	public ClonePairInfo(final String pathA, final String pathB) {
 		this.pathA = pathA;
 		this.pathB = pathB;
-		this.edgePairs = new TreeSet<EdgePairInfo>();
+		this.nodePairs = new TreeSet<NodePairInfo>();
 	}
 
-	public void addEdgePair(final EdgePairInfo edgePair) {
-		assert null != edgePair : "\"edgePair\" is null.";
-		this.edgePairs.add(edgePair);
+	public void addNodePair(final NodePairInfo nodePair) {
+		assert null != nodePair : "\"nodePair\" is null.";
+		this.nodePairs.add(nodePair);
 	}
 
 	public void merge(final ClonePairInfo merged) {
 		assert null != merged : "\"merged\" is null.";
-		this.edgePairs.addAll(merged.edgePairs);
+		this.nodePairs.addAll(merged.nodePairs);
 	}
 
 	public CodeFragmentInfo getLeftCodeFragment() {
 		final CodeFragmentInfo codefragment = new CodeFragmentInfo();
-		for (final EdgePairInfo edgepair : this.edgePairs) {
-			codefragment.merge(new CodeFragmentInfo(edgepair.edgeA.fromNode));
-			codefragment.merge(new CodeFragmentInfo(edgepair.edgeA.toNode));
+		for (final NodePairInfo pair : this.nodePairs) {
+			codefragment.merge(new CodeFragmentInfo(pair.nodeA));
 		}
 		return codefragment;
 	}
 
 	public CodeFragmentInfo getRightCodeFragment() {
 		final CodeFragmentInfo codefragment = new CodeFragmentInfo();
-		for (final EdgePairInfo edgepair : this.edgePairs) {
-			codefragment.merge(new CodeFragmentInfo(edgepair.edgeB.fromNode));
-			codefragment.merge(new CodeFragmentInfo(edgepair.edgeB.toNode));
+		for (final NodePairInfo edgepair : this.nodePairs) {
+			codefragment.merge(new CodeFragmentInfo(edgepair.nodeB));
 		}
 		return codefragment;
 	}
 
-	public SortedSet<PDGEdge> getLeftEdges() {
-		final SortedSet<PDGEdge> edges = new TreeSet<PDGEdge>();
-		for (final EdgePairInfo pair : this.edgePairs) {
-			edges.add(pair.edgeA);
+	public SortedSet<PDGNode<?>> getLeftNodes() {
+		final SortedSet<PDGNode<?>> nodes = new TreeSet<PDGNode<?>>();
+		for (final NodePairInfo pair : this.nodePairs) {
+			nodes.add(pair.nodeA);
 		}
-		return edges;
+		return nodes;
 	}
 
-	public SortedSet<PDGEdge> getRightEdges() {
-		final SortedSet<PDGEdge> edges = new TreeSet<PDGEdge>();
-		for (final EdgePairInfo pair : this.edgePairs) {
-			edges.add(pair.edgeB);
+	public SortedSet<PDGNode<?>> getRightNodes() {
+		final SortedSet<PDGNode<?>> nodes = new TreeSet<PDGNode<?>>();
+		for (final NodePairInfo pair : this.nodePairs) {
+			nodes.add(pair.nodeB);
 		}
-		return edges;
+		return nodes;
 	}
 
 	public int compareTo(final ClonePairInfo clonepair) {
@@ -98,28 +95,9 @@ public class ClonePairInfo implements Comparable<ClonePairInfo> {
 
 	}
 
-	public SortedSet<EdgePairInfo> getEdgePairs() {
-		final SortedSet<EdgePairInfo> edgepairs = new TreeSet<EdgePairInfo>();
-		edgepairs.addAll(this.edgePairs);
-		return edgepairs;
-	}
-
 	public SortedSet<NodePairInfo> getNodePairs() {
 		final SortedSet<NodePairInfo> nodepairs = new TreeSet<NodePairInfo>();
-		for (final EdgePairInfo edgepair : this.edgePairs) {
-			if (!(edgepair.edgeA.fromNode instanceof PDGMethodEnterNode)
-					&& !(edgepair.edgeB.fromNode instanceof PDGMethodEnterNode)) {
-				final NodePairInfo nodepair1 = new NodePairInfo(
-						edgepair.edgeA.fromNode, edgepair.edgeB.fromNode);
-				nodepairs.add(nodepair1);
-			}
-			if (!(edgepair.edgeA.toNode instanceof PDGMethodEnterNode)
-					&& !(edgepair.edgeB.toNode instanceof PDGMethodEnterNode)) {
-				final NodePairInfo nodepair2 = new NodePairInfo(
-						edgepair.edgeA.toNode, edgepair.edgeB.toNode);
-				nodepairs.add(nodepair2);
-			}
-		}
+		nodepairs.addAll(this.nodePairs);
 		return nodepairs;
 	}
 }

@@ -20,12 +20,12 @@ import yoshikihigo.tinypdg.ast.TinyPDGASTVisitor;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.pdg.PDG;
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
+import yoshikihigo.tinypdg.pdg.node.PDGNode;
 import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
 import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
 import yoshikihigo.tinypdg.scorpio.data.PDGPairInfo;
 import yoshikihigo.tinypdg.scorpio.io.BellonWriter;
-import yoshikihigo.tinypdg.scorpio.io.CSVEdgeWriter;
 import yoshikihigo.tinypdg.scorpio.io.Writer;
 
 public class Scorpio {
@@ -215,6 +215,8 @@ public class Scorpio {
 			printTime(time2 - time1);
 
 			System.out.print("calculating hash values ... ");
+			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mappingPDGToPDGNodes = Collections
+					.synchronizedSortedMap(new TreeMap<PDG, SortedMap<PDGNode<?>, Integer>>());
 			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges = Collections
 					.synchronizedSortedMap(new TreeMap<PDG, SortedMap<PDGEdge, Integer>>());
 			{
@@ -222,7 +224,7 @@ public class Scorpio {
 				for (int i = 0; i < hashCalculationThreads.length; i++) {
 					hashCalculationThreads[i] = new Thread(
 							new HashCalculationThread(pdgArray,
-									mappingPDGToPDGEdges));
+									mappingPDGToPDGNodes, mappingPDGToPDGEdges));
 					hashCalculationThreads[i].start();
 				}
 				for (final Thread thread : hashCalculationThreads) {
@@ -252,8 +254,8 @@ public class Scorpio {
 				final Thread[] slicingThreads = new Thread[NUMBER_OF_THREADS];
 				for (int i = 0; i < slicingThreads.length; i++) {
 					slicingThreads[i] = new Thread(new SlicingThread(
-							pdgpairArray, pdgArray, mappingPDGToPDGEdges,
-							clonepairs, SIZE_THRESHOLD));
+							pdgpairArray, pdgArray, mappingPDGToPDGNodes,
+							mappingPDGToPDGEdges, clonepairs, SIZE_THRESHOLD));
 					slicingThreads[i].start();
 				}
 				for (final Thread thread : slicingThreads) {
