@@ -115,7 +115,11 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 		assert null != statement : "\"statement\" is null.";
 		this.statements.clear();
 		if (StatementInfo.CATEGORY.SimpleBlock == statement.getCategory()) {
-			this.statements.addAll(statement.getStatements());
+			if (statement.getStatements().isEmpty()) {
+				this.statements.add(statement);
+			} else {
+				this.statements.addAll(statement.getStatements());
+			}
 		} else {
 			this.statements.add(statement);
 		}
