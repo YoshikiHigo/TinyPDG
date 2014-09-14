@@ -3,7 +3,9 @@ package yoshikihigo.tinypdg.prelement;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,6 +29,7 @@ import yoshikihigo.tinypdg.pdg.edge.PDGExecutionDependenceEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
 import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
 import yoshikihigo.tinypdg.pe.MethodInfo;
+import yoshikihigo.tinypdg.prelement.data.Frequency;
 import yoshikihigo.tinypdg.scorpio.NormalizedText;
 import yoshikihigo.tinypdg.scorpio.PDGGenerationThread;
 
@@ -119,6 +122,7 @@ public class DependenceDistiller {
 			printTime(time2 - time1);
 
 			System.out.print("distilling dependencies ...");
+			final ConcurrentMap<Integer, String> texts = new ConcurrentHashMap<Integer, String>();
 			final ConcurrentMap<Integer, AtomicInteger> fromNodeFrequencies = new ConcurrentHashMap<Integer, AtomicInteger>();
 			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeControlFrequencies = new ConcurrentHashMap<Integer, ConcurrentMap<Integer, AtomicInteger>>();
 			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeDataFrequencies = new ConcurrentHashMap<Integer, ConcurrentMap<Integer, AtomicInteger>>();
@@ -127,7 +131,15 @@ public class DependenceDistiller {
 				final SortedSet<PDGNode<?>> nodes = pdg.getAllNodes();
 				for (final PDGNode<?> fromNode : nodes) {
 
-					final int fromNodeHash = getHash(fromNode);
+					// generate a hash value from fromNode
+					final String fromNodeNormalizedText = getNormalizedText(fromNode);
+					final int fromNodeHash = fromNodeNormalizedText.hashCode();
+
+					// make mapping between hash value and normalized text
+					if (!texts.containsKey(fromNodeHash)) {
+						texts.put(fromNodeHash, fromNodeNormalizedText);
+					}
+
 					AtomicInteger frequencies = fromNodeFrequencies
 							.get(fromNodeHash);
 					if (null == frequencies) {
@@ -138,7 +150,8 @@ public class DependenceDistiller {
 
 					final SortedSet<PDGEdge> edges = fromNode.getForwardEdges();
 					for (final PDGEdge edge : edges) {
-						final int toNodeHash = getHash(edge.toNode);
+						final String toNodeNormalizedText = getNormalizedText(edge.toNode);
+						final int toNodeHash = toNodeNormalizedText.hashCode();
 						if (edge instanceof PDGControlDependenceEdge) {
 							addToNodeHash(fromNodeHash, toNodeHash,
 									toNodeDataFrequencies);
@@ -156,8 +169,23 @@ public class DependenceDistiller {
 			final long time3 = System.nanoTime();
 			printTime(time3 - time2);
 
+			System.out.print("sorting frequencies ...");
+			final ConcurrentMap<Integer, List<Frequency>> frequenciesForControlDependence = new ConcurrentHashMap<Integer, List<Frequency>>();
+			final ConcurrentMap<Integer, List<Frequency>> frequenciesForDataDependence = new ConcurrentHashMap<Integer, List<Frequency>>();
+			final ConcurrentMap<Integer, List<Frequency>> frequenciesForExecutionDependence = new ConcurrentHashMap<Integer, List<Frequency>>();
+			calculateFrequencies(fromNodeFrequencies, toNodeControlFrequencies,
+					texts, frequenciesForControlDependence);
+			calculateFrequencies(fromNodeFrequencies, toNodeDataFrequencies,
+					texts, frequenciesForDataDependence);
+			calculateFrequencies(fromNodeFrequencies,
+					toNodeExecutionFrequencies, texts,
+					frequenciesForExecutionDependence);
+			System.out.print("done: ");
+			final long time4 = System.nanoTime();
+			printTime(time4 - time3);
+
 			System.out.print("total elapsed time: ");
-			printTime(time3 - time1);
+			printTime(time4 - time1);
 
 		} catch (Exception e) {
 			System.err.println(e.getMessage());
@@ -207,13 +235,51 @@ public class DependenceDistiller {
 		frequency.incrementAndGet();
 	}
 
-	private static int getHash(final PDGNode<?> node) {
+	private static String getNormalizedText(final PDGNode<?> node) {
 		final NormalizedText fromNodeNormalizedText1 = new NormalizedText(
 				node.core);
 		final String fromNodeNormalizedText2 = NormalizedText
 				.normalize(fromNodeNormalizedText1.getText());
-		final int fromNodeHash = fromNodeNormalizedText2.hashCode();
-		return fromNodeHash;
+		return fromNodeNormalizedText2;
+	}
+
+	private static void calculateFrequencies(
+			final ConcurrentMap<Integer, AtomicInteger> fromNodeAllFrequencies,
+			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeAllFrequencies,
+			final ConcurrentMap<Integer, String> texts,
+			final ConcurrentMap<Integer, List<Frequency>> allFrequencies) {
+
+		for (final Entry<Integer, ConcurrentMap<Integer, AtomicInteger>> entry : toNodeAllFrequencies
+				.entrySet()) {
+			final int fromNodeHash = entry.getKey();
+			final int totalTime = fromNodeAllFrequencies.get(fromNodeHash)
+					.get();
+			final List<Frequency> frequencies = new ArrayList<Frequency>();
+			final ConcurrentMap<Integer, AtomicInteger> toNodeFrequencies = entry
+					.getValue();
+			for (final Entry<Integer, AtomicInteger> entry2 : toNodeFrequencies
+					.entrySet()) {
+				final int toNodeHash = entry2.getKey();
+				final int time = entry2.getValue().get();
+				final String normalizedText = texts.get(toNodeHash);
+				final Frequency frequency = new Frequency((float) time
+						/ (float) totalTime, time, normalizedText);
+				frequencies.add(frequency);
+			}
+			Collections.sort(frequencies, new Comparator<Frequency>() {
+				@Override
+				public int compare(final Frequency f1, final Frequency f2) {
+					if (f1.probablity > f2.probablity) {
+						return -1;
+					} else if (f1.probablity < f2.probablity) {
+						return 1;
+					} else {
+						return 0;
+					}
+				}
+			});
+			allFrequencies.put(fromNodeHash, frequencies);
+		}
 	}
 
 	private static void printTime(final long time) {
