@@ -38,6 +38,7 @@ public class NormalizedText {
 			
 			assert 0 < endIndex : "invalid state.";
 
+			try {
 			final String target = normalizedText.substring(startIndex,
 					endIndex + 1);
 			String value = mapper.get(target);
@@ -46,6 +47,9 @@ public class NormalizedText {
 				mapper.put(target, value);
 			}
 			normalizedText.replace(startIndex, endIndex + 2, value);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			startIndex++;
 		}
 
@@ -195,10 +199,16 @@ public class NormalizedText {
 						expressions.get(0));
 				text.append(typeText.getText());
 				text.append(" ");
+				
+				boolean anyExpression = false;
 				for (int i = 1; i < expressions.size(); i++) {
+					anyExpression = true;
 					final NormalizedText fragmentText = new NormalizedText(
 							expressions.get(i));
-					text.append(fragmentText.getText());
+					text.append(fragmentText.getText() + ",");
+				}
+				if (anyExpression) {
+					text.deleteCharAt(text.length() - 1);
 				}
 				text.append(";");
 				break;
