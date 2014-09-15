@@ -26,7 +26,15 @@ public class NormalizedText {
 			if (startIndex < 0) {
 				break;
 			}
+			
 			endIndex = normalizedText.indexOf("$$", startIndex + 1);
+			final int doubleQuotationStartIndex = normalizedText.indexOf("\"", startIndex);
+			final int doubleQuotationEndIndex = normalizedText.indexOf("\"", doubleQuotationStartIndex + 1);
+			
+			if (doubleQuotationStartIndex < endIndex && endIndex < doubleQuotationEndIndex) {
+				endIndex = normalizedText.indexOf("$$", doubleQuotationEndIndex + 1);
+			}
+			
 			assert 0 < endIndex : "invalid state.";
 
 			final String target = normalizedText.substring(startIndex,
