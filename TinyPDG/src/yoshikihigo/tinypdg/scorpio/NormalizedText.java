@@ -38,7 +38,6 @@ public class NormalizedText {
 			
 			assert 0 < endIndex : "invalid state.";
 
-			try {
 			final String target = normalizedText.substring(startIndex,
 					endIndex + 1);
 			String value = mapper.get(target);
@@ -47,9 +46,6 @@ public class NormalizedText {
 				mapper.put(target, value);
 			}
 			normalizedText.replace(startIndex, endIndex + 2, value);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
 			startIndex++;
 		}
 
