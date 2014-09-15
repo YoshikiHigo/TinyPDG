@@ -16,7 +16,8 @@ public class NormalizedText {
 
 	public static String normalize(final String text) {
 
-		StringBuilder normalizedText = new StringBuilder(text);
+//		StringBuilder normalizedText = new StringBuilder(text);
+		StringBuilder normalizedText = new StringBuilder(resolveDuplicatedMarkingTokens(text));
 		final Map<String, String> mapper = new HashMap<String, String>();
 
 		int startIndex = 0;
@@ -49,6 +50,23 @@ public class NormalizedText {
 		}
 
 		return normalizedText.toString();
+	}
+	
+	private static String resolveDuplicatedMarkingTokens(final String text) {
+		if (!text.contains("$$$")) {
+			return text;
+		}
+		
+		String result = text;
+		while (result.contains("$$$")) {
+			result = result.replace("$$$", "$$");
+		}
+		
+		if (result.isEmpty()) {
+			result = text;
+		}
+		
+		return result;
 	}
 
 	public final ProgramElementInfo core;
