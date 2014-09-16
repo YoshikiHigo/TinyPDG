@@ -69,8 +69,8 @@ public class PDGGenerationThread implements Runnable {
 
 			} catch (Exception e) {
 				e.printStackTrace();
-				System.err.println("ERROR: in method " + method.name + " in "
-						+ method.path);
+				System.err.println("ERROR: failed to process the method "
+						+ method.name + " in " + method.path);
 			}
 		}
 	}
