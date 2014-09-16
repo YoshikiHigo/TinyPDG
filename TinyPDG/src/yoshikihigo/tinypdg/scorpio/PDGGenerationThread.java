@@ -49,20 +49,29 @@ public class PDGGenerationThread implements Runnable {
 		for (int index = INDEX.getAndIncrement(); index < this.methods.size(); index = INDEX
 				.getAndIncrement()) {
 			final MethodInfo method = this.methods.get(index);
-			final PDG pdg = new PDG(method, this.pdgNodeFactory,
-					this.cfgNodeFactory, this.useOfControl, this.useOfData,
-					this.useOfExecution, Integer.MAX_VALUE, Integer.MAX_VALUE,
-					Integer.MAX_VALUE);
 
-			pdg.build();
-			if (pdg.getAllNodes().size() < this.threshold) {
-				continue;
-			}
+			try {
 
-			if (this.useOfMerging) {
-				PDGMergedNode.mergeNodes(pdg);
+				final PDG pdg = new PDG(method, this.pdgNodeFactory,
+						this.cfgNodeFactory, this.useOfControl, this.useOfData,
+						this.useOfExecution, Integer.MAX_VALUE,
+						Integer.MAX_VALUE, Integer.MAX_VALUE);
+
+				pdg.build();
+				if (pdg.getAllNodes().size() < this.threshold) {
+					continue;
+				}
+
+				if (this.useOfMerging) {
+					PDGMergedNode.mergeNodes(pdg);
+				}
+				this.pdgs.add(pdg);
+
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.err.println("ERROR: in method " + method.name + " in "
+						+ method.path);
 			}
-			this.pdgs.add(pdg);
 		}
 	}
 }
