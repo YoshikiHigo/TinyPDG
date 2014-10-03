@@ -38,37 +38,47 @@ public class HashCalculationThread implements Runnable {
 
 			final PDG pdg = this.pdgs[index];
 
-			final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHash = new TreeMap<PDGNode<?>, Integer>();
-			for (final PDGNode<?> node : pdg.getAllNodes()) {
+			try {
 
-				final NormalizedText t1 = new NormalizedText(node.core);
-				final String t2 = NormalizedText.normalize(t1.getText());
-				final int hash = t2.hashCode();
+				final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHash = new TreeMap<PDGNode<?>, Integer>();
+				for (final PDGNode<?> node : pdg.getAllNodes()) {
 
-				mappingPDGNodeToHash.put(node, hash);
+					final NormalizedText t1 = new NormalizedText(node.core);
+					final String t2 = NormalizedText.normalize(t1.getText());
+					final int hash = t2.hashCode();
+
+					mappingPDGNodeToHash.put(node, hash);
+				}
+				this.mappingPDGToPDGNodes.put(pdg, mappingPDGNodeToHash);
+
+				final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash = new TreeMap<PDGEdge, Integer>();
+				for (final PDGEdge edge : pdg.getAllEdges()) {
+
+					final NormalizedText t1 = new NormalizedText(
+							edge.fromNode.core);
+					final String fromNodeText = NormalizedText.normalize(t1
+							.getText());
+					final NormalizedText t2 = new NormalizedText(
+							edge.toNode.core);
+					final String toNodeText = NormalizedText.normalize(t2
+							.getText());
+					final StringBuilder edgeText = new StringBuilder();
+					edgeText.append(fromNodeText);
+					edgeText.append("-");
+					edgeText.append(edge.type.toString());
+					edgeText.append("->");
+					edgeText.append(toNodeText);
+					final int hash = edgeText.toString().hashCode();
+
+					mappingPDGEdgeToHash.put(edge, hash);
+				}
+				this.mappingPDGToPDGEdges.put(pdg, mappingPDGEdgeToHash);
+
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.err.println("ERROR: failed to process the method "
+						+ pdg.unit.name + " in " + pdg.unit.path);
 			}
-			this.mappingPDGToPDGNodes.put(pdg, mappingPDGNodeToHash);
-
-			final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash = new TreeMap<PDGEdge, Integer>();
-			for (final PDGEdge edge : pdg.getAllEdges()) {
-
-				final NormalizedText t1 = new NormalizedText(edge.fromNode.core);
-				final String fromNodeText = NormalizedText.normalize(t1
-						.getText());
-				final NormalizedText t2 = new NormalizedText(edge.toNode.core);
-				final String toNodeText = NormalizedText
-						.normalize(t2.getText());
-				final StringBuilder edgeText = new StringBuilder();
-				edgeText.append(fromNodeText);
-				edgeText.append("-");
-				edgeText.append(edge.type.toString());
-				edgeText.append("->");
-				edgeText.append(toNodeText);
-				final int hash = edgeText.toString().hashCode();
-
-				mappingPDGEdgeToHash.put(edge, hash);
-			}
-			this.mappingPDGToPDGEdges.put(pdg, mappingPDGEdgeToHash);
 		}
 	}
 }

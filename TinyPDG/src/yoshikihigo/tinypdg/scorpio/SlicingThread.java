@@ -64,90 +64,108 @@ public class SlicingThread implements Runnable {
 			final String pathA = pdgA.unit.path;
 			final String pathB = pdgB.unit.path;
 
-			final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHashA = this.mapPDGToPDGNodes
-					.get(pdgA);
-			final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHashB = this.mapPDGToPDGNodes
-					.get(pdgB);
-			final SortedMap<Integer, List<PDGNode<?>>> mappingHashToPDGNodes = new TreeMap<Integer, List<PDGNode<?>>>();
-			this.registerNodes(mappingHashToPDGNodes, mappingPDGNodeToHashA);
-			this.registerNodes(mappingHashToPDGNodes, mappingPDGNodeToHashB);
-			final SortedMap<PDGNode<?>, PDGNode<?>[]> mappingPDGNodeToPDGNodes = new TreeMap<PDGNode<?>, PDGNode<?>[]>();
-			for (final List<PDGNode<?>> list : mappingHashToPDGNodes.values()) {
-				if (1 < list.size()) {
-					final PDGNode<?>[] nodes = list.toArray(new PDGNode<?>[0]);
-					for (final PDGNode<?> node : nodes) {
-						mappingPDGNodeToPDGNodes.put(node, nodes);
-					}
-				}
-			}
+			try {
 
-			final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHashA = this.mapPDGToPDGEdges
-					.get(pdgA);
-			final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHashB = this.mapPDGToPDGEdges
-					.get(pdgB);
-
-			final SortedSet<PDGEdge> edgesA = pdgA.getAllEdges();
-			final SortedSet<PDGEdge> edgesB = pdgB.getAllEdges();
-
-			final SortedMap<Integer, List<PDGEdge>> mappingHashToPDGEdges = new TreeMap<Integer, List<PDGEdge>>();
-			this.registerEdges(mappingHashToPDGEdges, mappingPDGEdgeToHashA);
-			this.registerEdges(mappingHashToPDGEdges, mappingPDGEdgeToHashB);
-
-			final SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges = new TreeMap<PDGEdge, PDGEdge[]>();
-			for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
-				if (1 < list.size()) {
-					final PDGEdge[] edges = list.toArray(new PDGEdge[0]);
-					for (final PDGEdge edge : edges) {
-						mappingPDGEdgeToPDGEdges.put(edge, edges);
-					}
-				}
-			}
-
-			final SortedSet<PDGEdge[]> sortedPDGEdges = new TreeSet<PDGEdge[]>(
-					new PDGEdgesComparator());
-			for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
-				if (1 < list.size()) {
-					final PDGEdge[] edges = list.toArray(new PDGEdge[0]);
-					sortedPDGEdges.add(edges);
-				}
-			}
-
-			final SortedSet<NodePairInfo> checkedNodepairs = new TreeSet<NodePairInfo>();
-			for (final PDGEdge[] edges : sortedPDGEdges) {
-				for (int x = 0; x < edges.length; x++) {
-					for (int y = 0; y < edges.length; y++) {
-
-						if (x == y) {
-							continue;
-						}
-
-						final PDGEdge edgeA = edges[x];
-						final PDGEdge edgeB = edges[y];
-
-						if (!(edgesA.contains(edgeA) && edgesB.contains(edgeB))) {
-							continue;
-						}
-
-						final NodePairInfo nodepair = new NodePairInfo(
-								edgeA.fromNode, edgeB.fromNode);
-						if (checkedNodepairs.contains(nodepair)) {
-							continue;
-						}
-
-						if (edgeA.connectedWith(edgeB)) {
-							continue;
-						}
-
-						final Slicing slicing = new Slicing(pathA, pathB,
-								edgeA.fromNode, edgeB.fromNode,
-								mappingPDGNodeToPDGNodes,
-								mappingPDGEdgeToPDGEdges, checkedNodepairs);
-						final ClonePairInfo clonepair = slicing.perform();
-						if (this.SIZE_THRESHOLD <= clonepair.size()) {
-							clonepairs.add(clonepair);
+				final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHashA = this.mapPDGToPDGNodes
+						.get(pdgA);
+				final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHashB = this.mapPDGToPDGNodes
+						.get(pdgB);
+				final SortedMap<Integer, List<PDGNode<?>>> mappingHashToPDGNodes = new TreeMap<Integer, List<PDGNode<?>>>();
+				this.registerNodes(mappingHashToPDGNodes, mappingPDGNodeToHashA);
+				this.registerNodes(mappingHashToPDGNodes, mappingPDGNodeToHashB);
+				final SortedMap<PDGNode<?>, PDGNode<?>[]> mappingPDGNodeToPDGNodes = new TreeMap<PDGNode<?>, PDGNode<?>[]>();
+				for (final List<PDGNode<?>> list : mappingHashToPDGNodes
+						.values()) {
+					if (1 < list.size()) {
+						final PDGNode<?>[] nodes = list
+								.toArray(new PDGNode<?>[0]);
+						for (final PDGNode<?> node : nodes) {
+							mappingPDGNodeToPDGNodes.put(node, nodes);
 						}
 					}
 				}
+
+				final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHashA = this.mapPDGToPDGEdges
+						.get(pdgA);
+				final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHashB = this.mapPDGToPDGEdges
+						.get(pdgB);
+
+				final SortedSet<PDGEdge> edgesA = pdgA.getAllEdges();
+				final SortedSet<PDGEdge> edgesB = pdgB.getAllEdges();
+
+				final SortedMap<Integer, List<PDGEdge>> mappingHashToPDGEdges = new TreeMap<Integer, List<PDGEdge>>();
+				this.registerEdges(mappingHashToPDGEdges, mappingPDGEdgeToHashA);
+				this.registerEdges(mappingHashToPDGEdges, mappingPDGEdgeToHashB);
+
+				final SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges = new TreeMap<PDGEdge, PDGEdge[]>();
+				for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
+					if (1 < list.size()) {
+						final PDGEdge[] edges = list.toArray(new PDGEdge[0]);
+						for (final PDGEdge edge : edges) {
+							mappingPDGEdgeToPDGEdges.put(edge, edges);
+						}
+					}
+				}
+
+				final SortedSet<PDGEdge[]> sortedPDGEdges = new TreeSet<PDGEdge[]>(
+						new PDGEdgesComparator());
+				for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
+					if (1 < list.size()) {
+						final PDGEdge[] edges = list.toArray(new PDGEdge[0]);
+						sortedPDGEdges.add(edges);
+					}
+				}
+
+				final SortedSet<NodePairInfo> checkedNodepairs = new TreeSet<NodePairInfo>();
+				for (final PDGEdge[] edges : sortedPDGEdges) {
+					for (int x = 0; x < edges.length; x++) {
+						for (int y = 0; y < edges.length; y++) {
+
+							if (x == y) {
+								continue;
+							}
+
+							final PDGEdge edgeA = edges[x];
+							final PDGEdge edgeB = edges[y];
+
+							if (!(edgesA.contains(edgeA) && edgesB
+									.contains(edgeB))) {
+								continue;
+							}
+
+							final NodePairInfo nodepair = new NodePairInfo(
+									edgeA.fromNode, edgeB.fromNode);
+							if (checkedNodepairs.contains(nodepair)) {
+								continue;
+							}
+
+							if (edgeA.connectedWith(edgeB)) {
+								continue;
+							}
+
+							final Slicing slicing = new Slicing(pathA, pathB,
+									edgeA.fromNode, edgeB.fromNode,
+									mappingPDGNodeToPDGNodes,
+									mappingPDGEdgeToPDGEdges, checkedNodepairs);
+							final ClonePairInfo clonepair = slicing.perform();
+							if (this.SIZE_THRESHOLD <= clonepair.size()) {
+								clonepairs.add(clonepair);
+							}
+						}
+					}
+				}
+
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.err
+						.println("ERROR: failed to detect clones between the method "
+								+ pdgA.unit.name
+								+ " in "
+								+ pathA
+								+ " and the method"
+								+ pdgB.unit.name
+								+ " in "
+								+ pathB);
 			}
 		}
 
@@ -157,71 +175,82 @@ public class SlicingThread implements Runnable {
 			final PDG pdg = this.pdgs[index];
 			final String path = pdg.unit.path;
 
-			final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHash = this.mapPDGToPDGNodes
-					.get(pdg);
-			final SortedMap<Integer, List<PDGNode<?>>> mappingHashToPDGNodes = new TreeMap<Integer, List<PDGNode<?>>>();
-			this.registerNodes(mappingHashToPDGNodes, mappingPDGNodeToHash);
-			final SortedMap<PDGNode<?>, PDGNode<?>[]> mappingPDGNodeToPDGNodes = new TreeMap<PDGNode<?>, PDGNode<?>[]>();
-			for (final List<PDGNode<?>> list : mappingHashToPDGNodes.values()) {
-				if (1 < list.size()) {
-					final PDGNode<?>[] nodes = list.toArray(new PDGNode<?>[0]);
-					for (final PDGNode<?> node : nodes) {
-						mappingPDGNodeToPDGNodes.put(node, nodes);
-					}
-				}
-			}
+			try {
 
-			final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash = this.mapPDGToPDGEdges
-					.get(pdg);
-			final SortedMap<Integer, List<PDGEdge>> mappingHashToPDGEdges = new TreeMap<Integer, List<PDGEdge>>();
-			this.registerEdges(mappingHashToPDGEdges, mappingPDGEdgeToHash);
-			final SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges = new TreeMap<PDGEdge, PDGEdge[]>();
-			for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
-				if (1 < list.size()) {
-					final PDGEdge[] edges = list.toArray(new PDGEdge[0]);
-					for (final PDGEdge edge : edges) {
-						mappingPDGEdgeToPDGEdges.put(edge, edges);
-					}
-				}
-			}
-
-			final SortedSet<PDGEdge[]> sortedPDGEdges = new TreeSet<PDGEdge[]>(
-					new PDGEdgesComparator());
-			for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
-				if (1 < list.size()) {
-					final PDGEdge[] edges = list.toArray(new PDGEdge[0]);
-					sortedPDGEdges.add(edges);
-				}
-			}
-
-			final SortedSet<NodePairInfo> checkedNodepairs = new TreeSet<NodePairInfo>();
-			for (final PDGEdge[] edges : sortedPDGEdges) {
-				for (int x = 0; x < edges.length; x++) {
-					for (int y = x + 1; y < edges.length; y++) {
-
-						final PDGEdge edgeA = edges[x];
-						final PDGEdge edgeB = edges[y];
-
-						final NodePairInfo nodepair = new NodePairInfo(
-								edgeA.fromNode, edgeB.fromNode);
-						if (checkedNodepairs.contains(nodepair)) {
-							continue;
-						}
-
-						if (edgeA.connectedWith(edgeB)) {
-							continue;
-						}
-
-						final Slicing slicing = new Slicing(path, path,
-								edgeA.fromNode, edgeB.fromNode,
-								mappingPDGNodeToPDGNodes,
-								mappingPDGEdgeToPDGEdges, checkedNodepairs);
-						final ClonePairInfo clonepair = slicing.perform();
-						if (this.SIZE_THRESHOLD <= clonepair.size()) {
-							clonepairs.add(clonepair);
+				final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHash = this.mapPDGToPDGNodes
+						.get(pdg);
+				final SortedMap<Integer, List<PDGNode<?>>> mappingHashToPDGNodes = new TreeMap<Integer, List<PDGNode<?>>>();
+				this.registerNodes(mappingHashToPDGNodes, mappingPDGNodeToHash);
+				final SortedMap<PDGNode<?>, PDGNode<?>[]> mappingPDGNodeToPDGNodes = new TreeMap<PDGNode<?>, PDGNode<?>[]>();
+				for (final List<PDGNode<?>> list : mappingHashToPDGNodes
+						.values()) {
+					if (1 < list.size()) {
+						final PDGNode<?>[] nodes = list
+								.toArray(new PDGNode<?>[0]);
+						for (final PDGNode<?> node : nodes) {
+							mappingPDGNodeToPDGNodes.put(node, nodes);
 						}
 					}
 				}
+
+				final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash = this.mapPDGToPDGEdges
+						.get(pdg);
+				final SortedMap<Integer, List<PDGEdge>> mappingHashToPDGEdges = new TreeMap<Integer, List<PDGEdge>>();
+				this.registerEdges(mappingHashToPDGEdges, mappingPDGEdgeToHash);
+				final SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges = new TreeMap<PDGEdge, PDGEdge[]>();
+				for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
+					if (1 < list.size()) {
+						final PDGEdge[] edges = list.toArray(new PDGEdge[0]);
+						for (final PDGEdge edge : edges) {
+							mappingPDGEdgeToPDGEdges.put(edge, edges);
+						}
+					}
+				}
+
+				final SortedSet<PDGEdge[]> sortedPDGEdges = new TreeSet<PDGEdge[]>(
+						new PDGEdgesComparator());
+				for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
+					if (1 < list.size()) {
+						final PDGEdge[] edges = list.toArray(new PDGEdge[0]);
+						sortedPDGEdges.add(edges);
+					}
+				}
+
+				final SortedSet<NodePairInfo> checkedNodepairs = new TreeSet<NodePairInfo>();
+				for (final PDGEdge[] edges : sortedPDGEdges) {
+					for (int x = 0; x < edges.length; x++) {
+						for (int y = x + 1; y < edges.length; y++) {
+
+							final PDGEdge edgeA = edges[x];
+							final PDGEdge edgeB = edges[y];
+
+							final NodePairInfo nodepair = new NodePairInfo(
+									edgeA.fromNode, edgeB.fromNode);
+							if (checkedNodepairs.contains(nodepair)) {
+								continue;
+							}
+
+							if (edgeA.connectedWith(edgeB)) {
+								continue;
+							}
+
+							final Slicing slicing = new Slicing(path, path,
+									edgeA.fromNode, edgeB.fromNode,
+									mappingPDGNodeToPDGNodes,
+									mappingPDGEdgeToPDGEdges, checkedNodepairs);
+							final ClonePairInfo clonepair = slicing.perform();
+							if (this.SIZE_THRESHOLD <= clonepair.size()) {
+								clonepairs.add(clonepair);
+							}
+						}
+					}
+				}
+
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.err
+						.println("ERROR: failed to detect clones in the method "
+								+ pdg.unit.name + " in " + path);
 			}
 		}
 

@@ -156,9 +156,16 @@ public class PDG implements Comparable<PDG> {
 
 	public final SortedSet<PDGEdge> getAllEdges() {
 		final SortedSet<PDGEdge> edges = new TreeSet<PDGEdge>();
-		for (final PDGEdge edge : this.enterNode.getForwardEdges()) {
-			this.getAllEdges(edge, edges);
+//		for (final PDGEdge edge : this.enterNode.getForwardEdges()) {
+//			this.getAllEdges(edge, edges);
+//		}
+		
+		final SortedSet<PDGNode<?>> nodes = this.getAllNodes();
+		for (final PDGNode<?> node : nodes) {
+			edges.addAll(node.getForwardEdges());
+			edges.addAll(node.getBackwardEdges());
 		}
+		
 		return edges;
 	}
 

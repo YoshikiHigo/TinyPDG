@@ -16,7 +16,8 @@ public class NormalizedText {
 
 	public static String normalize(final String text) {
 
-		StringBuilder normalizedText = new StringBuilder(text);
+//		StringBuilder normalizedText = new StringBuilder(text);
+		StringBuilder normalizedText = new StringBuilder(resolveDuplicatedMarkingTokens(text));
 		final Map<String, String> mapper = new HashMap<String, String>();
 
 		int startIndex = 0;
@@ -26,7 +27,15 @@ public class NormalizedText {
 			if (startIndex < 0) {
 				break;
 			}
+			
 			endIndex = normalizedText.indexOf("$$", startIndex + 1);
+			final int doubleQuotationStartIndex = normalizedText.indexOf("\"", startIndex);
+			final int doubleQuotationEndIndex = normalizedText.indexOf("\"", doubleQuotationStartIndex + 1);
+			
+			if (doubleQuotationStartIndex < endIndex && endIndex < doubleQuotationEndIndex) {
+				endIndex = normalizedText.indexOf("$$", doubleQuotationEndIndex + 1);
+			}
+			
 			assert 0 < endIndex : "invalid state.";
 
 			final String target = normalizedText.substring(startIndex,
@@ -41,6 +50,23 @@ public class NormalizedText {
 		}
 
 		return normalizedText.toString();
+	}
+	
+	private static String resolveDuplicatedMarkingTokens(final String text) {
+		if (!text.contains("$$$")) {
+			return text;
+		}
+		
+		String result = text;
+		while (result.contains("$$$")) {
+			result = result.replace("$$$", "$$");
+		}
+		
+		if (result.isEmpty()) {
+			result = text;
+		}
+		
+		return result;
 	}
 
 	public final ProgramElementInfo core;
@@ -169,10 +195,16 @@ public class NormalizedText {
 						expressions.get(0));
 				text.append(typeText.getText());
 				text.append(" ");
+				
+				boolean anyExpression = false;
 				for (int i = 1; i < expressions.size(); i++) {
+					anyExpression = true;
 					final NormalizedText fragmentText = new NormalizedText(
 							expressions.get(i));
-					text.append(fragmentText.getText());
+					text.append(fragmentText.getText() + ",");
+				}
+				if (anyExpression) {
+					text.deleteCharAt(text.length() - 1);
 				}
 				text.append(";");
 				break;

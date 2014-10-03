@@ -1160,14 +1160,19 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 			text.append(node.getType().toString());
 			text.append(" ");
 
+			boolean anyExpression = false;
 			for (final Object fragment : node.fragments()) {
+				anyExpression = true;
 				((ASTNode) fragment).accept(this);
 				final ProgramElementInfo fragmentExpression = this.stack.pop();
 				vdStatement
 						.addExpression((ProgramElementInfo) fragmentExpression);
-				text.append(fragmentExpression.getText());
+				text.append(fragmentExpression.getText() + ",");
 			}
-
+			if (anyExpression) {
+				text.deleteCharAt(text.length() - 1);
+			}
+			
 			text.append(";");
 			vdStatement.setText(text.toString());
 		}
