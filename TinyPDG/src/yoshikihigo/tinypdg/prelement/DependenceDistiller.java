@@ -29,7 +29,9 @@ import yoshikihigo.tinypdg.pdg.edge.PDGExecutionDependenceEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
 import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
 import yoshikihigo.tinypdg.pe.MethodInfo;
+import yoshikihigo.tinypdg.prelement.data.DEPENDENCE_TYPE;
 import yoshikihigo.tinypdg.prelement.data.Frequency;
+import yoshikihigo.tinypdg.prelement.db.DAO;
 import yoshikihigo.tinypdg.scorpio.NormalizedText;
 import yoshikihigo.tinypdg.scorpio.PDGGenerationThread;
 
@@ -40,6 +42,14 @@ public class DependenceDistiller {
 		try {
 
 			final Options options = new Options();
+
+			{
+				final Option b = new Option("b", "database", true, "database");
+				b.setArgName("database");
+				b.setArgs(1);
+				b.setRequired(true);
+				options.addOption(b);
+			}
 
 			{
 				final Option d = new Option("d", "directory", true,
@@ -69,6 +79,8 @@ public class DependenceDistiller {
 
 			final CommandLineParser parser = new PosixParser();
 			final CommandLine cmd = parser.parse(options, args);
+
+			final String database = cmd.getOptionValue("b");
 
 			final File target = new File(cmd.getOptionValue("d"));
 			if (!target.exists()) {
@@ -121,7 +133,7 @@ public class DependenceDistiller {
 			final long time2 = System.nanoTime();
 			printTime(time2 - time1);
 
-			System.out.print("distilling dependencies ...");
+			System.out.print("distilling dependencies ... ");
 			final ConcurrentMap<Integer, String> texts = new ConcurrentHashMap<Integer, String>();
 			final ConcurrentMap<Integer, AtomicInteger> fromNodeFrequencies = new ConcurrentHashMap<Integer, AtomicInteger>();
 			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeControlFrequencies = new ConcurrentHashMap<Integer, ConcurrentMap<Integer, AtomicInteger>>();
@@ -154,10 +166,10 @@ public class DependenceDistiller {
 						final int toNodeHash = toNodeNormalizedText.hashCode();
 						if (edge instanceof PDGControlDependenceEdge) {
 							addToNodeHash(fromNodeHash, toNodeHash,
-									toNodeDataFrequencies);
+									toNodeControlFrequencies);
 						} else if (edge instanceof PDGDataDependenceEdge) {
 							addToNodeHash(fromNodeHash, toNodeHash,
-									toNodeControlFrequencies);
+									toNodeDataFrequencies);
 						} else if (edge instanceof PDGExecutionDependenceEdge) {
 							addToNodeHash(fromNodeHash, toNodeHash,
 									toNodeExecutionFrequencies);
@@ -169,7 +181,7 @@ public class DependenceDistiller {
 			final long time3 = System.nanoTime();
 			printTime(time3 - time2);
 
-			System.out.print("sorting frequencies ...");
+			System.out.print("sorting frequencies ... ");
 			final ConcurrentMap<Integer, List<Frequency>> frequenciesForControlDependence = new ConcurrentHashMap<Integer, List<Frequency>>();
 			final ConcurrentMap<Integer, List<Frequency>> frequenciesForDataDependence = new ConcurrentHashMap<Integer, List<Frequency>>();
 			final ConcurrentMap<Integer, List<Frequency>> frequenciesForExecutionDependence = new ConcurrentHashMap<Integer, List<Frequency>>();
@@ -184,8 +196,27 @@ public class DependenceDistiller {
 			final long time4 = System.nanoTime();
 			printTime(time4 - time3);
 
+			System.out.print("registering to database ... ");
+			final DAO dao = new DAO(database, true);
+			registerTextsToDatabase(dao, texts);
+			registerFrequenciesToDatabase(dao, DEPENDENCE_TYPE.CONTROL,
+					frequenciesForControlDependence);
+			registerFrequenciesToDatabase(dao, DEPENDENCE_TYPE.DATA,
+					frequenciesForDataDependence);
+			registerFrequenciesToDatabase(dao, DEPENDENCE_TYPE.EXECUTION,
+					frequenciesForExecutionDependence);
+			dao.close();
+			System.out.print("done: ");
+			final long time5 = System.nanoTime();
+			printTime(time5 - time4);
+
 			System.out.print("total elapsed time: ");
-			printTime(time4 - time1);
+			printTime(time5 - time1);
+
+			// printFrequencies("control", texts, frequenciesForControlDependence);
+			// printFrequencies("data", texts, frequenciesForDataDependence);
+			// printFrequencies("execution", texts,
+			// frequenciesForExecutionDependence);
 
 		} catch (Exception e) {
 			System.err.println(e.getMessage());
@@ -263,7 +294,7 @@ public class DependenceDistiller {
 				final int time = entry2.getValue().get();
 				final String normalizedText = texts.get(toNodeHash);
 				final Frequency frequency = new Frequency((float) time
-						/ (float) totalTime, time, normalizedText);
+						/ (float) totalTime, time, toNodeHash, normalizedText);
 				frequencies.add(frequency);
 			}
 			Collections.sort(frequencies, new Comparator<Frequency>() {
@@ -279,6 +310,53 @@ public class DependenceDistiller {
 				}
 			});
 			allFrequencies.put(fromNodeHash, frequencies);
+		}
+	}
+
+	private static void registerTextsToDatabase(final DAO dao,
+			final ConcurrentMap<Integer, String> texts) {
+
+		for (final Entry<Integer, String> entry : texts.entrySet()) {
+			final int hash = entry.getKey();
+			final String text = entry.getValue();
+			dao.addToTexts(hash, text);
+		}
+	}
+
+	private static void registerFrequenciesToDatabase(final DAO dao,
+			DEPENDENCE_TYPE type,
+			final ConcurrentMap<Integer, List<Frequency>> allFrequencies) {
+
+		for (final Entry<Integer, List<Frequency>> entry : allFrequencies
+				.entrySet()) {
+
+			final int fromhash = entry.getKey();
+			for (final Frequency frequency : entry.getValue()) {
+				dao.addToFrequencies(type, fromhash, frequency);
+			}
+		}
+	}
+
+	private static void printFrequencies(final String type,
+			final ConcurrentMap<Integer, String> texts,
+			final ConcurrentMap<Integer, List<Frequency>> allFrequencies) {
+
+		for (final Entry<Integer, List<Frequency>> entry : allFrequencies
+				.entrySet()) {
+			final int fromNodeHash = entry.getKey();
+			final String fromNodeText = texts.get(fromNodeHash);
+			for (final Frequency frequency : entry.getValue()) {
+				System.out.print(type);
+				System.out.print(" ");
+				System.out.print(Integer.toString(frequency.support));
+				System.out.print(" ");
+				System.out.print(Float.toString(frequency.probablity));
+				System.out.print(" ");
+				System.out.print(fromNodeText);
+				System.out.print(" -> ");
+				System.out.println(frequency.text);
+			}
+			System.out.println("-------------------------------------------");
 		}
 	}
 

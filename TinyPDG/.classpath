@@ -78,5 +78,6 @@
 	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.osgi.util.source_3.2.300.v20120913-144807.jar"/>
 	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.equinox.preferences_3.5.1.v20121031-182809.jar"/>
 	<classpathentry kind="lib" path="lib/org.eclipse.jdt.source-4.2.2/plugins/org.eclipse.equinox.preferences.source_3.5.1.v20121031-182809.jar"/>
+	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.8.6/sqlite-jdbc-3.8.6.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
