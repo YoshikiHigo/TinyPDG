@@ -3,8 +3,11 @@ package yoshikihigo.tinypdg.prelement.db;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
 import yoshikihigo.tinypdg.prelement.data.DEPENDENCE_TYPE;
 import yoshikihigo.tinypdg.prelement.data.Frequency;
@@ -17,6 +20,7 @@ public class DAO {
 	protected Connection connector;
 	private PreparedStatement insertToTexts;
 	private PreparedStatement insertToFrequencies;
+	private PreparedStatement selectFromFrequencies;
 
 	private int numberInWaitingBatchForTexts;
 	private int numberInWaitingBatchForFrequencies;
@@ -49,6 +53,8 @@ public class DAO {
 					.prepareStatement("insert into texts (hash, text) values (?, ?)");
 			this.insertToFrequencies = this.connector
 					.prepareStatement("insert into frequencies (type, fromhash, tohash, support, probability) values (?, ?, ?, ?, ?)");
+			this.selectFromFrequencies = this.connector
+					.prepareStatement("select tohash, (select text from texts T where T.hash = F.tohash), support, probability from frequencies F where (fromhash = ?) and (type = ?)");
 
 		} catch (final SQLException e) {
 			e.printStackTrace();
@@ -97,6 +103,35 @@ public class DAO {
 			e.printStackTrace();
 			System.exit(0);
 		}
+	}
+
+	public List<Frequency> getFrequencies(final DEPENDENCE_TYPE type,
+			final int fromhash) {
+
+		final List<Frequency> frequencies = new ArrayList<Frequency>();
+
+		try {
+			this.selectFromFrequencies.clearParameters();
+			this.selectFromFrequencies.setInt(1, fromhash);
+			this.selectFromFrequencies.setString(2, type.text);
+			final ResultSet result = this.selectFromFrequencies.executeQuery();
+
+			while (result.next()) {
+				final int tohash = result.getInt(1);
+				final String toText = result.getString(2);
+				final int support = result.getInt(3);
+				final float probability = result.getFloat(4);
+				final Frequency frequency = new Frequency(probability, support,
+						tohash, toText);
+				frequencies.add(frequency);
+			}
+
+		} catch (final SQLException e) {
+			e.printStackTrace();
+			System.exit(0);
+		}
+
+		return frequencies;
 	}
 
 	public void close() {
