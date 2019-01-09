@@ -11,7 +11,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.time.StopWatch;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import yoshikihigo.tinypdg.ast.TinyPDGASTVisitor;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
@@ -41,11 +43,16 @@ public class PDGGenerator {
     }
 
     final Set<Path> srcPaths = collectJavaFiles(srcPath);
+    final int totalNumberOfFiles = srcPaths.size();
+    final AtomicInteger index = new AtomicInteger(1);
     srcPaths.parallelStream()
         .forEach(path -> {
+          final Path relativePath = srcPath.relativize(path);
+          System.err.println(Integer.toString(index.getAndIncrement()) + "/"
+              + Integer.toString(totalNumberOfFiles) + " : " + relativePath.toString());
           final List<MethodInfo> methods = getMethods(path);
           final List<PDG> pdgs = getPDGs(methods);
-          final Path relativePath = srcPath.relativize(path);
+          System.out.print("writting ... ");
           for (final PDG pdg : pdgs) {
             final String fileName = createPDGFileName(relativePath, pdg);
             final List<String> lines = generatePDGData(pdg);
@@ -57,6 +64,7 @@ public class PDGGenerator {
               continue;
             }
           }
+          System.out.println("done.");
         });
   }
 
@@ -92,13 +100,24 @@ public class PDGGenerator {
 
 
   private static List<PDG> getPDGs(final List<MethodInfo> methods) {
+    final StopWatch stopwatch = new StopWatch();
+    stopwatch.start();
     final List<PDG> pdgs = new ArrayList<>();
     final PDGNodeFactory pdgNodeFactory = new PDGNodeFactory();
     final CFGNodeFactory cfgNodeFactory = new CFGNodeFactory();
     for (final MethodInfo method : methods) {
+      System.out.print(method.name + " : " + method.startLine + "--" + method.endLine + " ... ");
+      stopwatch.split();
       final PDG pdg = new PDG(method, pdgNodeFactory, cfgNodeFactory, true, true, false);
       pdg.build();
+      if (pdg.getAllNodes()
+          .size() < 5) {
+        System.out.println(" omitted.");
+        continue;
+      }
       pdgs.add(pdg);
+      final long milliSecondTime = stopwatch.getSplitTime();
+      System.out.println("done " + Long.toString(milliSecondTime));
     }
     return pdgs;
   }

@@ -465,9 +465,11 @@ public class CFG {
 			}
 		}
 
-		this.exitNodes
-				.addAll(sequentialCFGs.get(sequentialCFGs.size() - 1).exitNodes);
-
+		if(!sequentialCFGs.isEmpty()) {
+		  this.exitNodes
+          .addAll(sequentialCFGs.get(sequentialCFGs.size() - 1).exitNodes);  
+		}
+		
 		this.connectCFGBreakStatementNode(statement);
 	}
 
