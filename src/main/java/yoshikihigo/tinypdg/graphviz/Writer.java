@@ -5,7 +5,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
@@ -106,11 +106,9 @@ public class Writer {
 			final List<MethodInfo> methods = new ArrayList<MethodInfo>();
 			for (final File file : files) {
 				final CompilationUnit unit = TinyPDGASTVisitor.createAST(file);
-				final List<MethodInfo> m = new ArrayList<MethodInfo>();
 				final TinyPDGASTVisitor visitor = new TinyPDGASTVisitor(
 						file.getAbsolutePath(), unit, methods);
 				unit.accept(visitor);
-				methods.addAll(m);
 			}
 
 			if (cmd.hasOption("c")) {
@@ -274,7 +272,7 @@ public class Writer {
 		writer.write("\";");
 		writer.newLine();
 
-		final Map<PDGNode<?>, Integer> nodeLabels = new HashMap<PDGNode<?>, Integer>();
+		final Map<PDGNode<?>, Integer> nodeLabels = new LinkedHashMap<PDGNode<?>, Integer>();
 		for (final PDGNode<?> node : pdg.getAllNodes()) {
 			nodeLabels.put(node, nodeLabels.size());
 		}
