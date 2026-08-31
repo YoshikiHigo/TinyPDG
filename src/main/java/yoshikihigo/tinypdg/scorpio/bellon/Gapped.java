@@ -5,6 +5,7 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.StringTokenizer;
 
 public class Gapped {
@@ -22,14 +23,13 @@ public class Gapped {
 		final String input = args[0];
 		final String output = args[1];
 
-		try {
-			final BufferedReader reader = new BufferedReader(new FileReader(
-					input));
-			final BufferedWriter writer = new BufferedWriter(new FileWriter(
-					output));
+		try (final BufferedReader reader = new BufferedReader(new FileReader(
+				input, StandardCharsets.UTF_8));
+				final BufferedWriter writer = new BufferedWriter(new FileWriter(
+						output, StandardCharsets.UTF_8))) {
 
-			while (reader.ready()) {
-				final String line = reader.readLine();
+			String line;
+			while (null != (line = reader.readLine())) {
 				final StringTokenizer tokenizer = new StringTokenizer(line);
 				final String leftPath = tokenizer.nextToken();
 				final String leftStartLine = tokenizer.nextToken();
@@ -45,8 +45,6 @@ public class Gapped {
 					writer.newLine();
 				}
 			}
-			reader.close();
-			writer.close();
 
 		} catch (final IOException e) {
 			e.printStackTrace();

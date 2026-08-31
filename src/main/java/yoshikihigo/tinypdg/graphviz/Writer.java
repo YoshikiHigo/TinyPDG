@@ -4,6 +4,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -113,48 +114,48 @@ public class Writer {
 
 			if (cmd.hasOption("c")) {
 				System.out.println("building and outputing CFGs ...");
-				final BufferedWriter writer = new BufferedWriter(
-						new FileWriter(cmd.getOptionValue("c")));
+				try (final BufferedWriter writer = new BufferedWriter(
+						new FileWriter(cmd.getOptionValue("c"),
+								StandardCharsets.UTF_8))) {
 
-				writer.write("digraph CFG {");
-				writer.newLine();
+					writer.write("digraph CFG {");
+					writer.newLine();
 
-				final CFGNodeFactory nodeFactory = new CFGNodeFactory();
+					final CFGNodeFactory nodeFactory = new CFGNodeFactory();
 
-				int createdGraphNumber = 0;
-				for (final MethodInfo method : methods) {
-					final CFG cfg = new CFG(method, nodeFactory);
-					cfg.build();
-					cfg.removeSwitchCases();
-					cfg.removeJumpStatements();
-					writeMethodCFG(cfg, createdGraphNumber++, writer);
+					int createdGraphNumber = 0;
+					for (final MethodInfo method : methods) {
+						final CFG cfg = new CFG(method, nodeFactory);
+						cfg.build();
+						cfg.removeSwitchCases();
+						cfg.removeJumpStatements();
+						writeMethodCFG(cfg, createdGraphNumber++, writer);
+					}
+
+					writer.write("}");
 				}
-
-				writer.write("}");
-
-				writer.close();
 			}
 
 			if (cmd.hasOption("p")) {
 				System.out.println("building and outputing PDGs ...");
-				final BufferedWriter writer = new BufferedWriter(
-						new FileWriter(cmd.getOptionValue("p")));
+				try (final BufferedWriter writer = new BufferedWriter(
+						new FileWriter(cmd.getOptionValue("p"),
+								StandardCharsets.UTF_8))) {
 
-				writer.write("digraph {");
-				writer.newLine();
+					writer.write("digraph {");
+					writer.newLine();
 
-				int createdGraphNumber = 0;
-				for (final MethodInfo method : methods) {
+					int createdGraphNumber = 0;
+					for (final MethodInfo method : methods) {
 
-					final PDG pdg = new PDG(method, new PDGNodeFactory(),
-							new CFGNodeFactory(), true, true, true);
-					pdg.build();
-					writePDG(pdg, createdGraphNumber++, writer);
+						final PDG pdg = new PDG(method, new PDGNodeFactory(),
+								new CFGNodeFactory(), true, true, true);
+						pdg.build();
+						writePDG(pdg, createdGraphNumber++, writer);
+					}
+
+					writer.write("}");
 				}
-
-				writer.write("}");
-
-				writer.close();
 			}
 
 			System.out.println("successfully finished.");

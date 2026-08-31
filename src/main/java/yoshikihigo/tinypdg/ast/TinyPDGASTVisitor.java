@@ -2,11 +2,10 @@ package yoshikihigo.tinypdg.ast;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Stack;
 
@@ -84,27 +83,35 @@ import yoshikihigo.tinypdg.pe.VariableInfo;
 
 public class TinyPDGASTVisitor extends NaiveASTFlattener {
 
+	/**
+	 * ソースファイルを UTF-8 として読み込み、AST を構築する。
+	 */
 	static public CompilationUnit createAST(final File file) {
+		return createAST(file, StandardCharsets.UTF_8);
+	}
 
-		final String lineSeparator = System.getProperty("line.separator");
-		final StringBuffer text = new StringBuffer();
-		final BufferedReader reader;
+	/**
+	 * ソースファイルを指定した文字コードで読み込み、AST を構築する。
+	 *
+	 * <p>以前はここで "JISAutoDetect" を指定していたが、この文字コードは
+	 * ISO-2022-JP / Shift_JIS / EUC-JP を判別するためのものであり、UTF-8 の
+	 * ソースを正しく読めない。Java 18 以降は UTF-8 が既定の文字コードでもある
+	 * ため既定を UTF-8 に改め、他の文字コードが必要な場合は呼び出し側が
+	 * 指定できるようにした。
+	 */
+	static public CompilationUnit createAST(final File file, final Charset charset) {
 
-		try {
-			reader = new BufferedReader(new InputStreamReader(
-					new FileInputStream(file), "JISAutoDetect"));
+		final String lineSeparator = System.lineSeparator();
+		final StringBuilder text = new StringBuilder();
 
-			while (reader.ready()) {
-				final String line = reader.readLine();
+		try (final BufferedReader reader = Files.newBufferedReader(file.toPath(),
+				charset)) {
+			String line;
+			while (null != (line = reader.readLine())) {
 				text.append(line);
 				text.append(lineSeparator);
 			}
-			reader.close();
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			e.printStackTrace();
 		}
 

@@ -3,6 +3,7 @@ package yoshikihigo.tinypdg.scorpio.io;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -20,10 +21,8 @@ public class BellonWriter extends Writer {
 	@Override
 	public void write() {
 
-		try {
-
-			final BufferedWriter writer = new BufferedWriter(new FileWriter(
-					this.path));
+		try (final BufferedWriter writer = new BufferedWriter(new FileWriter(
+				this.path, StandardCharsets.UTF_8))) {
 
 			for (final ClonePairInfo clonepair : this.clonepairs) {
 
@@ -52,8 +51,6 @@ public class BellonWriter extends Writer {
 				writer.write(this.generateGapsText(elementsB));
 				writer.newLine();
 			}
-
-			writer.close();
 
 		} catch (final IOException e) {
 			e.printStackTrace();

@@ -3,6 +3,7 @@ package yoshikihigo.tinypdg.scorpio.bellon;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -42,19 +43,16 @@ public class ClonePairInfo {
 
 		final List<ClonePairInfo> clonepairs = new ArrayList<ClonePairInfo>();
 
-		try {
-			final BufferedReader reader = new BufferedReader(new FileReader(
-					file));
-			while (reader.ready()) {
-				final String line = reader.readLine();
+		try (final BufferedReader reader = new BufferedReader(new FileReader(
+				file, StandardCharsets.UTF_8))) {
+			String line;
+			while (null != (line = reader.readLine())) {
 				final ClonePairInfo pair = ClonePairInfo.getClonepair(line,
 						oracle);
 				if (minimum <= pair.size()) {
 					clonepairs.add(pair);
 				}
 			}
-
-			reader.close();
 
 		} catch (final Exception e) {
 			e.printStackTrace();

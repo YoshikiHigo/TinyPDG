@@ -4,6 +4,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class Intertwined {
@@ -24,10 +25,8 @@ public class Intertwined {
 		final List<ClonePairInfo> clonepairs = ClonePairInfo.getClonepairs(
 				new File(input), 6, false);
 
-		try {
-
-			final BufferedWriter writer = new BufferedWriter(new FileWriter(
-					output));
+		try (final BufferedWriter writer = new BufferedWriter(new FileWriter(
+				output, StandardCharsets.UTF_8))) {
 
 			for (final ClonePairInfo pair : clonepairs) {
 
@@ -56,7 +55,6 @@ public class Intertwined {
 			}
 
 			writer.flush();
-			writer.close();
 
 		} catch (final IOException e) {
 			e.printStackTrace();
