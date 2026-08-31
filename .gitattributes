@@ -1,0 +1,17 @@
+# 改行コードは LF に統一する。
+# リポジトリ内も作業ツリーも LF とし、チェックアウト先の OS によらず揃える。
+* text=auto eol=lf
+
+# Windows のバッチファイルは CRLF でなければならない。
+# LF にすると cmd.exe がラベルや goto を正しく扱えないことがあり、
+# Gradle 自身も gradlew.bat を CRLF で配布している。
+*.bat text eol=crlf
+
+# バイナリとして扱い、改行変換の対象外にする。
+*.png binary
+*.jar binary
+
+# .gitignore の "Icon\r\r" は macOS の Finder が作る Icon\r という名前の
+# ファイルを無視するためのパターンで、末尾の CR がパターンの一部である。
+# 改行変換をかけると CR が失われてパターンが壊れるため対象外にする。
+.gitignore -text
