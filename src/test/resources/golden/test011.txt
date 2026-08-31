@@ -1,0 +1,36 @@
+# sample: test011
+
+## CFG method1 <19...19>
+nodes:
+edges:
+
+## PDG method1 <19...19>
+nodes:
+  0: [parameter] boolean b1 <19>
+  1: [enter,control] Enter <19>
+edges:
+  1 -> 0 [control: true]
+
+## CFG method2 <5...15>
+nodes:
+  0: [enter,normal] final int number = 10; <6>
+  1: [normal] A a = new A(){\npublic void method1(boolean b1){\nif (b1) {\nSystem.out.println(number);\n}\n}}; <7...13>
+  2: [exit,normal] a.method1(true); <14>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+
+## PDG method2 <5...15>
+nodes:
+  0: [normal] final int number = 10; <6>
+  1: [normal] A a = new A(){\npublic void method1(boolean b1){\nif (b1) {\nSystem.out.println(number);\n}\n}}; <7...13>
+  2: [exit] a.method1(true); <14>
+  3: [enter,control] Enter <5...15>
+edges:
+  0 -> 1 [date: number]
+  0 -> 1 [execution: ]
+  1 -> 2 [execution: ]
+  3 -> 0 [control: true]
+  3 -> 0 [execution: ]
+  3 -> 1 [control: true]
+  3 -> 2 [control: true]

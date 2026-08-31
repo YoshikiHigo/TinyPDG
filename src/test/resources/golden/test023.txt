@@ -1,0 +1,65 @@
+# sample: test023
+
+## CFG method1 <5...20>
+nodes:
+  0: [enter,normal] int a = 0; <6>
+  1: [normal] int b = 1; <7>
+  2: [normal] int h = 6; <18>
+  3: [exit,normal] int i = 7; <19>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 3 []
+
+## PDG method1 <5...20>
+nodes:
+  0: [normal] int a = 0; <6>
+  1: [normal] int b = 1; <7>
+  2: [normal] int h = 6; <18>
+  3: [exit] int i = 7; <19>
+  4: [enter,control] Enter <5...20>
+edges:
+  0 -> 1 [execution: ]
+  1 -> 2 [execution: ]
+  2 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 0 [execution: ]
+  4 -> 1 [control: true]
+  4 -> 2 [control: true]
+  4 -> 3 [control: true]
+
+## CFG method2 <9...12>
+nodes:
+  0: [enter,normal] int d = 2; <10>
+  1: [exit,normal] int e = 3; <11>
+edges:
+  0 -> 1 []
+
+## PDG method2 <9...12>
+nodes:
+  0: [normal] int d = 2; <10>
+  1: [exit] int e = 3; <11>
+  2: [enter,control] Enter <9...12>
+edges:
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]
+
+## CFG method3 <13...16>
+nodes:
+  0: [enter,normal] int f = 4; <14>
+  1: [exit,normal] int g = 5; <15>
+edges:
+  0 -> 1 []
+
+## PDG method3 <13...16>
+nodes:
+  0: [normal] int f = 4; <14>
+  1: [exit] int g = 5; <15>
+  2: [enter,control] Enter <13...16>
+edges:
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]

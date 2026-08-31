@@ -1,0 +1,57 @@
+# sample: test004
+
+## CFG getInt <5...24>
+nodes:
+  0: [enter,normal] int value; <7>
+  1: [control] text <9>
+  2: [normal] value = 1; <11>
+  3: [normal] value = 2; <14>
+  4: [normal] value = 3; <17>
+  5: [normal] value = 0; <20>
+  6: [exit,normal] return value; <23>
+edges:
+  0 -> 1 []
+  1 -> 2 [true]
+  1 -> 3 [true]
+  1 -> 4 [true]
+  1 -> 5 [true]
+  2 -> 6 [jump]
+  3 -> 6 [jump]
+  4 -> 6 [jump]
+  5 -> 6 []
+
+## PDG getInt <5...24>
+nodes:
+  0: [parameter] String text <5>
+  1: [normal] int value; <7>
+  2: [control] text <9>
+  3: [normal] value = 1; <11>
+  4: [normal] value = 2; <14>
+  5: [normal] value = 3; <17>
+  6: [normal] value = 0; <20>
+  7: [exit] return value; <23>
+  8: [enter,control] Enter <5...24>
+edges:
+  0 -> 2 [date: text]
+  1 -> 2 [execution: ]
+  2 -> 3 [control: true]
+  2 -> 3 [execution: ]
+  2 -> 4 [control: true]
+  2 -> 4 [execution: ]
+  2 -> 5 [control: true]
+  2 -> 5 [execution: ]
+  2 -> 6 [control: true]
+  2 -> 6 [execution: ]
+  3 -> 7 [date: value]
+  3 -> 7 [execution: ]
+  4 -> 7 [date: value]
+  4 -> 7 [execution: ]
+  5 -> 7 [date: value]
+  5 -> 7 [execution: ]
+  6 -> 7 [date: value]
+  6 -> 7 [execution: ]
+  8 -> 0 [control: true]
+  8 -> 1 [control: true]
+  8 -> 1 [execution: ]
+  8 -> 2 [control: true]
+  8 -> 7 [control: true]

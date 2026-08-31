@@ -1,0 +1,78 @@
+# sample: test012
+
+## CFG method <5...13>
+nodes:
+  0: [enter,normal] int c = 0; <6>
+  1: [normal] int i = 0 <7>
+  2: [control] i < a.length <7>
+  3: [normal] i++ <7>
+  4: [normal] int j = 0 <8>
+  5: [control] j < b.length <8>
+  6: [normal] j++ <8>
+  7: [normal] c += a[i] * b[j]; <9>
+  8: [exit,normal] return c; <12>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 4 [true]
+  2 -> 8 [false]
+  3 -> 2 []
+  4 -> 5 []
+  5 -> 3 [false]
+  5 -> 7 [true]
+  6 -> 5 []
+  7 -> 6 []
+
+## PDG method <5...13>
+nodes:
+  0: [parameter] final int[] a <5>
+  1: [parameter] final int[] b <5>
+  2: [normal] int c = 0; <6>
+  3: [normal] int i = 0 <7>
+  4: [control] i < a.length <7>
+  5: [normal] i++ <7>
+  6: [normal] int j = 0 <8>
+  7: [control] j < b.length <8>
+  8: [normal] j++ <8>
+  9: [normal] c += a[i] * b[j]; <9>
+  10: [exit] return c; <12>
+  11: [enter,control] Enter <5...13>
+edges:
+  0 -> 9 [date: a]
+  1 -> 9 [date: b]
+  2 -> 3 [execution: ]
+  2 -> 10 [date: c]
+  3 -> 4 [date: i]
+  3 -> 4 [execution: ]
+  3 -> 5 [date: i]
+  3 -> 9 [date: i]
+  4 -> 5 [control: true]
+  4 -> 6 [control: true]
+  4 -> 6 [execution: ]
+  4 -> 7 [control: true]
+  4 -> 10 [execution: ]
+  5 -> 4 [date: i]
+  5 -> 4 [execution: ]
+  5 -> 5 [date: i]
+  5 -> 9 [date: i]
+  6 -> 7 [date: j]
+  6 -> 7 [execution: ]
+  6 -> 8 [date: j]
+  6 -> 9 [date: j]
+  7 -> 5 [execution: ]
+  7 -> 8 [control: true]
+  7 -> 9 [control: true]
+  7 -> 9 [execution: ]
+  8 -> 7 [date: j]
+  8 -> 7 [execution: ]
+  8 -> 8 [date: j]
+  8 -> 9 [date: j]
+  9 -> 8 [execution: ]
+  9 -> 10 [date: c]
+  11 -> 0 [control: true]
+  11 -> 1 [control: true]
+  11 -> 2 [control: true]
+  11 -> 2 [execution: ]
+  11 -> 3 [control: true]
+  11 -> 4 [control: true]
+  11 -> 10 [control: true]

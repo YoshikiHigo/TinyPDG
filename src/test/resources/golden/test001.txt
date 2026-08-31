@@ -1,0 +1,32 @@
+# sample: test001
+
+## CFG method <5...10>
+nodes:
+  0: [enter,normal] int a = 10; <6>
+  1: [normal] int b = 20; <7>
+  2: [normal] int c = a + b; <8>
+  3: [exit,normal] return c; <9>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 3 []
+
+## PDG method <5...10>
+nodes:
+  0: [normal] int a = 10; <6>
+  1: [normal] int b = 20; <7>
+  2: [normal] int c = a + b; <8>
+  3: [exit] return c; <9>
+  4: [enter,control] Enter <5...10>
+edges:
+  0 -> 1 [execution: ]
+  0 -> 2 [date: a]
+  1 -> 2 [date: b]
+  1 -> 2 [execution: ]
+  2 -> 3 [date: c]
+  2 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 0 [execution: ]
+  4 -> 1 [control: true]
+  4 -> 2 [control: true]
+  4 -> 3 [control: true]
