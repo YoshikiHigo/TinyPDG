@@ -16,8 +16,8 @@ public abstract class PDGNode<T extends ProgramElementInfo> implements
 	protected PDGNode(final T core) {
 		assert null != core : "\"core\" is null.";
 		this.core = core;
-		this.forwardEdges = new TreeSet<PDGEdge>();
-		this.backwardEdges = new TreeSet<PDGEdge>();
+		this.forwardEdges = new TreeSet<>();
+		this.backwardEdges = new TreeSet<>();
 	}
 
 	public SortedSet<String> getDefinedVariables() {
@@ -61,13 +61,13 @@ public abstract class PDGNode<T extends ProgramElementInfo> implements
 	}
 
 	public final SortedSet<PDGEdge> getBackwardEdges() {
-		final SortedSet<PDGEdge> edges = new TreeSet<PDGEdge>();
+		final SortedSet<PDGEdge> edges = new TreeSet<>();
 		edges.addAll(this.backwardEdges);
 		return edges;
 	}
 
 	public final SortedSet<PDGEdge> getForwardEdges() {
-		final SortedSet<PDGEdge> edges = new TreeSet<PDGEdge>();
+		final SortedSet<PDGEdge> edges = new TreeSet<>();
 		edges.addAll(this.forwardEdges);
 		return edges;
 	}

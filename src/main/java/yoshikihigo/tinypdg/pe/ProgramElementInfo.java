@@ -26,7 +26,7 @@ abstract public class ProgramElementInfo implements
 		this.id = ID_GENERATOR.getAndIncrement();
 		this.text = "";
 
-		this.modifiers = new ArrayList<String>();
+		this.modifiers = new ArrayList<>();
 
 		this.ownerConditionalBlock = null;
 	}
@@ -74,17 +74,17 @@ abstract public class ProgramElementInfo implements
 	}
 
 	final public List<String> getModifiers() {
-		final List<String> modifiers = new ArrayList<String>();
+		final List<String> modifiers = new ArrayList<>();
 		modifiers.addAll(this.modifiers);
 		return modifiers;
 	}
 
 	public SortedSet<String> getAssignedVariables() {
-		return new TreeSet<String>();
+		return new TreeSet<>();
 	}
 
 	public SortedSet<String> getReferencedVariables() {
-		return new TreeSet<String>();
+		return new TreeSet<>();
 	}
 
 	public void setOwnerConditinalBlock(final BlockInfo ownerConditionalBlock) {

@@ -114,11 +114,11 @@ public class Bellon {
 			if (candidate.left.path.equals(reference.left.path)
 					&& candidate.right.path.equals(reference.right.path)) {
 
-				final SortedSet<Integer> leftIntersection = new TreeSet<Integer>();
+				final SortedSet<Integer> leftIntersection = new TreeSet<>();
 				leftIntersection.addAll(candidate.left);
 				leftIntersection.retainAll(reference.left);
 
-				final SortedSet<Integer> rightIntersection = new TreeSet<Integer>();
+				final SortedSet<Integer> rightIntersection = new TreeSet<>();
 				rightIntersection.addAll(candidate.right);
 				rightIntersection.retainAll(reference.right);
 
@@ -149,19 +149,19 @@ public class Bellon {
 			if (candidate.left.path.equals(reference.left.path)
 					&& candidate.right.path.equals(reference.right.path)) {
 
-				final SortedSet<Integer> leftIntersection = new TreeSet<Integer>();
+				final SortedSet<Integer> leftIntersection = new TreeSet<>();
 				leftIntersection.addAll(candidate.left);
 				leftIntersection.retainAll(reference.left);
 
-				final SortedSet<Integer> leftUnion = new TreeSet<Integer>();
+				final SortedSet<Integer> leftUnion = new TreeSet<>();
 				leftUnion.addAll(candidate.left);
 				leftUnion.addAll(reference.left);
 
-				final SortedSet<Integer> rightIntersection = new TreeSet<Integer>();
+				final SortedSet<Integer> rightIntersection = new TreeSet<>();
 				rightIntersection.addAll(candidate.right);
 				rightIntersection.retainAll(reference.right);
 
-				final SortedSet<Integer> rightUnion = new TreeSet<Integer>();
+				final SortedSet<Integer> rightUnion = new TreeSet<>();
 				rightUnion.addAll(candidate.right);
 				rightUnion.addAll(reference.right);
 
@@ -184,7 +184,7 @@ public class Bellon {
 			final List<ClonePairInfo> candidates,
 			final List<ClonePairInfo> references) {
 
-		final Set<ClonePairInfo> detectedReferences = new HashSet<ClonePairInfo>();
+		final Set<ClonePairInfo> detectedReferences = new HashSet<>();
 		for (final ClonePairInfo reference : references) {
 			if (this.isOKClone(reference, candidates)) {
 				detectedReferences.add(reference);
@@ -197,7 +197,7 @@ public class Bellon {
 			final List<ClonePairInfo> candidates,
 			final List<ClonePairInfo> references) {
 
-		final Set<ClonePairInfo> detectedReferences = new HashSet<ClonePairInfo>();
+		final Set<ClonePairInfo> detectedReferences = new HashSet<>();
 		for (final ClonePairInfo reference : references) {
 			if (this.isGoodClone(reference, candidates)) {
 				detectedReferences.add(reference);

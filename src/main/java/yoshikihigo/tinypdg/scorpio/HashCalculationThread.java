@@ -40,7 +40,7 @@ public class HashCalculationThread implements Runnable {
 
 			try {
 
-				final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHash = new TreeMap<PDGNode<?>, Integer>();
+				final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHash = new TreeMap<>();
 				for (final PDGNode<?> node : pdg.getAllNodes()) {
 
 					final NormalizedText t1 = new NormalizedText(node.core);
@@ -51,7 +51,7 @@ public class HashCalculationThread implements Runnable {
 				}
 				this.mappingPDGToPDGNodes.put(pdg, mappingPDGNodeToHash);
 
-				final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash = new TreeMap<PDGEdge, Integer>();
+				final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash = new TreeMap<>();
 				for (final PDGEdge edge : pdg.getAllEdges()) {
 
 					final NormalizedText t1 = new NormalizedText(

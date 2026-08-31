@@ -103,14 +103,14 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 	public PDGMergedNode(final PDGNormalNode<?> node1,
 			final PDGNormalNode<?> node2) {
 		super(node1.core);
-		this.originalNodes = new TreeSet<PDGNormalNode<?>>(
+		this.originalNodes = new TreeSet<>(
 				new LocationalComparator());
 		this.add(node1);
 		this.add(node2);
 	}
 
 	public SortedSet<PDGNormalNode<?>> getOriginalNodes() {
-		final SortedSet<PDGNormalNode<?>> nodes = new TreeSet<PDGNormalNode<?>>(
+		final SortedSet<PDGNormalNode<?>> nodes = new TreeSet<>(
 				new LocationalComparator());
 		nodes.addAll(this.originalNodes);
 		return nodes;

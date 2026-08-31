@@ -179,7 +179,7 @@ public class Scorpio {
 			final PDG[] pdgArray;
 			{
 				final List<File> files = getFiles(target);
-				final List<MethodInfo> methods = new ArrayList<MethodInfo>();
+				final List<MethodInfo> methods = new ArrayList<>();
 				for (final File file : files) {
 					final CompilationUnit unit = TinyPDGASTVisitor
 							.createAST(file);
@@ -189,7 +189,7 @@ public class Scorpio {
 				}
 
 				final SortedSet<PDG> pdgs = Collections
-						.synchronizedSortedSet(new TreeSet<PDG>());
+						.synchronizedSortedSet(new TreeSet<>());
 				final CFGNodeFactory cfgNodeFactory = new CFGNodeFactory();
 				final PDGNodeFactory pdgNodeFactory = new PDGNodeFactory();
 				final Thread[] pdgGenerationThreads = new Thread[NUMBER_OF_THREADS];
@@ -218,7 +218,7 @@ public class Scorpio {
 			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mappingPDGToPDGNodes = Collections
 					.synchronizedSortedMap(new TreeMap<PDG, SortedMap<PDGNode<?>, Integer>>());
 			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges = Collections
-					.synchronizedSortedMap(new TreeMap<PDG, SortedMap<PDGEdge, Integer>>());
+					.synchronizedSortedMap(new TreeMap<>());
 			{
 				final Thread[] hashCalculationThreads = new Thread[NUMBER_OF_THREADS];
 				for (int i = 0; i < hashCalculationThreads.length; i++) {
@@ -241,9 +241,9 @@ public class Scorpio {
 
 			System.out.print("detecting clone pairs ... ");
 			final SortedSet<ClonePairInfo> clonepairs = Collections
-					.synchronizedSortedSet(new TreeSet<ClonePairInfo>());
+					.synchronizedSortedSet(new TreeSet<>());
 			{
-				final List<PDGPairInfo> pdgpairs = new ArrayList<PDGPairInfo>();
+				final List<PDGPairInfo> pdgpairs = new ArrayList<>();
 				for (int i = 0; i < pdgArray.length; i++) {
 					for (int j = i + 1; j < pdgArray.length; j++) {
 						pdgpairs.add(new PDGPairInfo(pdgArray[i], pdgArray[j]));
@@ -291,7 +291,7 @@ public class Scorpio {
 
 	private static List<File> getFiles(final File file) {
 
-		final List<File> files = new ArrayList<File>();
+		final List<File> files = new ArrayList<>();
 
 		if (file.isFile()) {
 			if (file.getName().endsWith(".java")) {

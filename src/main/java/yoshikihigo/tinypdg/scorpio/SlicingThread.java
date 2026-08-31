@@ -54,7 +54,7 @@ public class SlicingThread implements Runnable {
 	@Override
 	public void run() {
 
-		final SortedSet<ClonePairInfo> clonepairs = new TreeSet<ClonePairInfo>();
+		final SortedSet<ClonePairInfo> clonepairs = new TreeSet<>();
 
 		for (int index = PAIRINDEX.getAndIncrement(); index < this.pdgpairs.length; index = PAIRINDEX
 				.getAndIncrement()) {
@@ -73,7 +73,7 @@ public class SlicingThread implements Runnable {
 				final SortedMap<Integer, List<PDGNode<?>>> mappingHashToPDGNodes = new TreeMap<Integer, List<PDGNode<?>>>();
 				this.registerNodes(mappingHashToPDGNodes, mappingPDGNodeToHashA);
 				this.registerNodes(mappingHashToPDGNodes, mappingPDGNodeToHashB);
-				final SortedMap<PDGNode<?>, PDGNode<?>[]> mappingPDGNodeToPDGNodes = new TreeMap<PDGNode<?>, PDGNode<?>[]>();
+				final SortedMap<PDGNode<?>, PDGNode<?>[]> mappingPDGNodeToPDGNodes = new TreeMap<>();
 				for (final List<PDGNode<?>> list : mappingHashToPDGNodes
 						.values()) {
 					if (1 < list.size()) {
@@ -93,11 +93,11 @@ public class SlicingThread implements Runnable {
 				final SortedSet<PDGEdge> edgesA = pdgA.getAllEdges();
 				final SortedSet<PDGEdge> edgesB = pdgB.getAllEdges();
 
-				final SortedMap<Integer, List<PDGEdge>> mappingHashToPDGEdges = new TreeMap<Integer, List<PDGEdge>>();
+				final SortedMap<Integer, List<PDGEdge>> mappingHashToPDGEdges = new TreeMap<>();
 				this.registerEdges(mappingHashToPDGEdges, mappingPDGEdgeToHashA);
 				this.registerEdges(mappingHashToPDGEdges, mappingPDGEdgeToHashB);
 
-				final SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges = new TreeMap<PDGEdge, PDGEdge[]>();
+				final SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges = new TreeMap<>();
 				for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
 					if (1 < list.size()) {
 						final PDGEdge[] edges = list.toArray(new PDGEdge[0]);
@@ -107,7 +107,7 @@ public class SlicingThread implements Runnable {
 					}
 				}
 
-				final SortedSet<PDGEdge[]> sortedPDGEdges = new TreeSet<PDGEdge[]>(
+				final SortedSet<PDGEdge[]> sortedPDGEdges = new TreeSet<>(
 						new PDGEdgesComparator());
 				for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
 					if (1 < list.size()) {
@@ -116,7 +116,7 @@ public class SlicingThread implements Runnable {
 					}
 				}
 
-				final SortedSet<NodePairInfo> checkedNodepairs = new TreeSet<NodePairInfo>();
+				final SortedSet<NodePairInfo> checkedNodepairs = new TreeSet<>();
 				for (final PDGEdge[] edges : sortedPDGEdges) {
 					for (int x = 0; x < edges.length; x++) {
 						for (int y = 0; y < edges.length; y++) {
@@ -181,7 +181,7 @@ public class SlicingThread implements Runnable {
 						.get(pdg);
 				final SortedMap<Integer, List<PDGNode<?>>> mappingHashToPDGNodes = new TreeMap<Integer, List<PDGNode<?>>>();
 				this.registerNodes(mappingHashToPDGNodes, mappingPDGNodeToHash);
-				final SortedMap<PDGNode<?>, PDGNode<?>[]> mappingPDGNodeToPDGNodes = new TreeMap<PDGNode<?>, PDGNode<?>[]>();
+				final SortedMap<PDGNode<?>, PDGNode<?>[]> mappingPDGNodeToPDGNodes = new TreeMap<>();
 				for (final List<PDGNode<?>> list : mappingHashToPDGNodes
 						.values()) {
 					if (1 < list.size()) {
@@ -195,9 +195,9 @@ public class SlicingThread implements Runnable {
 
 				final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash = this.mapPDGToPDGEdges
 						.get(pdg);
-				final SortedMap<Integer, List<PDGEdge>> mappingHashToPDGEdges = new TreeMap<Integer, List<PDGEdge>>();
+				final SortedMap<Integer, List<PDGEdge>> mappingHashToPDGEdges = new TreeMap<>();
 				this.registerEdges(mappingHashToPDGEdges, mappingPDGEdgeToHash);
-				final SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges = new TreeMap<PDGEdge, PDGEdge[]>();
+				final SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges = new TreeMap<>();
 				for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
 					if (1 < list.size()) {
 						final PDGEdge[] edges = list.toArray(new PDGEdge[0]);
@@ -207,7 +207,7 @@ public class SlicingThread implements Runnable {
 					}
 				}
 
-				final SortedSet<PDGEdge[]> sortedPDGEdges = new TreeSet<PDGEdge[]>(
+				final SortedSet<PDGEdge[]> sortedPDGEdges = new TreeSet<>(
 						new PDGEdgesComparator());
 				for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
 					if (1 < list.size()) {
@@ -216,7 +216,7 @@ public class SlicingThread implements Runnable {
 					}
 				}
 
-				final SortedSet<NodePairInfo> checkedNodepairs = new TreeSet<NodePairInfo>();
+				final SortedSet<NodePairInfo> checkedNodepairs = new TreeSet<>();
 				for (final PDGEdge[] edges : sortedPDGEdges) {
 					for (int x = 0; x < edges.length; x++) {
 						for (int y = x + 1; y < edges.length; y++) {
@@ -284,7 +284,7 @@ public class SlicingThread implements Runnable {
 			final PDGNode<?> node = entry.getKey();
 			List<PDGNode<?>> nodes = mappingHashToPDGNodes.get(hash);
 			if (null == nodes) {
-				nodes = new ArrayList<PDGNode<?>>();
+				nodes = new ArrayList<>();
 				mappingHashToPDGNodes.put(hash, nodes);
 			}
 			nodes.add(node);
@@ -304,7 +304,7 @@ public class SlicingThread implements Runnable {
 			final PDGEdge edge = entry.getKey();
 			List<PDGEdge> edges = mappingHashToPDGEdges.get(hash);
 			if (null == edges) {
-				edges = new ArrayList<PDGEdge>();
+				edges = new ArrayList<>();
 				mappingHashToPDGEdges.put(hash, edges);
 			}
 			edges.add(edge);
@@ -316,19 +316,19 @@ public class SlicingThread implements Runnable {
 
 		final SortedSet<PDGNode<?>> nodes1A = pair1.getLeftNodes();
 		final SortedSet<PDGNode<?>> nodes2A = pair2.getLeftNodes();
-		final SortedSet<PDGNode<?>> intersectionA = new TreeSet<PDGNode<?>>();
+		final SortedSet<PDGNode<?>> intersectionA = new TreeSet<>();
 		intersectionA.addAll(nodes1A);
 		intersectionA.retainAll(nodes2A);
-		final SortedSet<PDGNode<?>> unionA = new TreeSet<PDGNode<?>>();
+		final SortedSet<PDGNode<?>> unionA = new TreeSet<>();
 		unionA.addAll(nodes1A);
 		unionA.addAll(nodes2A);
 
 		final SortedSet<PDGNode<?>> nodes1B = pair1.getRightNodes();
 		final SortedSet<PDGNode<?>> nodes2B = pair2.getRightNodes();
-		final SortedSet<PDGNode<?>> intersectionB = new TreeSet<PDGNode<?>>();
+		final SortedSet<PDGNode<?>> intersectionB = new TreeSet<>();
 		intersectionB.addAll(nodes1B);
 		intersectionB.retainAll(nodes2B);
-		final SortedSet<PDGNode<?>> unionB = new TreeSet<PDGNode<?>>();
+		final SortedSet<PDGNode<?>> unionB = new TreeSet<>();
 		unionB.addAll(nodes1B);
 		unionB.addAll(nodes2B);
 
@@ -344,13 +344,13 @@ public class SlicingThread implements Runnable {
 
 		final SortedSet<PDGNode<?>> edges1A = pair1.getLeftNodes();
 		final SortedSet<PDGNode<?>> edges2A = pair2.getLeftNodes();
-		final SortedSet<PDGNode<?>> intersectionA = new TreeSet<PDGNode<?>>();
+		final SortedSet<PDGNode<?>> intersectionA = new TreeSet<>();
 		intersectionA.addAll(edges1A);
 		intersectionA.retainAll(edges2A);
 
 		final SortedSet<PDGNode<?>> edges1B = pair1.getRightNodes();
 		final SortedSet<PDGNode<?>> edges2B = pair2.getRightNodes();
-		final SortedSet<PDGNode<?>> intersectionB = new TreeSet<PDGNode<?>>();
+		final SortedSet<PDGNode<?>> intersectionB = new TreeSet<>();
 		intersectionB.addAll(edges1B);
 		intersectionB.retainAll(edges2B);
 

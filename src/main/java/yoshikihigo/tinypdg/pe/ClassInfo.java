@@ -15,7 +15,7 @@ public class ClassInfo extends ProgramElementInfo {
 		assert null != path : "\"path\" is null";
 		this.path = path;
 		this.name = name;
-		this.methods = new ArrayList<MethodInfo>();
+		this.methods = new ArrayList<>();
 	}
 
 	public boolean isAnonymous() {
@@ -28,7 +28,7 @@ public class ClassInfo extends ProgramElementInfo {
 	}
 
 	public List<MethodInfo> getMethods() {
-		final List<MethodInfo> methods = new ArrayList<MethodInfo>();
+		final List<MethodInfo> methods = new ArrayList<>();
 		methods.addAll(this.methods);
 		return methods;
 	}

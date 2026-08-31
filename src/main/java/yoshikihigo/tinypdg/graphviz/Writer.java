@@ -104,7 +104,7 @@ public class Writer {
 			}
 
 			final List<File> files = getFiles(target);
-			final List<MethodInfo> methods = new ArrayList<MethodInfo>();
+			final List<MethodInfo> methods = new ArrayList<>();
 			for (final File file : files) {
 				final CompilationUnit unit = TinyPDGASTVisitor.createAST(file);
 				final TinyPDGASTVisitor visitor = new TinyPDGASTVisitor(
@@ -180,7 +180,7 @@ public class Writer {
 		writer.write("\";");
 		writer.newLine();
 
-		final SortedMap<CFGNode<? extends ProgramElementInfo>, Integer> nodeLabels = new TreeMap<CFGNode<? extends ProgramElementInfo>, Integer>();
+		final SortedMap<CFGNode<? extends ProgramElementInfo>, Integer> nodeLabels = new TreeMap<>();
 		for (final CFGNode<?> node : cfg.getAllNodes()) {
 			nodeLabels.put(node, nodeLabels.size());
 		}
@@ -238,7 +238,7 @@ public class Writer {
 			return;
 		}
 
-		final SortedSet<CFGEdge> edges = new TreeSet<CFGEdge>();
+		final SortedSet<CFGEdge> edges = new TreeSet<>();
 		for (final CFGNode<?> node : cfg.getAllNodes()) {
 			edges.addAll(node.getBackwardEdges());
 			edges.addAll(node.getForwardEdges());
@@ -273,7 +273,7 @@ public class Writer {
 		writer.write("\";");
 		writer.newLine();
 
-		final Map<PDGNode<?>, Integer> nodeLabels = new LinkedHashMap<PDGNode<?>, Integer>();
+		final Map<PDGNode<?>, Integer> nodeLabels = new LinkedHashMap<>();
 		for (final PDGNode<?> node : pdg.getAllNodes()) {
 			nodeLabels.put(node, nodeLabels.size());
 		}
@@ -338,7 +338,7 @@ public class Writer {
 
 	static private List<File> getFiles(final File file) {
 
-		final List<File> files = new ArrayList<File>();
+		final List<File> files = new ArrayList<>();
 
 		if (file.isFile() && file.getName().endsWith(".java")) {
 			files.add(file);

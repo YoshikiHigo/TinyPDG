@@ -31,15 +31,15 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 
 		this.ownerBlock = ownerBlock;
 		this.category = category;
-		this.expressions = new ArrayList<ProgramElementInfo>();
+		this.expressions = new ArrayList<>();
 
-		this.initializers = new ArrayList<ProgramElementInfo>();
+		this.initializers = new ArrayList<>();
 		this.condition = null;
-		this.updaters = new ArrayList<ProgramElementInfo>();
+		this.updaters = new ArrayList<>();
 
-		this.statements = new ArrayList<StatementInfo>();
-		this.elseStatements = new ArrayList<StatementInfo>();
-		this.catchStatements = new ArrayList<StatementInfo>();
+		this.statements = new ArrayList<>();
+		this.elseStatements = new ArrayList<>();
+		this.catchStatements = new ArrayList<>();
 		this.finallyStatement = null;
 
 		this.label = null;
@@ -95,7 +95,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	}
 
 	public List<ProgramElementInfo> getInitializers() {
-		final List<ProgramElementInfo> initializers = new ArrayList<ProgramElementInfo>();
+		final List<ProgramElementInfo> initializers = new ArrayList<>();
 		initializers.addAll(this.initializers);
 		return initializers;
 	}
@@ -105,7 +105,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	}
 
 	public List<ProgramElementInfo> getUpdaters() {
-		final List<ProgramElementInfo> updaters = new ArrayList<ProgramElementInfo>();
+		final List<ProgramElementInfo> updaters = new ArrayList<>();
 		updaters.addAll(this.updaters);
 		return updaters;
 	}
@@ -180,7 +180,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	}
 
 	public List<ProgramElementInfo> getExpressions() {
-		final List<ProgramElementInfo> list = new ArrayList<ProgramElementInfo>();
+		final List<ProgramElementInfo> list = new ArrayList<>();
 		list.addAll(this.expressions);
 		return list;
 	}
@@ -188,7 +188,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	@Override
 	public SortedSet<String> getAssignedVariables() {
 
-		final SortedSet<String> variables = new TreeSet<String>();
+		final SortedSet<String> variables = new TreeSet<>();
 
 		for (final ProgramElementInfo expression : this.expressions) {
 			variables.addAll(expression.getAssignedVariables());
@@ -228,7 +228,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	@Override
 	public SortedSet<String> getReferencedVariables() {
 
-		final SortedSet<String> variables = new TreeSet<String>();
+		final SortedSet<String> variables = new TreeSet<>();
 
 		for (final ProgramElementInfo expression : this.expressions) {
 			variables.addAll(expression.getReferencedVariables());

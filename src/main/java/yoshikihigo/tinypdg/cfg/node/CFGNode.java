@@ -18,8 +18,8 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 	public final T core;
 
 	protected CFGNode(final T core) {
-		this.forwardEdges = new TreeSet<CFGEdge>();
-		this.backwardEdges = new TreeSet<CFGEdge>();
+		this.forwardEdges = new TreeSet<>();
+		this.backwardEdges = new TreeSet<>();
 		this.core = core;
 	}
 
@@ -124,7 +124,7 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 	}
 
 	public SortedSet<CFGNode<? extends ProgramElementInfo>> getForwardNodes() {
-		final SortedSet<CFGNode<? extends ProgramElementInfo>> forwardNodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
+		final SortedSet<CFGNode<? extends ProgramElementInfo>> forwardNodes = new TreeSet<>();
 		for (final CFGEdge forwardEdge : this.getForwardEdges()) {
 			forwardNodes.add(forwardEdge.toNode);
 		}
@@ -132,13 +132,13 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 	}
 
 	public SortedSet<CFGEdge> getForwardEdges() {
-		final SortedSet<CFGEdge> forwardEdges = new TreeSet<CFGEdge>();
+		final SortedSet<CFGEdge> forwardEdges = new TreeSet<>();
 		forwardEdges.addAll(this.forwardEdges);
 		return forwardEdges;
 	}
 
 	public SortedSet<CFGNode<? extends ProgramElementInfo>> getBackwardNodes() {
-		final SortedSet<CFGNode<? extends ProgramElementInfo>> backwardNodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
+		final SortedSet<CFGNode<? extends ProgramElementInfo>> backwardNodes = new TreeSet<>();
 		for (final CFGEdge backwardEdge : this.getBackwardEdges()) {
 			backwardNodes.add(backwardEdge.fromNode);
 		}
@@ -146,7 +146,7 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 	}
 
 	public SortedSet<CFGEdge> getBackwardEdges() {
-		final SortedSet<CFGEdge> backwardEdges = new TreeSet<CFGEdge>();
+		final SortedSet<CFGEdge> backwardEdges = new TreeSet<>();
 		backwardEdges.addAll(this.backwardEdges);
 		return backwardEdges;
 	}
@@ -168,14 +168,14 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 	}
 
 	public final SortedSet<String> getAssignedVariables() {
-		final SortedSet<String> variables = new TreeSet<String>();
+		final SortedSet<String> variables = new TreeSet<>();
 		final SortedSet<String> v = this.core.getAssignedVariables();
 		variables.addAll(v);
 		return variables;
 	}
 
 	public final Set<String> getReferencedVariables() {
-		final SortedSet<String> variables = new TreeSet<String>();
+		final SortedSet<String> variables = new TreeSet<>();
 		final SortedSet<String> v = this.core.getReferencedVariables();
 		variables.addAll(v);
 		return variables;

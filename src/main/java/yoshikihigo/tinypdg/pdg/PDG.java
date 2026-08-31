@@ -66,8 +66,8 @@ public class PDG implements Comparable<PDG> {
 
 		this.enterNode = (PDGMethodEnterNode) this.pdgNodeFactory
 				.makeControlNode(unit);
-		this.exitNodes = new TreeSet<PDGNode<?>>();
-		this.parameterNodes = new ArrayList<PDGParameterNode>();
+		this.exitNodes = new TreeSet<>();
+		this.parameterNodes = new ArrayList<>();
 		for (final VariableInfo variable : unit.getParameters()) {
 			final PDGParameterNode parameterNode = (PDGParameterNode) this.pdgNodeFactory
 					.makeNormalNode(variable);
@@ -118,19 +118,19 @@ public class PDG implements Comparable<PDG> {
 	}
 
 	public final SortedSet<PDGNode<?>> getExitNodes() {
-		final SortedSet<PDGNode<?>> nodes = new TreeSet<PDGNode<?>>();
+		final SortedSet<PDGNode<?>> nodes = new TreeSet<>();
 		nodes.addAll(this.exitNodes);
 		return nodes;
 	}
 
 	public final List<PDGParameterNode> getParameterNodes() {
-		final List<PDGParameterNode> parameters = new ArrayList<PDGParameterNode>();
+		final List<PDGParameterNode> parameters = new ArrayList<>();
 		parameters.addAll(this.parameterNodes);
 		return parameters;
 	}
 
 	public final SortedSet<PDGNode<?>> getAllNodes() {
-		final SortedSet<PDGNode<?>> nodes = new TreeSet<PDGNode<?>>();
+		final SortedSet<PDGNode<?>> nodes = new TreeSet<>();
 		this.getAllNodes(this.enterNode, nodes);
 		return nodes;
 	}
@@ -155,7 +155,7 @@ public class PDG implements Comparable<PDG> {
 	}
 
 	public final SortedSet<PDGEdge> getAllEdges() {
-		final SortedSet<PDGEdge> edges = new TreeSet<PDGEdge>();
+		final SortedSet<PDGEdge> edges = new TreeSet<>();
 //		for (final PDGEdge edge : this.enterNode.getForwardEdges()) {
 //			this.getAllEdges(edge, edges);
 //		}
@@ -226,12 +226,12 @@ public class PDG implements Comparable<PDG> {
 				if (!this.cfg.isEmpty()) {
 					this.buildDataDependence(this.cfg.getEnterNode(),
 							parameterNode, parameterNode.core.name,
-							new HashSet<CFGNode<?>>());
+							new HashSet<>());
 				}
 			}
 		}
 
-		final Set<CFGNode<?>> checkedNodes = new HashSet<CFGNode<?>>();
+		final Set<CFGNode<?>> checkedNodes = new HashSet<>();
 		if (!this.cfg.isEmpty()) {
 			this.buildDependence(this.cfg.getEnterNode(), checkedNodes);
 		}
@@ -243,7 +243,7 @@ public class PDG implements Comparable<PDG> {
 		}
 
 		if (!this.cfg.isEmpty()) {
-			final Set<CFGNode<?>> unreachableNodes = new HashSet<CFGNode<?>>();
+			final Set<CFGNode<?>> unreachableNodes = new HashSet<>();
 			unreachableNodes.addAll(this.cfg.getAllNodes());
 			unreachableNodes.removeAll(this.cfg.getReachableNodes(this.cfg
 					.getEnterNode()));
@@ -269,7 +269,7 @@ public class PDG implements Comparable<PDG> {
 		if (this.buildDataDependence) {
 			for (final String variable : pdgNode.core.getAssignedVariables()) {
 				for (final CFGEdge edge : cfgNode.getForwardEdges()) {
-					final Set<CFGNode<?>> checkedNodesForDefinedVariables = new HashSet<CFGNode<?>>();
+					final Set<CFGNode<?>> checkedNodesForDefinedVariables = new HashSet<>();
 					this.buildDataDependence(edge.toNode, pdgNode, variable,
 							checkedNodesForDefinedVariables);
 				}

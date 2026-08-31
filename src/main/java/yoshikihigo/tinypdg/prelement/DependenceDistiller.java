@@ -99,7 +99,7 @@ public class DependenceDistiller {
 			final PDG[] pdgArray;
 			{
 				final List<File> files = getFiles(target);
-				final List<MethodInfo> methods = new ArrayList<MethodInfo>();
+				final List<MethodInfo> methods = new ArrayList<>();
 				for (final File file : files) {
 					final CompilationUnit unit = TinyPDGASTVisitor
 							.createAST(file);
@@ -109,7 +109,7 @@ public class DependenceDistiller {
 				}
 
 				final SortedSet<PDG> pdgs = Collections
-						.synchronizedSortedSet(new TreeSet<PDG>());
+						.synchronizedSortedSet(new TreeSet<>());
 				final CFGNodeFactory cfgNodeFactory = new CFGNodeFactory();
 				final PDGNodeFactory pdgNodeFactory = new PDGNodeFactory();
 				final Thread[] pdgGenerationThreads = new Thread[NUMBER_OF_THREADS];
@@ -134,11 +134,11 @@ public class DependenceDistiller {
 			printTime(time2 - time1);
 
 			System.out.print("distilling dependencies ... ");
-			final ConcurrentMap<Integer, String> texts = new ConcurrentHashMap<Integer, String>();
-			final ConcurrentMap<Integer, AtomicInteger> fromNodeFrequencies = new ConcurrentHashMap<Integer, AtomicInteger>();
-			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeControlFrequencies = new ConcurrentHashMap<Integer, ConcurrentMap<Integer, AtomicInteger>>();
-			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeDataFrequencies = new ConcurrentHashMap<Integer, ConcurrentMap<Integer, AtomicInteger>>();
-			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeExecutionFrequencies = new ConcurrentHashMap<Integer, ConcurrentMap<Integer, AtomicInteger>>();
+			final ConcurrentMap<Integer, String> texts = new ConcurrentHashMap<>();
+			final ConcurrentMap<Integer, AtomicInteger> fromNodeFrequencies = new ConcurrentHashMap<>();
+			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeControlFrequencies = new ConcurrentHashMap<>();
+			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeDataFrequencies = new ConcurrentHashMap<>();
+			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeExecutionFrequencies = new ConcurrentHashMap<>();
 			for (final PDG pdg : pdgArray) {
 				final SortedSet<PDGNode<?>> nodes = pdg.getAllNodes();
 				for (final PDGNode<?> fromNode : nodes) {
@@ -182,9 +182,9 @@ public class DependenceDistiller {
 			printTime(time3 - time2);
 
 			System.out.print("sorting frequencies ... ");
-			final ConcurrentMap<Integer, List<Frequency>> frequenciesForControlDependence = new ConcurrentHashMap<Integer, List<Frequency>>();
-			final ConcurrentMap<Integer, List<Frequency>> frequenciesForDataDependence = new ConcurrentHashMap<Integer, List<Frequency>>();
-			final ConcurrentMap<Integer, List<Frequency>> frequenciesForExecutionDependence = new ConcurrentHashMap<Integer, List<Frequency>>();
+			final ConcurrentMap<Integer, List<Frequency>> frequenciesForControlDependence = new ConcurrentHashMap<>();
+			final ConcurrentMap<Integer, List<Frequency>> frequenciesForDataDependence = new ConcurrentHashMap<>();
+			final ConcurrentMap<Integer, List<Frequency>> frequenciesForExecutionDependence = new ConcurrentHashMap<>();
 			calculateFrequencies(fromNodeFrequencies, toNodeControlFrequencies,
 					texts, frequenciesForControlDependence);
 			calculateFrequencies(fromNodeFrequencies, toNodeDataFrequencies,
@@ -226,7 +226,7 @@ public class DependenceDistiller {
 
 	private static List<File> getFiles(final File file) {
 
-		final List<File> files = new ArrayList<File>();
+		final List<File> files = new ArrayList<>();
 
 		if (file.isFile()) {
 			if (file.getName().endsWith(".java")) {
@@ -255,7 +255,7 @@ public class DependenceDistiller {
 		ConcurrentMap<Integer, AtomicInteger> toNodeHashes = toNodeFrequencies
 				.get(fromNodeHash);
 		if (null == toNodeHashes) {
-			toNodeHashes = new ConcurrentHashMap<Integer, AtomicInteger>();
+			toNodeHashes = new ConcurrentHashMap<>();
 			toNodeFrequencies.put(fromNodeHash, toNodeHashes);
 		}
 		AtomicInteger frequency = toNodeHashes.get(toNodeHash);
@@ -285,7 +285,7 @@ public class DependenceDistiller {
 			final int fromNodeHash = entry.getKey();
 			final int totalTime = fromNodeAllFrequencies.get(fromNodeHash)
 					.get();
-			final List<Frequency> frequencies = new ArrayList<Frequency>();
+			final List<Frequency> frequencies = new ArrayList<>();
 			final ConcurrentMap<Integer, AtomicInteger> toNodeFrequencies = entry
 					.getValue();
 			for (final Entry<Integer, AtomicInteger> entry2 : toNodeFrequencies

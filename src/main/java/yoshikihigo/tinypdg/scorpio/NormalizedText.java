@@ -18,7 +18,7 @@ public class NormalizedText {
 
 //		StringBuilder normalizedText = new StringBuilder(text);
 		StringBuilder normalizedText = new StringBuilder(resolveDuplicatedMarkingTokens(text));
-		final Map<String, String> mapper = new HashMap<String, String>();
+		final Map<String, String> mapper = new HashMap<>();
 
 		int startIndex = 0;
 		int endIndex = 0;

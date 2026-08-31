@@ -41,7 +41,7 @@ public class ClonePairInfo {
 	static public List<ClonePairInfo> getClonepairs(final File file,
 			final int minimum, final boolean oracle) {
 
-		final List<ClonePairInfo> clonepairs = new ArrayList<ClonePairInfo>();
+		final List<ClonePairInfo> clonepairs = new ArrayList<>();
 
 		try (final BufferedReader reader = new BufferedReader(new FileReader(
 				file, StandardCharsets.UTF_8))) {

@@ -21,8 +21,8 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 
 		this.path = path;
 		this.name = name;
-		this.parameters = new ArrayList<VariableInfo>();
-		this.statements = new ArrayList<StatementInfo>();
+		this.parameters = new ArrayList<>();
+		this.statements = new ArrayList<>();
 	}
 
 	public void addParameter(final VariableInfo parameter) {
@@ -31,7 +31,7 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 	}
 
 	public SortedSet<VariableInfo> getParameters() {
-		final SortedSet<VariableInfo> parameters = new TreeSet<VariableInfo>();
+		final SortedSet<VariableInfo> parameters = new TreeSet<>();
 		parameters.addAll(this.parameters);
 		return parameters;
 	}
@@ -66,7 +66,7 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 
 	@Override
 	public SortedSet<String> getAssignedVariables() {
-		final SortedSet<String> variables = new TreeSet<String>();
+		final SortedSet<String> variables = new TreeSet<>();
 		for (final StatementInfo statement : this.statements) {
 			variables.addAll(statement.getAssignedVariables());
 		}
@@ -75,7 +75,7 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 
 	@Override
 	public SortedSet<String> getReferencedVariables() {
-		final SortedSet<String> variables = new TreeSet<String>();
+		final SortedSet<String> variables = new TreeSet<>();
 		for (final StatementInfo statement : this.statements) {
 			variables.addAll(statement.getReferencedVariables());
 		}

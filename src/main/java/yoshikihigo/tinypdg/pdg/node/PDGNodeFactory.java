@@ -19,7 +19,7 @@ public class PDGNodeFactory {
 	private final ConcurrentMap<ProgramElementInfo, PDGNode<?>> elementToNodeMap;
 
 	public PDGNodeFactory() {
-		this.elementToNodeMap = new ConcurrentHashMap<ProgramElementInfo, PDGNode<?>>();
+		this.elementToNodeMap = new ConcurrentHashMap<>();
 	}
 
 	public PDGNode<?> makeNode(final CFGNode<?> node) {
@@ -103,7 +103,7 @@ public class PDGNodeFactory {
 	}
 
 	public SortedSet<PDGNode<?>> getAllNodes() {
-		final SortedSet<PDGNode<?>> nodes = new TreeSet<PDGNode<?>>();
+		final SortedSet<PDGNode<?>> nodes = new TreeSet<>();
 		nodes.addAll(this.elementToNodeMap.values());
 		return nodes;
 	}

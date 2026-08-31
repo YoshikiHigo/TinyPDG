@@ -14,7 +14,7 @@ public class CodeFragmentInfo implements Comparable<CodeFragmentInfo> {
 	final private SortedSet<ProgramElementInfo> elements;
 
 	public CodeFragmentInfo() {
-		this.elements = new TreeSet<ProgramElementInfo>();
+		this.elements = new TreeSet<>();
 	}
 
 	public CodeFragmentInfo(final PDGNode<?> node) {
@@ -46,7 +46,7 @@ public class CodeFragmentInfo implements Comparable<CodeFragmentInfo> {
 	}
 
 	public SortedSet<ProgramElementInfo> getElements() {
-		final SortedSet<ProgramElementInfo> e = new TreeSet<ProgramElementInfo>();
+		final SortedSet<ProgramElementInfo> e = new TreeSet<>();
 		e.addAll(this.elements);
 		return e;
 	}

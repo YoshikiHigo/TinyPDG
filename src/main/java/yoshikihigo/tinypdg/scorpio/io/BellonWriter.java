@@ -26,9 +26,9 @@ public class BellonWriter extends Writer {
 
 			for (final ClonePairInfo clonepair : this.clonepairs) {
 
-				final SortedSet<ProgramElementInfo> elementsA = new TreeSet<ProgramElementInfo>(
+				final SortedSet<ProgramElementInfo> elementsA = new TreeSet<>(
 						new LocationalComparator());
-				final SortedSet<ProgramElementInfo> elementsB = new TreeSet<ProgramElementInfo>(
+				final SortedSet<ProgramElementInfo> elementsB = new TreeSet<>(
 						new LocationalComparator());
 				elementsA.addAll(clonepair.getLeftCodeFragment().getElements());
 				elementsB
@@ -60,7 +60,7 @@ public class BellonWriter extends Writer {
 
 	private String generateGapsText(final SortedSet<ProgramElementInfo> elements) {
 
-		final SortedSet<Integer> lines = new TreeSet<Integer>();
+		final SortedSet<Integer> lines = new TreeSet<>();
 		for (int line = elements.first().startLine; line <= elements.last().endLine; line++) {
 			lines.add(line);
 		}

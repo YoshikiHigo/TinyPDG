@@ -45,13 +45,13 @@ public class CFG {
 		assert null != nodeFactory : "\"nodeFactory\" is null.";
 		this.core = core;
 		this.nodeFactory = nodeFactory;
-		this.nodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
+		this.nodes = new TreeSet<>();
 		this.enterNode = null;
-		this.exitNodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
+		this.exitNodes = new TreeSet<>();
 		this.built = false;
 
-		this.unhandledBreakStatementNodes = new LinkedList<CFGBreakStatementNode>();
-		this.unhandledContinueStatementNodes = new LinkedList<CFGContinueStatementNode>();
+		this.unhandledBreakStatementNodes = new LinkedList<>();
+		this.unhandledContinueStatementNodes = new LinkedList<>();
 	}
 
 	public boolean isEmpty() {
@@ -63,13 +63,13 @@ public class CFG {
 	}
 
 	public SortedSet<CFGNode<? extends ProgramElementInfo>> getExitNodes() {
-		final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
+		final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes = new TreeSet<>();
 		nodes.addAll(this.exitNodes);
 		return nodes;
 	}
 
 	public SortedSet<CFGNode<? extends ProgramElementInfo>> getAllNodes() {
-		final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
+		final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes = new TreeSet<>();
 		nodes.addAll(this.nodes);
 		return nodes;
 	}
@@ -191,7 +191,7 @@ public class CFG {
 		}
 
 		else if (this.core instanceof ExpressionInfo) {
-			final ProgramElementInfo coreExpression = (ProgramElementInfo) this.core;
+			final ProgramElementInfo coreExpression = this.core;
 			final CFGNode<? extends ProgramElementInfo> node = this.nodeFactory
 					.makeNormalNode(coreExpression);
 			this.enterNode = node;
@@ -415,7 +415,7 @@ public class CFG {
 		this.nodes.add(conditionNode);
 
 		final List<StatementInfo> substatements = statement.getStatements();
-		final List<CFG> sequentialCFGs = new ArrayList<CFG>();
+		final List<CFG> sequentialCFGs = new ArrayList<>();
 		for (final StatementInfo substatement : substatements) {
 			final CFG subCFG = new CFG(substatement, this.nodeFactory);
 			subCFG.build();
@@ -566,7 +566,7 @@ public class CFG {
 				.iterator();
 		while (iterator.hasNext()) {
 			final CFGBreakStatementNode node = iterator.next();
-			final StatementInfo breakStatement = (StatementInfo) node.core;
+			final StatementInfo breakStatement = node.core;
 			final String label = breakStatement.getJumpToLabel();
 
 			if (null == label) {
@@ -591,7 +591,7 @@ public class CFG {
 				.iterator();
 		while (iterator.hasNext()) {
 			final CFGContinueStatementNode node = iterator.next();
-			final StatementInfo continueStatement = (StatementInfo) node.core;
+			final StatementInfo continueStatement = node.core;
 			final String label = continueStatement.getJumpToLabel();
 
 			if (null == label) {
@@ -631,7 +631,7 @@ public class CFG {
 			assert !this.built : "this CFG has already built.";
 			this.built = true;
 
-			final LinkedList<CFG> sequencialCFGs = new LinkedList<CFG>();
+			final LinkedList<CFG> sequencialCFGs = new LinkedList<>();
 			for (final ProgramElementInfo element : this.elements) {
 				final CFG blockCFG = new CFG(element, CFG.this.nodeFactory);
 				blockCFG.build();
@@ -670,7 +670,7 @@ public class CFG {
 	public final SortedSet<CFGNode<? extends ProgramElementInfo>> getReachableNodes(
 			final CFGNode<? extends ProgramElementInfo> startNode) {
 		assert null != startNode : "\"startNode\" is null.";
-		final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
+		final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes = new TreeSet<>();
 		this.getReachableNodes(startNode, nodes);
 		return nodes;
 	}

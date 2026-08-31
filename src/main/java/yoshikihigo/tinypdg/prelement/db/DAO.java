@@ -108,7 +108,7 @@ public class DAO {
 	public List<Frequency> getFrequencies(final DEPENDENCE_TYPE type,
 			final int fromhash) {
 
-		final List<Frequency> frequencies = new ArrayList<Frequency>();
+		final List<Frequency> frequencies = new ArrayList<>();
 
 		try {
 			this.selectFromFrequencies.clearParameters();

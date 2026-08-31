@@ -68,7 +68,7 @@ public class ElementPredictor {
 	public static List<CombinationalFrequency> getPredictedElements(
 			final DAO dao, final String baseText) {
 
-		final List<CombinationalFrequency> frequencies = new ArrayList<CombinationalFrequency>();
+		final List<CombinationalFrequency> frequencies = new ArrayList<>();
 
 		final List<Frequency> frequenciesForControl = dao.getFrequencies(
 				DEPENDENCE_TYPE.CONTROL, baseText.hashCode());

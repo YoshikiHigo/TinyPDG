@@ -17,7 +17,7 @@ public class ExpressionInfo extends ProgramElementInfo {
 		super(startLine, endLine);
 		this.category = category;
 		this.qualifier = null;
-		this.expressions = new ArrayList<ProgramElementInfo>();
+		this.expressions = new ArrayList<>();
 		this.anonymousClassDeclaration = null;
 	}
 
@@ -61,7 +61,7 @@ public class ExpressionInfo extends ProgramElementInfo {
 	}
 
 	public List<ProgramElementInfo> getExpressions() {
-		final List<ProgramElementInfo> expressions = new ArrayList<ProgramElementInfo>();
+		final List<ProgramElementInfo> expressions = new ArrayList<>();
 		expressions.addAll(this.expressions);
 		return expressions;
 	}
@@ -79,7 +79,7 @@ public class ExpressionInfo extends ProgramElementInfo {
 	@Override
 	public SortedSet<String> getAssignedVariables() {
 
-		final SortedSet<String> variables = new TreeSet<String>();
+		final SortedSet<String> variables = new TreeSet<>();
 		switch (this.category) {
 		case Assignment:
 			final ProgramElementInfo left = this.expressions.get(0);
@@ -112,7 +112,7 @@ public class ExpressionInfo extends ProgramElementInfo {
 
 	@Override
 	public SortedSet<String> getReferencedVariables() {
-		final SortedSet<String> variables = new TreeSet<String>();
+		final SortedSet<String> variables = new TreeSet<>();
 		switch (this.category) {
 		case Assignment:
 			final ProgramElementInfo right = this.expressions.get(2);

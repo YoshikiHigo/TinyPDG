@@ -4,6 +4,8 @@ import java.util.TreeSet;
 
 class CodeFragmentInfo extends TreeSet<Integer> {
 
+	private static final long serialVersionUID = 1L;
+
 	final String path;
 	
 	CodeFragmentInfo(final String path, final int startLine, final int endLine){
