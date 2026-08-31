@@ -10,9 +10,9 @@ import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 
 import yoshikihigo.tinypdg.prelement.data.CombinationalFrequency;
 import yoshikihigo.tinypdg.prelement.data.DEPENDENCE_TYPE;
@@ -35,7 +35,7 @@ public class ElementPredictor {
 				options.addOption(b);
 			}
 
-			final CommandLineParser parser = new PosixParser();
+			final CommandLineParser parser = new DefaultParser();
 			final CommandLine cmd = parser.parse(options, args);
 
 			final String database = cmd.getOptionValue("b");

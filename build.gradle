@@ -17,7 +17,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'commons-cli:commons-cli:1.2'
+    implementation 'commons-cli:commons-cli:1.11.0'
     implementation 'org.xerial:sqlite-jdbc:3.8.6'
     implementation 'org.eclipse.jdt:org.eclipse.jdt.core:3.10.0'
 

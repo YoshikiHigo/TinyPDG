@@ -14,9 +14,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 
 import yoshikihigo.tinypdg.ast.TinyPDGASTVisitor;
@@ -77,7 +77,7 @@ public class DependenceDistiller {
 				options.addOption(t);
 			}
 
-			final CommandLineParser parser = new PosixParser();
+			final CommandLineParser parser = new DefaultParser();
 			final CommandLine cmd = parser.parse(options, args);
 
 			final String database = cmd.getOptionValue("b");
