@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,11 +18,8 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.eclipse.jdt.core.dom.CompilationUnit;
 
-import yoshikihigo.tinypdg.JavaSourceFiles;
 import yoshikihigo.tinypdg.ast.JavaAstFactory;
-import yoshikihigo.tinypdg.ast.TinyPDGASTVisitor;
 import yoshikihigo.tinypdg.cfg.CFG;
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
 import yoshikihigo.tinypdg.cfg.node.CFGControlNode;
@@ -118,15 +114,8 @@ public class Writer {
 					? cmd.getOptionValue("j")
 					: JavaAstFactory.DEFAULT_JAVA_VERSION;
 
-			final List<File> files = JavaSourceFiles.collect(target);
-			final List<MethodInfo> methods = new ArrayList<>();
-			for (final File file : files) {
-				final CompilationUnit unit = JavaAstFactory.createAST(
-						file, StandardCharsets.UTF_8, javaVersion);
-				final TinyPDGASTVisitor visitor = new TinyPDGASTVisitor(
-						file.getAbsolutePath(), unit, methods);
-				unit.accept(visitor);
-			}
+			final List<MethodInfo> methods = JavaAstFactory.collectMethods(
+					target, javaVersion);
 
 			if (cmd.hasOption("c")) {
 				System.out.println("building and outputing CFGs ...");

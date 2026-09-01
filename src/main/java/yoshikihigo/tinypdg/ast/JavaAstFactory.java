@@ -6,12 +6,17 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import yoshikihigo.tinypdg.JavaSourceFiles;
 import yoshikihigo.tinypdg.TinyPDGException;
+import yoshikihigo.tinypdg.pe.MethodInfo;
 
 /**
  * ソースファイルから JDT の AST を組み立てる。
@@ -92,5 +97,29 @@ public final class JavaAstFactory {
 
 		parser.setSource(text.toString().toCharArray());
 		return (CompilationUnit) parser.createAST(null);
+	}
+
+	/**
+	 * 解析対象のファイルまたはディレクトリから、含まれるメソッドを全て集める。
+	 *
+	 * <p>コマンドラインツール 3 つが同じ手順を書いていた。ファイルを集め、
+	 * 1 つずつ AST にし、visitor に渡してメソッドを取り出す、という流れである。
+	 *
+	 * @param javaVersion 解析対象として仮定する Java のバージョン
+	 */
+	public static List<MethodInfo> collectMethods(final File target,
+			final String javaVersion) {
+
+		Objects.requireNonNull(target, "\"target\" is null.");
+		Objects.requireNonNull(javaVersion, "\"javaVersion\" is null.");
+
+		final List<MethodInfo> methods = new ArrayList<>();
+		for (final File file : JavaSourceFiles.collect(target)) {
+			final CompilationUnit unit = createAST(file,
+					StandardCharsets.UTF_8, javaVersion);
+			unit.accept(new TinyPDGASTVisitor(file.getAbsolutePath(), unit,
+					methods));
+		}
+		return methods;
 	}
 }

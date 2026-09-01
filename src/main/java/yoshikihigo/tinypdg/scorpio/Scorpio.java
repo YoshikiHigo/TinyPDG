@@ -1,7 +1,6 @@
 package yoshikihigo.tinypdg.scorpio;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -15,16 +14,13 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.eclipse.jdt.core.dom.CompilationUnit;
 
-import yoshikihigo.tinypdg.JavaSourceFiles;
 import yoshikihigo.tinypdg.ast.JavaAstFactory;
-import yoshikihigo.tinypdg.ast.TinyPDGASTVisitor;
-import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.pdg.PDG;
+import yoshikihigo.tinypdg.pdg.PDGGeneration;
+import yoshikihigo.tinypdg.scorpio.pdg.PDGMergedNode;
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
-import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
 import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
 import yoshikihigo.tinypdg.scorpio.data.PDGPairInfo;
@@ -193,36 +189,18 @@ public class Scorpio {
 				final String javaVersion = cmd.hasOption("j")
 						? cmd.getOptionValue("j")
 						: JavaAstFactory.DEFAULT_JAVA_VERSION;
-				final List<File> files = JavaSourceFiles.collect(target);
-				final List<MethodInfo> methods = new ArrayList<>();
-				for (final File file : files) {
-					final CompilationUnit unit = JavaAstFactory.createAST(
-							file, StandardCharsets.UTF_8, javaVersion);
-					final TinyPDGASTVisitor visitor = new TinyPDGASTVisitor(
-							file.getAbsolutePath(), unit, methods);
-					unit.accept(visitor);
-				}
+				final List<MethodInfo> methods = JavaAstFactory
+						.collectMethods(target, javaVersion);
 
-				final SortedSet<PDG> pdgs = Collections
-						.synchronizedSortedSet(new TreeSet<>());
-				final CFGNodeFactory cfgNodeFactory = new CFGNodeFactory();
-				final PDGNodeFactory pdgNodeFactory = new PDGNodeFactory();
-				final Thread[] pdgGenerationThreads = new Thread[NUMBER_OF_THREADS];
-				for (int i = 0; i < pdgGenerationThreads.length; i++) {
-					pdgGenerationThreads[i] = new Thread(
-							new PDGGenerationThread(methods, pdgs,
-									cfgNodeFactory, pdgNodeFactory,
-									useOfControl, useOfData, useOfExecution,
-									useOfMerging, SIZE_THRESHOLD));
-					pdgGenerationThreads[i].start();
-				}
-				for (final Thread thread : pdgGenerationThreads) {
-					try {
-						thread.join();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
+				final PDGGeneration.Options generation = new PDGGeneration.Options(
+						useOfControl, useOfData, useOfExecution,
+						SIZE_THRESHOLD, NUMBER_OF_THREADS);
+				// ノードの併合は Scorpio 固有の処理なので、生成側には
+				// 「作り終えた PDG に何をするか」として渡す。
+				final SortedSet<PDG> pdgs = useOfMerging
+						? PDGGeneration.buildInParallel(methods, generation,
+								PDGMergedNode::mergeNodes)
+						: PDGGeneration.buildInParallel(methods, generation);
 				pdgArray = pdgs.toArray(new PDG[0]);
 			}
 			System.out.print("done: ");

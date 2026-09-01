@@ -1,14 +1,12 @@
 package yoshikihigo.tinypdg.prelement;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -18,25 +16,20 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.eclipse.jdt.core.dom.CompilationUnit;
 
-import yoshikihigo.tinypdg.JavaSourceFiles;
 import yoshikihigo.tinypdg.ast.JavaAstFactory;
-import yoshikihigo.tinypdg.ast.TinyPDGASTVisitor;
-import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.pdg.PDG;
+import yoshikihigo.tinypdg.pdg.PDGGeneration;
 import yoshikihigo.tinypdg.pdg.edge.PDGControlDependenceEdge;
 import yoshikihigo.tinypdg.pdg.edge.PDGDataDependenceEdge;
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.pdg.edge.PDGExecutionDependenceEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
-import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
 import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.prelement.data.DEPENDENCE_TYPE;
 import yoshikihigo.tinypdg.prelement.data.Frequency;
 import yoshikihigo.tinypdg.prelement.db.DAO;
 import yoshikihigo.tinypdg.scorpio.NormalizedText;
-import yoshikihigo.tinypdg.scorpio.PDGGenerationThread;
 
 public class DependenceDistiller {
 
@@ -113,35 +106,13 @@ public class DependenceDistiller {
 				final String javaVersion = cmd.hasOption("j")
 						? cmd.getOptionValue("j")
 						: JavaAstFactory.DEFAULT_JAVA_VERSION;
-				final List<File> files = JavaSourceFiles.collect(target);
-				final List<MethodInfo> methods = new ArrayList<>();
-				for (final File file : files) {
-					final CompilationUnit unit = JavaAstFactory.createAST(
-							file, StandardCharsets.UTF_8, javaVersion);
-					final TinyPDGASTVisitor visitor = new TinyPDGASTVisitor(
-							file.getAbsolutePath(), unit, methods);
-					unit.accept(visitor);
-				}
+				final List<MethodInfo> methods = JavaAstFactory
+						.collectMethods(target, javaVersion);
 
-				final SortedSet<PDG> pdgs = Collections
-						.synchronizedSortedSet(new TreeSet<>());
-				final CFGNodeFactory cfgNodeFactory = new CFGNodeFactory();
-				final PDGNodeFactory pdgNodeFactory = new PDGNodeFactory();
-				final Thread[] pdgGenerationThreads = new Thread[NUMBER_OF_THREADS];
-				for (int i = 0; i < pdgGenerationThreads.length; i++) {
-					pdgGenerationThreads[i] = new Thread(
-							new PDGGenerationThread(methods, pdgs,
-									cfgNodeFactory, pdgNodeFactory, true, true,
-									true, false, SIZE_THRESHOLD));
-					pdgGenerationThreads[i].start();
-				}
-				for (final Thread thread : pdgGenerationThreads) {
-					try {
-						thread.join();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
+				// 3 種類の依存を全て作り、ノードの併合はしない。
+				final SortedSet<PDG> pdgs = PDGGeneration.buildInParallel(
+						methods, new PDGGeneration.Options(true, true, true,
+								SIZE_THRESHOLD, NUMBER_OF_THREADS));
 				pdgArray = pdgs.toArray(new PDG[0]);
 			}
 			System.out.print("done: ");
