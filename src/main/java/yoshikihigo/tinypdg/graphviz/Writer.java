@@ -68,7 +68,7 @@ public class Writer {
 			}
 
 			{
-				final Option p = new Option("p", "ProgramDepencencyGraph",
+				final Option p = new Option("p", "ProgramDependencyGraph",
 						true, "program dependency graph");
 				p.setArgName("file");
 				p.setArgs(1);

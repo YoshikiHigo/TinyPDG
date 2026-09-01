@@ -16,11 +16,11 @@ public class Bellon {
 	public static void main(final String[] args) {
 
 		if (4 != args.length) {
-			System.err.println("the number of command opetions must be four.");
+			System.err.println("the number of command options must be four.");
 			System.err
 					.println("the first one is a threshold for matching with oracle.");
 			System.err.println("the second one is minimum length of clones.");
-			System.err.println("the thrid one is file of oracle.");
+			System.err.println("the third one is file of oracle.");
 			System.err.println("the fourth one is file of detection result.");
 			System.exit(1);
 		}

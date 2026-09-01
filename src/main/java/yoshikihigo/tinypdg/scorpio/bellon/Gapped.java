@@ -13,7 +13,7 @@ public class Gapped {
 	public static void main(final String[] args) {
 
 		if (2 != args.length) {
-			System.err.println("the number of command opetions must be one.");
+			System.err.println("the number of command options must be two.");
 			System.err.println("the first one is an output file of SCORPIO.");
 			System.err
 					.println("the second one is a file for storing intertwined clones.");
