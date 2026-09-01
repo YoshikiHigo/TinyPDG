@@ -22,6 +22,7 @@ import org.apache.commons.cli.Options;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 
 import yoshikihigo.tinypdg.JavaSourceFiles;
+import yoshikihigo.tinypdg.ast.JavaAstFactory;
 import yoshikihigo.tinypdg.ast.TinyPDGASTVisitor;
 import yoshikihigo.tinypdg.cfg.CFG;
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
@@ -115,12 +116,12 @@ public class Writer {
 
 			final String javaVersion = cmd.hasOption("j")
 					? cmd.getOptionValue("j")
-					: TinyPDGASTVisitor.DEFAULT_JAVA_VERSION;
+					: JavaAstFactory.DEFAULT_JAVA_VERSION;
 
 			final List<File> files = JavaSourceFiles.collect(target);
 			final List<MethodInfo> methods = new ArrayList<>();
 			for (final File file : files) {
-				final CompilationUnit unit = TinyPDGASTVisitor.createAST(
+				final CompilationUnit unit = JavaAstFactory.createAST(
 						file, StandardCharsets.UTF_8, javaVersion);
 				final TinyPDGASTVisitor visitor = new TinyPDGASTVisitor(
 						file.getAbsolutePath(), unit, methods);

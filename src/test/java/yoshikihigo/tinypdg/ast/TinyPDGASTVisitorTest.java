@@ -23,12 +23,12 @@ class TinyPDGASTVisitorTest {
 		// 失敗したファイルと、メソッドが 1 つもない正常なファイルとが
 		// 区別できなかった。
 		final TinyPDGException thrown = assertThrows(TinyPDGException.class,
-				() -> TinyPDGASTVisitor.createAST(missing));
+				() -> JavaAstFactory.createAST(missing));
 		assertNotNull(thrown.getCause(), "元の例外が原因として保持されていること");
 	}
 
 	@Test
 	void defaultsToTheCurrentLtsJavaVersion() {
-		assertEquals("25", TinyPDGASTVisitor.DEFAULT_JAVA_VERSION);
+		assertEquals("25", JavaAstFactory.DEFAULT_JAVA_VERSION);
 	}
 }

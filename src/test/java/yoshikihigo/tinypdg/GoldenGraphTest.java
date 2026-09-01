@@ -20,6 +20,7 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import yoshikihigo.tinypdg.ast.JavaAstFactory;
 import yoshikihigo.tinypdg.ast.TinyPDGASTVisitor;
 import yoshikihigo.tinypdg.cfg.CFG;
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
@@ -98,7 +99,7 @@ class GoldenGraphTest {
 
 		final List<MethodInfo> methods = new ArrayList<>();
 		for (final File source : sources) {
-			final CompilationUnit unit = TinyPDGASTVisitor.createAST(source);
+			final CompilationUnit unit = JavaAstFactory.createAST(source);
 			unit.accept(new TinyPDGASTVisitor(source.getAbsolutePath(), unit, methods));
 		}
 

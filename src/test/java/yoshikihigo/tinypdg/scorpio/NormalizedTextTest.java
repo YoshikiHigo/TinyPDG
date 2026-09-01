@@ -14,6 +14,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import yoshikihigo.tinypdg.JavaSourceFiles;
+import yoshikihigo.tinypdg.ast.JavaAstFactory;
 import yoshikihigo.tinypdg.ast.TinyPDGASTVisitor;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.pdg.PDG;
@@ -49,7 +50,7 @@ class NormalizedTextTest {
 
 		final List<MethodInfo> methods = new ArrayList<>();
 		for (final File source : JavaSourceFiles.collect(sampleDir.toFile())) {
-			final CompilationUnit unit = TinyPDGASTVisitor.createAST(source);
+			final CompilationUnit unit = JavaAstFactory.createAST(source);
 			unit.accept(new TinyPDGASTVisitor(source.getAbsolutePath(), unit, methods));
 		}
 
