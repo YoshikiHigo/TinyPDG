@@ -62,6 +62,7 @@ nodes:
 edges:
   0 -> 1 [execution: ]
   1 -> 2 [date: inner]
+  1 -> 2 [date: value]
   1 -> 2 [execution: ]
   1 -> 4 [date: inner]
   2 -> 3 [date: r]
