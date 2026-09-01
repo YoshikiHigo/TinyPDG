@@ -1,49 +1,71 @@
 package yoshikihigo.tinypdg.pe;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-public class StatementInfo extends ProgramElementInfo implements BlockInfo {
+/**
+ * 文。
+ *
+ * <p>ここには、どの種類の文でも意味を持つものだけを置く。所有ブロック、
+ * 種別、式の並び、ラベルである。
+ *
+ * <p>条件式や else 節のように一部の文しか持たないものは、それを持つ文の
+ * クラスに置いてある。以前は 8 つのコレクションが全てこのクラスにあり、
+ * break 文でも try 用の catch 節や for 用の更新式を抱えていた。どの文で
+ * どのフィールドが意味を持つかはコードのどこにも書かれておらず、if 文に
+ * finally 節を設定しても何も起こらなかった。
+ *
+ * <p>階層は状態の形で切ってある。同じ形のものは同じクラスが表す。
+ *
+ * <pre>
+ *   StatementInfo                  所有ブロック・種別・式・ラベル
+ *   ├─ SimpleStatementInfo         これ以上持たない (break, return, ...)
+ *   └─ BlockStatementInfo          + 文の並び (ブロック)
+ *       ├─ ConditionalStatementInfo    + 条件式 (while, do, switch, ...)
+ *       │   ├─ ForStatementInfo            + 初期化式・更新式 (for, foreach)
+ *       │   └─ IfStatementInfo             + else 節
+ *       └─ TryStatementInfo            + catch 節・finally 節
+ * </pre>
+ */
+public sealed abstract class StatementInfo extends ProgramElementInfo
+		permits SimpleStatementInfo, BlockStatementInfo {
 
 	private ProgramElementInfo ownerBlock;
 	private CATEGORY category;
-	private List<ProgramElementInfo> expressions;
-
-	final private List<ProgramElementInfo> initializers;
-	private ProgramElementInfo condition;
-	final private List<ProgramElementInfo> updaters;
-
-	final private List<StatementInfo> statements;
-	private List<StatementInfo> elseStatements;
-	final private List<StatementInfo> catchStatements;
-	private StatementInfo finallyStatement;
-
+	final private Set<CATEGORY> permittedCategories;
+	final private List<ProgramElementInfo> expressions;
 	private String label;
 
-	public StatementInfo(final ProgramElementInfo ownerBlock,
-			final CATEGORY category, final int startLine, final int endLine) {
+	/**
+	 * @param permittedCategories このクラスが表せる種別。サブクラスが自身の
+	 *                            定数を渡す。種別とクラスがずれた文が作られる
+	 *                            のを防ぐためのもの
+	 */
+	StatementInfo(final ProgramElementInfo ownerBlock,
+			final CATEGORY category, final int startLine, final int endLine,
+			final Set<CATEGORY> permittedCategories) {
 
 		super(startLine, endLine);
 
+		this.permittedCategories = permittedCategories;
 		this.ownerBlock = ownerBlock;
-		this.category = category;
 		this.expressions = new ArrayList<>();
-
-		this.initializers = new ArrayList<>();
-		this.condition = null;
-		this.updaters = new ArrayList<>();
-
-		this.statements = new ArrayList<>();
-		this.elseStatements = new ArrayList<>();
-		this.catchStatements = new ArrayList<>();
-		this.finallyStatement = null;
-
 		this.label = null;
+
+		requireRepresentable(category);
+		this.category = category;
+	}
+
+	private void requireRepresentable(final CATEGORY category) {
+		Objects.requireNonNull(category, "\"category\" is null.");
+		if (!this.permittedCategories.contains(category)) {
+			throw new IllegalArgumentException(this.getClass().getSimpleName()
+					+ " は " + category + " を表せない。");
+		}
 	}
 
 	public enum CATEGORY {
@@ -92,104 +114,15 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 		return this.category;
 	}
 
+	/**
+	 * 種別を変える。同じクラスで表せる範囲に限る。
+	 *
+	 * <p>脱糖した yield を代入文として扱うときのように、後から種別が
+	 * 変わることがある。ただし別の形の状態を持つ種別へは変えられない。
+	 */
 	public void setCategory(final CATEGORY category) {
-		Objects.requireNonNull(category, "\"category\" is null.");
+		requireRepresentable(category);
 		this.category = category;
-	}
-
-	public void addInitializer(final ProgramElementInfo initializer) {
-		Objects.requireNonNull(initializer, "\"initializer\" is null.");
-		this.initializers.add(initializer);
-	}
-
-	public void setCondition(final ProgramElementInfo condition) {
-		Objects.requireNonNull(condition, "\"condition\" is null.");
-		this.condition = condition;
-	}
-
-	public void addUpdater(final ProgramElementInfo updater) {
-		Objects.requireNonNull(updater, "\"updater\" is null.");
-		this.updaters.add(updater);
-	}
-
-	public List<ProgramElementInfo> getInitializers() {
-		final List<ProgramElementInfo> initializers = new ArrayList<>();
-		initializers.addAll(this.initializers);
-		return initializers;
-	}
-
-	public ProgramElementInfo getCondition() {
-		return this.condition;
-	}
-
-	public List<ProgramElementInfo> getUpdaters() {
-		final List<ProgramElementInfo> updaters = new ArrayList<>();
-		updaters.addAll(this.updaters);
-		return updaters;
-	}
-
-	@Override
-	public void setStatement(final StatementInfo statement) {
-		Objects.requireNonNull(statement, "\"statement\" is null.");
-		this.statements.clear();
-		if (StatementInfo.CATEGORY.SimpleBlock == statement.getCategory()) {
-			if (statement.getStatements().isEmpty()) {
-				this.statements.add(statement);
-			} else {
-				this.statements.addAll(statement.getStatements());
-			}
-		} else {
-			this.statements.add(statement);
-		}
-	}
-
-	@Override
-	public void addStatement(final StatementInfo statement) {
-		Objects.requireNonNull(statement, "\"statement\" is null.");
-		this.statements.add(statement);
-	}
-
-	@Override
-	public void addStatements(final Collection<StatementInfo> statements) {
-		Objects.requireNonNull(statements, "\"statements\" is null.");
-		this.statements.addAll(statements);
-	}
-
-	@Override
-	public List<StatementInfo> getStatements() {
-		return Collections.unmodifiableList(this.statements);
-	}
-
-	public void setElseStatement(final StatementInfo elseBody) {
-		Objects.requireNonNull(elseBody, "\"elseBody\" is null.");
-		this.elseStatements.clear();
-		if (StatementInfo.CATEGORY.SimpleBlock == elseBody.getCategory()) {
-			this.elseStatements.addAll(elseBody.getStatements());
-		} else {
-			this.elseStatements.add(elseBody);
-		}
-	}
-
-	public List<StatementInfo> getElseStatements() {
-		return Collections.unmodifiableList(this.elseStatements);
-	}
-
-	public void addCatchStatement(final StatementInfo catchStatement) {
-		Objects.requireNonNull(catchStatement, "\"catchStatement\" is null.");
-		this.catchStatements.add(catchStatement);
-	}
-
-	public List<StatementInfo> getCatchStatements() {
-		return Collections.unmodifiableList(this.catchStatements);
-	}
-
-	public void setFinallyStatement(final StatementInfo finallyStatement) {
-		Objects.requireNonNull(finallyStatement, "\"finallyStatement\" is null.");
-		this.finallyStatement = finallyStatement;
-	}
-
-	public StatementInfo getFinallyStatement() {
-		return this.finallyStatement;
 	}
 
 	public void addExpression(final ProgramElementInfo element) {
@@ -198,89 +131,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	}
 
 	public List<ProgramElementInfo> getExpressions() {
-		final List<ProgramElementInfo> list = new ArrayList<>();
-		list.addAll(this.expressions);
-		return list;
-	}
-
-	@Override
-	public SortedSet<String> getAssignedVariables() {
-
-		final SortedSet<String> variables = new TreeSet<>();
-
-		for (final ProgramElementInfo expression : this.expressions) {
-			variables.addAll(expression.getAssignedVariables());
-		}
-
-		for (final ProgramElementInfo initializer : this.initializers) {
-			variables.addAll(initializer.getAssignedVariables());
-		}
-
-		if (null != this.condition) {
-			variables.addAll(this.condition.getAssignedVariables());
-		}
-
-		for (final ProgramElementInfo updater : this.updaters) {
-			variables.addAll(updater.getAssignedVariables());
-		}
-
-		for (final StatementInfo statement : this.statements) {
-			variables.addAll(statement.getAssignedVariables());
-		}
-
-		for (final StatementInfo statement : this.elseStatements) {
-			variables.addAll(statement.getAssignedVariables());
-		}
-
-		for (final StatementInfo catchStatement : this.catchStatements) {
-			variables.addAll(catchStatement.getAssignedVariables());
-		}
-
-		if (null != this.finallyStatement) {
-			variables.addAll(this.finallyStatement.getAssignedVariables());
-		}
-
-		return variables;
-	}
-
-	@Override
-	public SortedSet<String> getReferencedVariables() {
-
-		final SortedSet<String> variables = new TreeSet<>();
-
-		for (final ProgramElementInfo expression : this.expressions) {
-			variables.addAll(expression.getReferencedVariables());
-		}
-
-		for (final ProgramElementInfo initializer : this.initializers) {
-			variables.addAll(initializer.getReferencedVariables());
-		}
-
-		if (null != this.condition) {
-			variables.addAll(this.condition.getReferencedVariables());
-		}
-
-		for (final ProgramElementInfo updater : this.updaters) {
-			variables.addAll(updater.getReferencedVariables());
-		}
-
-		for (final StatementInfo statement : this.statements) {
-			variables.addAll(statement.getReferencedVariables());
-		}
-
-		for (final StatementInfo statement : this.elseStatements) {
-			variables.addAll(statement.getReferencedVariables());
-		}
-
-		for (final StatementInfo catchStatement : this.catchStatements) {
-			variables.addAll(catchStatement.getReferencedVariables());
-		}
-
-		if (null != this.finallyStatement) {
-			variables.addAll(this.finallyStatement.getReferencedVariables());
-		}
-
-		return variables;
+		return List.copyOf(this.expressions);
 	}
 
 	public String getLabel() {
@@ -292,10 +143,27 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	}
 
 	public String getJumpToLabel() {
-		if (0 == this.expressions.size()) {
+		if (this.expressions.isEmpty()) {
 			return null;
-		} else {
-			return this.expressions.get(0).getText();
 		}
+		return this.expressions.get(0).getText();
+	}
+
+	@Override
+	public SortedSet<String> getAssignedVariables() {
+		final SortedSet<String> variables = new TreeSet<>();
+		for (final ProgramElementInfo expression : this.expressions) {
+			variables.addAll(expression.getAssignedVariables());
+		}
+		return variables;
+	}
+
+	@Override
+	public SortedSet<String> getReferencedVariables() {
+		final SortedSet<String> variables = new TreeSet<>();
+		for (final ProgramElementInfo expression : this.expressions) {
+			variables.addAll(expression.getReferencedVariables());
+		}
+		return variables;
 	}
 }

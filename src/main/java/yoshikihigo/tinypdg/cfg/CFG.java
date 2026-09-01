@@ -23,6 +23,11 @@ import yoshikihigo.tinypdg.pe.BlockInfo;
 import yoshikihigo.tinypdg.pe.ExpressionInfo;
 import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
+import yoshikihigo.tinypdg.pe.BlockStatementInfo;
+import yoshikihigo.tinypdg.pe.ConditionalStatementInfo;
+import yoshikihigo.tinypdg.pe.ForStatementInfo;
+import yoshikihigo.tinypdg.pe.IfStatementInfo;
+import yoshikihigo.tinypdg.pe.TryStatementInfo;
 import yoshikihigo.tinypdg.pe.StatementInfo;
 
 public class CFG {
@@ -143,35 +148,43 @@ public class CFG {
 
 		else if (this.core instanceof StatementInfo) {
 			final StatementInfo coreStatement = (StatementInfo) this.core;
+			// 種別で振り分けるが、渡すのはその文が実際に持っている状態を
+			// 表す型である。for に更新式があり try に catch 節があることが、
+			// 受け取る側のシグネチャに書いてある。
 			switch (coreStatement.getCategory()) {
 			case Catch:
-				this.buildConditionalBlockCFG(coreStatement, false);
+				this.buildConditionalBlockCFG(
+						(ConditionalStatementInfo) coreStatement, false);
 				break;
 			case Do:
-				this.buildDoBlockCFG(coreStatement);
+				this.buildDoBlockCFG((ConditionalStatementInfo) coreStatement);
 				break;
 			case For:
-				this.buildForBlockCFG(coreStatement);
+				this.buildForBlockCFG((ForStatementInfo) coreStatement);
 				break;
 			case Foreach:
-				this.buildConditionalBlockCFG(coreStatement, true);
+				this.buildConditionalBlockCFG(
+						(ForStatementInfo) coreStatement, true);
 				break;
 			case If:
-				this.buildIfBlockCFG(coreStatement);
+				this.buildIfBlockCFG((IfStatementInfo) coreStatement);
 				break;
 			case Switch:
-				this.buildSwitchBlockCFG(coreStatement);
+				this.buildSwitchBlockCFG(
+						(ConditionalStatementInfo) coreStatement);
 				break;
 			case Synchronized:
-				this.buildConditionalBlockCFG(coreStatement, false);
+				this.buildConditionalBlockCFG(
+						(ConditionalStatementInfo) coreStatement, false);
 				break;
 			case TypeDeclaration:
 				break;
 			case Try:
-				this.buildTryBlockCFG(coreStatement);
+				this.buildTryBlockCFG((TryStatementInfo) coreStatement);
 				break;
 			case While:
-				this.buildConditionalBlockCFG(coreStatement, true);
+				this.buildConditionalBlockCFG(
+						(ConditionalStatementInfo) coreStatement, true);
 				break;
 			default:
 				final CFGNode<? extends ProgramElementInfo> node = this.nodeFactory
@@ -216,7 +229,7 @@ public class CFG {
 		}
 	}
 
-	private void buildDoBlockCFG(final StatementInfo statement) {
+	private void buildDoBlockCFG(final ConditionalStatementInfo statement) {
 
 		final SequentialCFGs sequentialCFGs = new SequentialCFGs(
 				statement.getStatements());
@@ -248,7 +261,7 @@ public class CFG {
 		this.connectCFGContinueStatementNode(statement, this.enterNode);
 	}
 
-	private void buildForBlockCFG(final StatementInfo statement) {
+	private void buildForBlockCFG(final ForStatementInfo statement) {
 
 		final SequentialCFGs sequentialCFGs = new SequentialCFGs(
 				statement.getStatements());
@@ -308,7 +321,8 @@ public class CFG {
 		this.connectCFGContinueStatementNode(statement, conditionNode);
 	}
 
-	private void buildConditionalBlockCFG(final StatementInfo statement,
+	private void buildConditionalBlockCFG(
+			final ConditionalStatementInfo statement,
 			final boolean loop) {
 
 		final List<StatementInfo> substatements = statement.getStatements();
@@ -358,7 +372,7 @@ public class CFG {
 		}
 	}
 
-	private void buildIfBlockCFG(final StatementInfo statement) {
+	private void buildIfBlockCFG(final IfStatementInfo statement) {
 
 		this.buildConditionalBlockCFG(statement, false);
 
@@ -409,7 +423,7 @@ public class CFG {
 				.addAll(sequentialCFGs.unhandledContinueStatementNodes);
 	}
 
-	private void buildSwitchBlockCFG(final StatementInfo statement) {
+	private void buildSwitchBlockCFG(final ConditionalStatementInfo statement) {
 
 		final ProgramElementInfo condition = statement.getCondition();
 		final CFGNode<? extends ProgramElementInfo> conditionNode = this.nodeFactory
@@ -474,7 +488,7 @@ public class CFG {
 		this.connectCFGBreakStatementNode(statement);
 	}
 
-	private void buildTryBlockCFG(final StatementInfo statement) {
+	private void buildTryBlockCFG(final TryStatementInfo statement) {
 
 		final List<StatementInfo> statements = statement.getStatements();
 		final SequentialCFGs sequentialCFGs = new SequentialCFGs(statements);

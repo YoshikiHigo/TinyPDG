@@ -103,6 +103,12 @@ import yoshikihigo.tinypdg.pe.ExpressionInfo;
 import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.pe.OperatorInfo;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
+import yoshikihigo.tinypdg.pe.SimpleStatementInfo;
+import yoshikihigo.tinypdg.pe.BlockStatementInfo;
+import yoshikihigo.tinypdg.pe.ConditionalStatementInfo;
+import yoshikihigo.tinypdg.pe.ForStatementInfo;
+import yoshikihigo.tinypdg.pe.IfStatementInfo;
+import yoshikihigo.tinypdg.pe.TryStatementInfo;
 import yoshikihigo.tinypdg.pe.StatementInfo;
 import yoshikihigo.tinypdg.pe.TypeInfo;
 import yoshikihigo.tinypdg.pe.VariableInfo;
@@ -267,7 +273,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 		} else if (node instanceof Statement) {
 			final ProgramElementInfo ownerBlock = this.stack.isEmpty() ? null
 					: this.stack.peek();
-			final StatementInfo statement = new StatementInfo(ownerBlock,
+			final SimpleStatementInfo statement = new SimpleStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.Unsupported, startLine, endLine);
 			statement.setText(flatten(node));
 			this.stack.push(statement);
@@ -373,7 +379,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo statement = new StatementInfo(ownerBlock,
+			final SimpleStatementInfo statement = new SimpleStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.TypeDeclaration, startLine, endLine);
 			this.stack.push(statement);
 
@@ -486,7 +492,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 
 		final String target = "$switch" + (++this.switchExpressionCount);
 
-		final StatementInfo switchBlock = new StatementInfo(this.nearestBlock(),
+		final ConditionalStatementInfo switchBlock = new ConditionalStatementInfo(this.nearestBlock(),
 				StatementInfo.CATEGORY.Switch, startLine, endLine);
 		this.stack.push(switchBlock);
 
@@ -507,11 +513,13 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			((ASTNode) o).accept(this);
 			final StatementInfo statement = (StatementInfo) this.stack.pop();
 
-			if (StatementInfo.CATEGORY.SimpleBlock == statement.getCategory()) {
+			if (statement instanceof BlockStatementInfo arm
+					&& StatementInfo.CATEGORY.SimpleBlock == statement
+							.getCategory()) {
 				// ブロック形式のアーム。入れ子のまま置くと CFG が中身を
 				// 展開せず 1 個の不透明なノードにしてしまうので、
 				// 文を取り出して並べる。
-				for (final StatementInfo inner : statement.getStatements()) {
+				for (final StatementInfo inner : arm.getStatements()) {
 					inner.setOwnerBlock(switchBlock);
 					switchBlock.addStatement(inner);
 					text.append(inner.getText());
@@ -528,7 +536,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			// フラグは yield が入れ子のブロックの中にあっても立つので、
 			// 矢印形式でもコロン形式でも同じ判定で済む。
 			if (this.yieldConverted) {
-				final StatementInfo jump = new StatementInfo(switchBlock,
+				final SimpleStatementInfo jump = new SimpleStatementInfo(switchBlock,
 						StatementInfo.CATEGORY.Break, statement.startLine,
 						statement.endLine);
 				jump.setText("break;");
@@ -571,7 +579,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 
 		// アームの中身は文なので、文の visit が動くようブロックを一枚かませる。
 		// このブロック自体はグラフに出さず、中身だけを引き取る。
-		final StatementInfo scratch = new StatementInfo(this.nearestBlock(),
+		final BlockStatementInfo scratch = new BlockStatementInfo(this.nearestBlock(),
 				StatementInfo.CATEGORY.SimpleBlock, startLine, endLine);
 		this.stack.push(scratch);
 		for (final Object o : node.statements()) {
@@ -764,7 +772,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo yieldStatement = new StatementInfo(ownerBlock,
+			final SimpleStatementInfo yieldStatement = new SimpleStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.Yield, startLine, endLine);
 			this.stack.push(yieldStatement);
 
@@ -865,11 +873,11 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int bodyStart = this.getStartLineNumber(body);
 			final int bodyEnd = this.getEndLineNumber(body);
 
-			final StatementInfo block = new StatementInfo(lambda,
+			final BlockStatementInfo block = new BlockStatementInfo(lambda,
 					StatementInfo.CATEGORY.SimpleBlock, bodyStart, bodyEnd);
 			this.stack.push(block);
 
-			final StatementInfo returnStatement = new StatementInfo(block,
+			final SimpleStatementInfo returnStatement = new SimpleStatementInfo(block,
 					StatementInfo.CATEGORY.Return, bodyStart, bodyEnd);
 			this.stack.push(returnStatement);
 
@@ -1031,7 +1039,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo statement = new StatementInfo(ownerBlock,
+			final SimpleStatementInfo statement = new SimpleStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.Assert, startLine, endLine);
 			statement.addExpression(expression);
 			statement.addExpression(message);
@@ -1598,7 +1606,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 
 		this.stack.pop();
 		final ProgramElementInfo ownerBlock = this.stack.peek();
-		final StatementInfo statement = new StatementInfo(ownerBlock,
+		final SimpleStatementInfo statement = new SimpleStatementInfo(ownerBlock,
 				StatementInfo.CATEGORY.Expression, startLine, endLine);
 		this.stack.push(statement);
 
@@ -1617,7 +1625,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo statement = new StatementInfo(ownerBlock,
+			final SimpleStatementInfo statement = new SimpleStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.Expression, startLine, endLine);
 			this.stack.push(statement);
 
@@ -1735,7 +1743,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo returnStatement = new StatementInfo(ownerBlock,
+			final SimpleStatementInfo returnStatement = new SimpleStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.Return, startLine, endLine);
 			this.stack.push(returnStatement);
 
@@ -1795,7 +1803,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 
 		this.stack.pop();
 		final ProgramElementInfo ownerBlock = this.stack.peek();
-		final StatementInfo statement = new StatementInfo(ownerBlock,
+		final SimpleStatementInfo statement = new SimpleStatementInfo(ownerBlock,
 				StatementInfo.CATEGORY.Expression, startLine, endLine);
 		this.stack.push(statement);
 
@@ -1857,7 +1865,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo vdStatement = new StatementInfo(ownerBlock,
+			final SimpleStatementInfo vdStatement = new SimpleStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.VariableDeclaration, startLine,
 					endLine);
 			this.stack.push(vdStatement);
@@ -1934,7 +1942,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo doBlock = new StatementInfo(ownerBlock,
+			final ConditionalStatementInfo doBlock = new ConditionalStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.Do, startLine, endLine);
 			this.stack.push(doBlock);
 
@@ -1973,7 +1981,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo foreachBlock = new StatementInfo(ownerBlock,
+			final ForStatementInfo foreachBlock = new ForStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.Foreach, startLine, endLine);
 			foreachBlock.addInitializer(parameter);
 			foreachBlock.addInitializer(expression);
@@ -2004,7 +2012,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo forBlock = new StatementInfo(ownerBlock,
+			final ForStatementInfo forBlock = new ForStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.For, startLine, endLine);
 			this.stack.push(forBlock);
 
@@ -2068,7 +2076,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo ifBlock = new StatementInfo(ownerBlock,
+			final IfStatementInfo ifBlock = new IfStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.If, startLine, endLine);
 			this.stack.push(ifBlock);
 
@@ -2111,7 +2119,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo switchBlock = new StatementInfo(ownerBlock,
+			final ConditionalStatementInfo switchBlock = new ConditionalStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.Switch, startLine, endLine);
 			this.stack.push(switchBlock);
 
@@ -2150,7 +2158,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo synchronizedBlock = new StatementInfo(
+			final ConditionalStatementInfo synchronizedBlock = new ConditionalStatementInfo(
 					ownerBlock, StatementInfo.CATEGORY.Synchronized, startLine,
 					endLine);
 			this.stack.push(synchronizedBlock);
@@ -2183,7 +2191,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo throwStatement = new StatementInfo(ownerBlock,
+			final SimpleStatementInfo throwStatement = new SimpleStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.Throw, startLine, endLine);
 			this.stack.push(throwStatement);
 
@@ -2210,7 +2218,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo tryBlock = new StatementInfo(ownerBlock,
+			final TryStatementInfo tryBlock = new TryStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.Try, startLine, endLine);
 			this.stack.push(tryBlock);
 
@@ -2218,8 +2226,8 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			// 囲む暗黙のブロックでの変数宣言と定義されている。その形どおりに
 			// 宣言文へ組み替えてブロックの先頭に並べると、CFG のノードとして
 			// 現れ、本体からのデータ依存もそのまま繋がる。
-			final StatementInfo resourceBlock = node.resources().isEmpty() ? null
-					: new StatementInfo(tryBlock,
+			final BlockStatementInfo resourceBlock = node.resources().isEmpty() ? null
+					: new BlockStatementInfo(tryBlock,
 							StatementInfo.CATEGORY.SimpleBlock, startLine, endLine);
 
 			final List<StatementInfo> resources = new ArrayList<>();
@@ -2228,7 +2236,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 				((ASTNode) o).accept(this);
 				final ProgramElementInfo resource = this.stack.pop();
 
-				final StatementInfo declaration = new StatementInfo(resourceBlock,
+				final SimpleStatementInfo declaration = new SimpleStatementInfo(resourceBlock,
 						StatementInfo.CATEGORY.VariableDeclaration,
 						resource.startLine, resource.endLine);
 				declaration.addExpression(resource);
@@ -2243,7 +2251,8 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			}
 
 			node.getBody().accept(this);
-			final StatementInfo body = (StatementInfo) this.stack.pop();
+			final BlockStatementInfo body = (BlockStatementInfo) this.stack
+					.pop();
 
 			final StatementInfo effectiveBody;
 			if (null == resourceBlock) {
@@ -2305,7 +2314,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo whileBlock = new StatementInfo(ownerBlock,
+			final ConditionalStatementInfo whileBlock = new ConditionalStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.While, startLine, endLine);
 			this.stack.push(whileBlock);
 
@@ -2337,7 +2346,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo switchCase = new StatementInfo(ownerBlock,
+			final SimpleStatementInfo switchCase = new SimpleStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.Case, startLine, endLine);
 			this.stack.push(switchCase);
 
@@ -2380,7 +2389,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo breakStatement = new StatementInfo(ownerBlock,
+			final SimpleStatementInfo breakStatement = new SimpleStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.Break, startLine, endLine);
 			this.stack.push(breakStatement);
 
@@ -2411,7 +2420,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo continuekStatement = new StatementInfo(
+			final SimpleStatementInfo continuekStatement = new SimpleStatementInfo(
 					ownerBlock, StatementInfo.CATEGORY.Continue, startLine,
 					endLine);
 			this.stack.push(continuekStatement);
@@ -2455,7 +2464,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo simpleBlock = new StatementInfo(ownerBlock,
+			final BlockStatementInfo simpleBlock = new BlockStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.SimpleBlock, startLine, endLine);
 			this.stack.push(simpleBlock);
 
@@ -2495,7 +2504,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo catchBlock = new StatementInfo(ownerBlock,
+			final ConditionalStatementInfo catchBlock = new ConditionalStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.Catch, startLine, endLine);
 			this.stack.push(catchBlock);
 
@@ -2553,7 +2562,7 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final StatementInfo emptyStatement = new StatementInfo(ownerBlock,
+			final SimpleStatementInfo emptyStatement = new SimpleStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.Empty, startLine, endLine);
 			this.stack.push(emptyStatement);
 			emptyStatement.setText(";");

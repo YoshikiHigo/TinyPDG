@@ -24,6 +24,10 @@ import yoshikihigo.tinypdg.pdg.node.PDGParameterNode;
 import yoshikihigo.tinypdg.pe.BlockInfo;
 import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
+import yoshikihigo.tinypdg.pe.BlockStatementInfo;
+import yoshikihigo.tinypdg.pe.ConditionalStatementInfo;
+import yoshikihigo.tinypdg.pe.ForStatementInfo;
+import yoshikihigo.tinypdg.pe.IfStatementInfo;
 import yoshikihigo.tinypdg.pe.StatementInfo;
 import yoshikihigo.tinypdg.pe.VariableInfo;
 
@@ -350,14 +354,15 @@ public class PDG implements Comparable<PDG> {
 			this.buildControlDependence(fromPDGNode, statement, true);
 		}
 
-		if (block instanceof StatementInfo) {
-			for (final StatementInfo statement : ((StatementInfo) block)
+		if (block instanceof IfStatementInfo ifStatement) {
+			for (final StatementInfo statement : ifStatement
 					.getElseStatements()) {
 				this.buildControlDependence(fromPDGNode, statement, false);
 			}
+		}
 
-			for (final ProgramElementInfo updater : ((StatementInfo) block)
-					.getUpdaters()) {
+		if (block instanceof ForStatementInfo forStatement) {
+			for (final ProgramElementInfo updater : forStatement.getUpdaters()) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNormalNode(updater);
 				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
@@ -382,7 +387,11 @@ public class PDG implements Comparable<PDG> {
 		case Switch:
 		case Try:
 		case While: {
-			final ProgramElementInfo condition = statement.getCondition();
+			// 条件式を持たない種別もある。SimpleBlock と try、それに
+			// foreach がそうである。
+			final ProgramElementInfo condition = statement instanceof ConditionalStatementInfo conditional
+					? conditional.getCondition()
+					: null;
 			if (null != condition) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeControlNode(condition);
@@ -391,17 +400,21 @@ public class PDG implements Comparable<PDG> {
 				fromPDGNode.addForwardEdge(edge);
 				toPDGNode.addBackwardEdge(edge);
 			} else {
-				this.buildControlDependence(fromPDGNode, statement);
+				// この case が並べている種別は全て文を抱えられるものである。
+				this.buildControlDependence(fromPDGNode,
+						(BlockStatementInfo) statement);
 			}
 
-			for (final ProgramElementInfo initializer : statement
-					.getInitializers()) {
-				final PDGNode<?> toPDGNode = this.pdgNodeFactory
-						.makeNormalNode(initializer);
-				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
-						fromPDGNode, toPDGNode, type);
-				fromPDGNode.addForwardEdge(edge);
-				toPDGNode.addBackwardEdge(edge);
+			if (statement instanceof ForStatementInfo forStatement) {
+				for (final ProgramElementInfo initializer : forStatement
+						.getInitializers()) {
+					final PDGNode<?> toPDGNode = this.pdgNodeFactory
+							.makeNormalNode(initializer);
+					final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
+							fromPDGNode, toPDGNode, type);
+					fromPDGNode.addForwardEdge(edge);
+					toPDGNode.addBackwardEdge(edge);
+				}
 			}
 			break;
 		}

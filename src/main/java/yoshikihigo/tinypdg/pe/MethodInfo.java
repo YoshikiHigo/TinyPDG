@@ -41,11 +41,7 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 	public void setStatement(final StatementInfo statement) {
 		Objects.requireNonNull(statement, "\"statement\" is null.");
 		this.statements.clear();
-		if (StatementInfo.CATEGORY.SimpleBlock == statement.getCategory()) {
-			this.statements.addAll(statement.getStatements());
-		} else {
-			this.statements.add(statement);
-		}
+		this.statements.addAll(BlockStatementInfo.flatten(statement));
 	}
 
 	@Override
