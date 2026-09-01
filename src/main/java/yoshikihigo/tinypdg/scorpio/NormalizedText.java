@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import yoshikihigo.tinypdg.TinyPDGException;
 import yoshikihigo.tinypdg.pe.ClassInfo;
 import yoshikihigo.tinypdg.pe.ExpressionInfo;
 import yoshikihigo.tinypdg.pe.OperatorInfo;
@@ -211,9 +212,27 @@ public class NormalizedText {
 			}
 			case While:
 				break;
-			default:
-				assert false : "invalide status.";
+			case Yield: {
+				text.append("yield");
+				if (0 < core.getExpressions().size()) {
+					text.append(" ");
+					final ProgramElementInfo expression = core.getExpressions()
+							.get(0);
+					final NormalizedText expressionText = new NormalizedText(
+							expression);
+					text.append(expressionText.getText());
+				}
+				text.append(";");
 				break;
+			}
+			case Unsupported:
+				// 解釈できない構文は、ソース断片をそのまま持っている。
+				// 正規化はできないが、落とすと中身が消えてしまう。
+				text.append(core.getText());
+				break;
+			default:
+				throw new TinyPDGException(
+						"正規化できない文の種別です: " + core.getCategory());
 			}
 			this.text = text.toString();
 		}
@@ -588,9 +607,34 @@ public class NormalizedText {
 				}
 				break;
 			}
-			default:
-				assert false : "invalid status.";
+			case Lambda:
+			case MethodReference:
+				// 本体は別の解析単位になっているか、そもそも本体を持たない。
+				// ここでは字面をそのまま使う。
+				text.append(coreExp.getText());
 				break;
+			case SwitchExpression:
+			case Pattern: {
+				// 子を順に正規化して並べる。
+				boolean first = true;
+				for (final ProgramElementInfo expression : coreExp
+						.getExpressions()) {
+					if (!first) {
+						text.append(" ");
+					}
+					final NormalizedText expressionText = new NormalizedText(
+							expression);
+					text.append(expressionText.getText());
+					first = false;
+				}
+				break;
+			}
+			case Unsupported:
+				text.append(coreExp.getText());
+				break;
+			default:
+				throw new TinyPDGException(
+						"正規化できない式の種別です: " + coreExp.category);
 
 			}
 
