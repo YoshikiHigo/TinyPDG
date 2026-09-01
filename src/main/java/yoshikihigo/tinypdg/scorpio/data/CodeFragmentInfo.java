@@ -35,7 +35,11 @@ public class CodeFragmentInfo implements Comparable<CodeFragmentInfo> {
 		}
 	}
 
-	public void addElement(final ProgramElementInfo element) {
+	/**
+	 * コンストラクタから呼ぶため final にしてある。上書きできると、
+	 * サブクラスのフィールドが初期化される前にその上書き版が動きうる。
+	 */
+	final public void addElement(final ProgramElementInfo element) {
 		assert null != element : "\"element\" is null.";
 		this.elements.add(element);
 	}
