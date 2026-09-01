@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.SortedSet;
+import java.util.function.Function;
 import java.util.TreeSet;
 
 public class ExpressionInfo extends ProgramElementInfo {
@@ -113,89 +114,125 @@ public class ExpressionInfo extends ProgramElementInfo {
 		return this.anonymousClassDeclaration;
 	}
 
+	/** 名前 1 つだけを含む集合を作る。 */
+	private static SortedSet<String> only(final String name) {
+		final SortedSet<String> variables = new TreeSet<>();
+		variables.add(name);
+		return variables;
+	}
+
+	/**
+	 * 子要素をひととおり辿って変数を集める。
+	 *
+	 * <p>ほとんどの種別の式は、自分では何も足さず子の結果を集めるだけである。
+	 * その共通部分をここに置く。
+	 *
+	 * <p>子は 3 か所に分かれて入っている。expressions のほかに、修飾子が
+	 * 専用のフィールドに、無名クラスの本体がさらに別のフィールドに入る。
+	 * 修飾子を辿り忘れると、reader.read() の reader のようなレシーバが
+	 * まるごと抜け落ちる。
+	 */
+	private SortedSet<String> collectFromChildren(
+			final Function<ProgramElementInfo, SortedSet<String>> collector) {
+
+		final SortedSet<String> variables = new TreeSet<>();
+
+		for (final ProgramElementInfo expression : this.expressions) {
+			variables.addAll(collector.apply(expression));
+		}
+
+		if (null != this.qualifier) {
+			variables.addAll(collector.apply(this.qualifier));
+		}
+
+		if (null != this.anonymousClassDeclaration) {
+			for (final MethodInfo method : this.anonymousClassDeclaration
+					.getMethods()) {
+				variables.addAll(collector.apply(method));
+			}
+		}
+
+		return variables;
+	}
+
+	/*
+	 * 以下 2 つは switch 文ではなく switch 式である。default 節を持たない
+	 * 代わりに全ての定数を挙げてあり、CATEGORY に定数を足すとコンパイルが
+	 * 通らなくなる。新しい種別をどちらの扱いにするか決めることを強制される。
+	 *
+	 * 文ではなく式にしているのはそのためである。switch 文は網羅していなくても
+	 * コンパイルが通ってしまい、書き漏らした種別は黙って何もせず素通りする。
+	 * 網羅性を検査してもらえるのは switch 式だけである。
+	 */
+
 	@Override
 	public SortedSet<String> getAssignedVariables() {
 
-		final SortedSet<String> variables = new TreeSet<>();
-		switch (this.category) {
-		case Assignment:
-			final ProgramElementInfo left = this.expressions.get(0);
-			variables.addAll(left.getReferencedVariables());
-			final ProgramElementInfo right = this.expressions.get(2);
-			variables.addAll(right.getAssignedVariables());
-			break;
-		case VariableDeclarationFragment:
-			variables.add(this.getExpressions().get(0).getText());
-			break;
-		case Postfix:
-		case Prefix:
-			final ProgramElementInfo operand = this.expressions.get(0);
-			variables.addAll(operand.getReferencedVariables());
-			break;
-		default:
-			for (final ProgramElementInfo expression : this.expressions) {
-				variables.addAll(expression.getAssignedVariables());
-			}
-			// 修飾子は expressions とは別のフィールドに入るため、
-			// ここで明示的に辿らないと部分木がまるごと抜け落ちる。
-			if (null != this.qualifier) {
-				variables.addAll(this.qualifier.getAssignedVariables());
-			}
-			if (null != this.getAnonymousClassDeclaration()) {
-				for (final MethodInfo method : this
-						.getAnonymousClassDeclaration().getMethods()) {
-					variables.addAll(method.getAssignedVariables());
-				}
-			}
-			break;
+		return switch (this.category) {
+
+		case Assignment -> {
+			// 左辺が代入先。右辺は右辺でさらに代入しているかもしれない (a = b = c)。
+			final SortedSet<String> variables = new TreeSet<>(
+					this.expressions.get(0).getReferencedVariables());
+			variables.addAll(this.expressions.get(2).getAssignedVariables());
+			yield variables;
 		}
-		return variables;
+
+		case VariableDeclarationFragment ->
+			only(this.expressions.get(0).getText());
+
+		case Postfix, Prefix ->
+			// i++ は i を読み、かつ書く。
+			new TreeSet<>(this.expressions.get(0).getReferencedVariables());
+
+		case ArrayAccess, ArrayCreation, ArrayInitializer,
+				Boolean, Cast, Character,
+				ClassInstanceCreation, ConstructorInvocation, FieldAccess,
+				Infix, Instanceof, MethodInvocation,
+				Null, Number, Parenthesized,
+				QualifiedName, SimpleName, String,
+				SuperConstructorInvocation, SuperFieldAccess, SuperMethodInvocation,
+				This, Trinomial, TypeLiteral,
+				VariableDeclarationExpression, MethodEnter, Lambda,
+				MethodReference, SwitchExpression, Pattern,
+				Unsupported ->
+			collectFromChildren(ProgramElementInfo::getAssignedVariables);
+		};
 	}
 
 	@Override
 	public SortedSet<String> getReferencedVariables() {
-		final SortedSet<String> variables = new TreeSet<>();
-		switch (this.category) {
-		case Assignment:
-			final ProgramElementInfo right = this.expressions.get(2);
-			variables.addAll(right.getReferencedVariables());
-			break;
-		case VariableDeclarationFragment:
-			if (1 < this.getExpressions().size()) {
-				variables.addAll(this.getExpressions().get(1)
-						.getReferencedVariables());
-			}
-			break;
-		case Postfix:
-		case Prefix:
-			final ProgramElementInfo operand = this.expressions.get(0);
-			variables.addAll(operand.getReferencedVariables());
-			break;
-		case SimpleName:
-			variables.add(this.getText());
-			break;
-		default:
-			for (final ProgramElementInfo expression : this.expressions) {
-				variables.addAll(expression.getReferencedVariables());
-			}
-			// レシーバも参照である。reader.read() は reader を読んでいる。
-			//
-			// FieldAccess は受け手を addExpression で持つので以前から
-			// 数えられていたが、QualifiedName・MethodInvocation・
-			// SuperConstructorInvocation は setQualifier で別のフィールドに
-			// 入れるため、この走査から漏れていた。構造的に同じものが、
-			// visitor がどちらのセッターを使ったかだけで別扱いになっていた。
-			if (null != this.qualifier) {
-				variables.addAll(this.qualifier.getReferencedVariables());
-			}
-			if (null != this.getAnonymousClassDeclaration()) {
-				for (final MethodInfo method : this
-						.getAnonymousClassDeclaration().getMethods()) {
-					variables.addAll(method.getReferencedVariables());
-				}
-			}
-			break;
-		}
-		return variables;
+
+		return switch (this.category) {
+
+		case Assignment ->
+			// 左辺は書き込み先であって読み出しではない。
+			new TreeSet<>(this.expressions.get(2).getReferencedVariables());
+
+		case VariableDeclarationFragment ->
+			// 初期化子を持たない宣言では、読み出している変数はない。
+			1 < this.expressions.size()
+					? new TreeSet<>(this.expressions.get(1)
+							.getReferencedVariables())
+					: new TreeSet<>();
+
+		case Postfix, Prefix ->
+			new TreeSet<>(this.expressions.get(0).getReferencedVariables());
+
+		case SimpleName ->
+			only(this.getText());
+
+		case ArrayAccess, ArrayCreation, ArrayInitializer,
+				Boolean, Cast, Character,
+				ClassInstanceCreation, ConstructorInvocation, FieldAccess,
+				Infix, Instanceof, MethodInvocation,
+				Null, Number, Parenthesized,
+				QualifiedName, String, SuperConstructorInvocation,
+				SuperFieldAccess, SuperMethodInvocation, This,
+				Trinomial, TypeLiteral, VariableDeclarationExpression,
+				MethodEnter, Lambda, MethodReference,
+				SwitchExpression, Pattern, Unsupported ->
+			collectFromChildren(ProgramElementInfo::getReferencedVariables);
+		};
 	}
 }
