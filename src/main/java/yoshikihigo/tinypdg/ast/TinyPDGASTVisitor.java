@@ -3,13 +3,18 @@ package yoshikihigo.tinypdg.ast;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 
+import java.util.Set;
+import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTParser;
@@ -36,6 +41,7 @@ import org.eclipse.jdt.core.dom.ContinueStatement;
 import org.eclipse.jdt.core.dom.DoStatement;
 import org.eclipse.jdt.core.dom.EmptyStatement;
 import org.eclipse.jdt.core.dom.EnhancedForStatement;
+import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.ForStatement;
@@ -54,6 +60,7 @@ import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
+import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
 import org.eclipse.jdt.core.dom.SuperFieldAccess;
@@ -85,10 +92,27 @@ import yoshikihigo.tinypdg.pe.VariableInfo;
 public class TinyPDGASTVisitor extends ASTVisitor {
 
 	/**
-	 * ソースファイルを UTF-8 として読み込み、AST を構築する。
+	 * 解析対象として既定で仮定する Java のバージョン。
+	 *
+	 * <p>現時点の LTS である Java 25。呼び出し側は createAST の第 3 引数で
+	 * これ以外のバージョンを指定できる。
+	 */
+	static public final String DEFAULT_JAVA_VERSION = JavaCore.VERSION_25;
+
+	/**
+	 * ソースファイルを UTF-8 の Java {@value #DEFAULT_JAVA_VERSION} として
+	 * 読み込み、AST を構築する。
 	 */
 	static public CompilationUnit createAST(final File file) {
-		return createAST(file, StandardCharsets.UTF_8);
+		return createAST(file, StandardCharsets.UTF_8, DEFAULT_JAVA_VERSION);
+	}
+
+	/**
+	 * ソースファイルを Java {@value #DEFAULT_JAVA_VERSION} として読み込み、
+	 * AST を構築する。
+	 */
+	static public CompilationUnit createAST(final File file, final Charset charset) {
+		return createAST(file, charset, DEFAULT_JAVA_VERSION);
 	}
 
 	/**
@@ -99,8 +123,12 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 	 * ソースを正しく読めない。Java 18 以降は UTF-8 が既定の文字コードでもある
 	 * ため既定を UTF-8 に改め、他の文字コードが必要な場合は呼び出し側が
 	 * 指定できるようにした。
+	 *
+	 * @param javaVersion 解析対象として仮定する Java のバージョン
+	 *                    ("8", "11", "17", "21", "25" など)
 	 */
-	static public CompilationUnit createAST(final File file, final Charset charset) {
+	static public CompilationUnit createAST(final File file, final Charset charset,
+			final String javaVersion) {
 
 		final String lineSeparator = System.lineSeparator();
 		final StringBuilder text = new StringBuilder();
@@ -116,7 +144,16 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			e.printStackTrace();
 		}
 
-		final ASTParser parser = ASTParser.newParser(AST.JLS4);
+		// AST の API レベルと、解析対象の言語レベルは別物である。
+		// 前者はどの種類のノードを表現できるかを決めるだけなので、JDT が
+		// 対応する最新に固定しておけばよい。実際にどの構文を受理するかは
+		// コンパイラオプションの側で決まる。
+		final ASTParser parser = ASTParser.newParser(AST.getJLSLatest());
+
+		final Map<String, String> options = JavaCore.getOptions();
+		JavaCore.setComplianceOptions(javaVersion, options);
+		parser.setCompilerOptions(options);
+
 		parser.setSource(text.toString().toCharArray());
 		return (CompilationUnit) parser.createAST(null);
 	}
@@ -132,6 +169,75 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 		this.root = root;
 		this.methods = methods;
 		this.stack = new ArrayDeque<>();
+	}
+
+	/**
+	 * このクラスが visit メソッドを用意しているノード型。
+	 *
+	 * <p>宣言済みの visit メソッドから自動的に求めるので、visit を追加した
+	 * ときにここを更新し忘れて食い違う、ということが起きない。
+	 */
+	static private final Set<Class<?>> HANDLED_NODE_TYPES = handledNodeTypes();
+
+	static private Set<Class<?>> handledNodeTypes() {
+		final Set<Class<?>> types = new HashSet<>();
+		for (Class<?> c = TinyPDGASTVisitor.class; null != c
+				&& ASTVisitor.class != c; c = c.getSuperclass()) {
+			for (final Method method : c.getDeclaredMethods()) {
+				if ("visit".equals(method.getName()) && 1 == method.getParameterCount()
+						&& ASTNode.class.isAssignableFrom(method.getParameterTypes()[0])) {
+					types.add(method.getParameterTypes()[0]);
+				}
+			}
+		}
+		return Set.copyOf(types);
+	}
+
+	/**
+	 * 未対応のノード型を、その内部に立ち入らずに 1 個の要素として扱う。
+	 *
+	 * <p>このクラスは全ての visit が false を返し、子ノードの走査を自分で
+	 * 書いたうえで、スタックへの push と pop を対にする設計になっている。
+	 * ASTVisitor の既定は「子を辿る」なので、visit を用意していないノードの
+	 * 内部に勝手に降りると、対応する pop のない push が積まれてスタックが
+	 * ずれ、離れた場所で ClassCastException として現れる。
+	 *
+	 * <p>そこで未対応ノードでは子を辿らず、式なら 1 個の ExpressionInfo を、
+	 * 文なら 1 個の StatementInfo を積む。親は必ず 1 個 pop することを
+	 * 前提にしているので、この約束さえ守れば構造は壊れない。解析の精度は
+	 * その構文の内部について落ちるが、落ちるのは精度だけで済む。
+	 */
+	@Override
+	public boolean preVisit2(final ASTNode node) {
+
+		if (HANDLED_NODE_TYPES.contains(node.getClass())) {
+			return true;
+		}
+
+		final int startLine = this.getStartLineNumber(node);
+		final int endLine = this.getEndLineNumber(node);
+
+		if (node instanceof Expression) {
+			final ExpressionInfo expression = new ExpressionInfo(
+					ExpressionInfo.CATEGORY.Unsupported, startLine, endLine);
+			expression.setText(flatten(node));
+			this.stack.push(expression);
+
+		} else if (node instanceof Statement) {
+			final ProgramElementInfo ownerBlock = this.stack.isEmpty() ? null
+					: this.stack.peek();
+			final StatementInfo statement = new StatementInfo(ownerBlock,
+					StatementInfo.CATEGORY.Unsupported, startLine, endLine);
+			statement.setText(flatten(node));
+			this.stack.push(statement);
+		}
+
+		return false;
+	}
+
+	/** ノードのソース表現を 1 行に潰して返す。 */
+	static private String flatten(final ASTNode node) {
+		return node.toString().trim().replaceAll("\\s+", " ");
 	}
 
 	/**
@@ -1601,18 +1707,29 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 
 			final StringBuilder text = new StringBuilder();
 
-			if (null != node.getExpression()) {
-				node.getExpression().accept(this);
-				final ProgramElementInfo expression = this.stack.pop();
-				switchCase.addExpression(expression);
-
-				text.append("case ");
-				text.append(expression.getText());
-			} else {
+			// JLS14 以降、switch ラベルは複数の式を持ちうる (case 1, 2, 3:)。
+			// 旧 API の getExpression() は JLS14 以降の AST では実際のラベルを
+			// 返さず、空の SimpleName を遅延生成して返してしまうため使えない。
+			final List<?> expressions = node.expressions();
+			if (expressions.isEmpty()) {
 				text.append("default");
+			} else {
+				text.append("case ");
+				boolean first = true;
+				for (final Object o : expressions) {
+					if (!first) {
+						text.append(", ");
+					}
+					((ASTNode) o).accept(this);
+					final ProgramElementInfo expression = this.stack.pop();
+					switchCase.addExpression(expression);
+					text.append(expression.getText());
+					first = false;
+				}
 			}
 
-			text.append(":");
+			// case X -> ... の矢印形式か、従来の case X: 形式か。
+			text.append(node.isSwitchLabeledRule() ? " ->" : ":");
 			switchCase.setText(text.toString());
 		}
 

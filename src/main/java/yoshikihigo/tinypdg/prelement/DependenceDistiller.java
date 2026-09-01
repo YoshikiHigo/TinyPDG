@@ -1,6 +1,7 @@
 package yoshikihigo.tinypdg.prelement;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -77,6 +78,15 @@ public class DependenceDistiller {
 				options.addOption(t);
 			}
 
+			{
+				final Option j = new Option("j", "java-version", true,
+						"Java version assumed for the target source files");
+				j.setArgName("version");
+				j.setArgs(1);
+				j.setRequired(false);
+				options.addOption(j);
+			}
+
 			final CommandLineParser parser = new DefaultParser();
 			final CommandLine cmd = parser.parse(options, args);
 
@@ -98,11 +108,14 @@ public class DependenceDistiller {
 			System.out.print("generating PDGs ... ");
 			final PDG[] pdgArray;
 			{
+				final String javaVersion = cmd.hasOption("j")
+						? cmd.getOptionValue("j")
+						: TinyPDGASTVisitor.DEFAULT_JAVA_VERSION;
 				final List<File> files = getFiles(target);
 				final List<MethodInfo> methods = new ArrayList<>();
 				for (final File file : files) {
-					final CompilationUnit unit = TinyPDGASTVisitor
-							.createAST(file);
+					final CompilationUnit unit = TinyPDGASTVisitor.createAST(
+							file, StandardCharsets.UTF_8, javaVersion);
 					final TinyPDGASTVisitor visitor = new TinyPDGASTVisitor(
 							file.getAbsolutePath(), unit, methods);
 					unit.accept(visitor);

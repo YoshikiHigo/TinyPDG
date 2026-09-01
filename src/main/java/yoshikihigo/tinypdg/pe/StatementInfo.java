@@ -52,7 +52,13 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 				"IF"), For("FOR"), Foreach("FOREACH"), Return("RETURN"), SimpleBlock(
 				"SimpleBlock"), Synchronized("SYNCHRONIZED"), Switch("SWITCH"), Throw(
 				"SWITCH"), Try("TRY"), TypeDeclaration("TYPEDECLARATION"), VariableDeclaration(
-				"VARIABLEDECLARATION"), While("WHILE");
+				"VARIABLEDECLARATION"), While("WHILE"),
+
+		/**
+		 * このツールがまだ個別に解釈できない構文。ソース断片をそのまま
+		 * 保持する不透明な 1 要素として扱われる。
+		 */
+		Unsupported("UNSUPPORTED");
 
 		final public String id;
 

@@ -29,11 +29,9 @@ dependencies {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 
-    // 残る警告は 6 件:
-    //   deprecation x3 -- AST.JLS4 と SwitchCase.getExpression()。
-    //                     対象言語を Java 25 へ上げる作業で解消する。
-    //   this-escape x3 -- コンストラクタからオーバライド可能なメソッドを
-    //                     呼んでいる箇所。構造の見直しが必要なため保留。
+    // 残る警告は 3 件で、いずれも this-escape。
+    // コンストラクタからオーバライド可能なメソッドを呼んでいる箇所で、
+    // 解消にはクラス階層の見直しが必要なため保留している。
     options.compilerArgs << '-Xlint:all'
 }
 

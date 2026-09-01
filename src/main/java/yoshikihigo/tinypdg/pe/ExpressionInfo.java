@@ -37,7 +37,13 @@ public class ExpressionInfo extends ProgramElementInfo {
 				"SUPERMETHODINVOCATION"), This("THIS"), Trinomial("TRINOMIAL"), TypeLiteral(
 				"TYPELITERAL"), VariableDeclarationExpression(
 				"VARIABLEDECLARATIONEXPRESSION"), VariableDeclarationFragment(
-				"VARIABLEDECLARATIONFRAGMENT"), MethodEnter("METHODENTER");
+				"VARIABLEDECLARATIONFRAGMENT"), MethodEnter("METHODENTER"),
+
+		/**
+		 * このツールがまだ個別に解釈できない構文。ソース断片をそのまま
+		 * 保持する不透明な 1 要素として扱われる。
+		 */
+		Unsupported("UNSUPPORTED");
 
 		final public String id;
 

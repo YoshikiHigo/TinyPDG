@@ -75,6 +75,15 @@ public class Writer {
 				options.addOption(p);
 			}
 
+			{
+				final Option j = new Option("j", "java-version", true,
+						"Java version assumed for the target source files");
+				j.setArgName("version");
+				j.setArgs(1);
+				j.setRequired(false);
+				options.addOption(j);
+			}
+
 			// {
 			// final Option o = new Option("o", "optimize", true,
 			// "remove unnecessary nodes from CFGs and PDGs");
@@ -103,10 +112,15 @@ public class Writer {
 				System.exit(0);
 			}
 
+			final String javaVersion = cmd.hasOption("j")
+					? cmd.getOptionValue("j")
+					: TinyPDGASTVisitor.DEFAULT_JAVA_VERSION;
+
 			final List<File> files = getFiles(target);
 			final List<MethodInfo> methods = new ArrayList<>();
 			for (final File file : files) {
-				final CompilationUnit unit = TinyPDGASTVisitor.createAST(file);
+				final CompilationUnit unit = TinyPDGASTVisitor.createAST(
+						file, StandardCharsets.UTF_8, javaVersion);
 				final TinyPDGASTVisitor visitor = new TinyPDGASTVisitor(
 						file.getAbsolutePath(), unit, methods);
 				unit.accept(visitor);
