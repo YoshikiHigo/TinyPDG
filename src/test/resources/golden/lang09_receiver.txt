@@ -1,0 +1,107 @@
+# sample: lang09_receiver
+
+## CFG chainedReceiver <12...16>
+nodes:
+  0: [enter,normal] final String first = values.get(0); <13>
+  1: [normal] final int n = first.length(); <14>
+  2: [exit,normal] return n; <15>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+
+## PDG chainedReceiver <12...16>
+nodes:
+  0: [parameter] final List<String> values <12>
+  1: [normal] final String first = values.get(0); <13>
+  2: [normal] final int n = first.length(); <14>
+  3: [exit] return n; <15>
+  4: [enter,control] Enter <12...16>
+edges:
+  0 -> 1 [date: values]
+  1 -> 2 [date: first]
+  1 -> 2 [execution: ]
+  2 -> 3 [date: n]
+  2 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 1 [control: true]
+  4 -> 1 [execution: ]
+  4 -> 2 [control: true]
+  4 -> 3 [control: true]
+
+## CFG methodInvocationReceiver <7...10>
+nodes:
+  0: [enter,normal] final int n = s.length(); <8>
+  1: [exit,normal] return n; <9>
+edges:
+  0 -> 1 []
+
+## PDG methodInvocationReceiver <7...10>
+nodes:
+  0: [parameter] final String s <7>
+  1: [normal] final int n = s.length(); <8>
+  2: [exit] return n; <9>
+  3: [enter,control] Enter <7...10>
+edges:
+  0 -> 1 [date: s]
+  1 -> 2 [date: n]
+  1 -> 2 [execution: ]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 1 [execution: ]
+  3 -> 2 [control: true]
+
+## CFG qualifiedName <18...21>
+nodes:
+  0: [enter,normal] final int v = holder.field; <19>
+  1: [exit,normal] return v; <20>
+edges:
+  0 -> 1 []
+
+## PDG qualifiedName <18...21>
+nodes:
+  0: [parameter] final Holder holder <18>
+  1: [normal] final int v = holder.field; <19>
+  2: [exit] return v; <20>
+  3: [enter,control] Enter <18...21>
+edges:
+  0 -> 1 [date: holder]
+  1 -> 2 [date: v]
+  1 -> 2 [execution: ]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 1 [execution: ]
+  3 -> 2 [control: true]
+
+## CFG reassignedReceiver <23...28>
+nodes:
+  0: [enter,normal] int n = s.length(); <24>
+  1: [normal] s = "replaced"; <25>
+  2: [normal] n = n + s.length(); <26>
+  3: [exit,normal] return n; <27>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 3 []
+
+## PDG reassignedReceiver <23...28>
+nodes:
+  0: [parameter] String s <23>
+  1: [normal] int n = s.length(); <24>
+  2: [normal] s = "replaced"; <25>
+  3: [normal] n = n + s.length(); <26>
+  4: [exit] return n; <27>
+  5: [enter,control] Enter <23...28>
+edges:
+  0 -> 1 [date: s]
+  1 -> 2 [execution: ]
+  1 -> 3 [date: n]
+  2 -> 3 [date: s]
+  2 -> 3 [execution: ]
+  3 -> 4 [date: n]
+  3 -> 4 [execution: ]
+  5 -> 0 [control: true]
+  5 -> 1 [control: true]
+  5 -> 1 [execution: ]
+  5 -> 2 [control: true]
+  5 -> 3 [control: true]
+  5 -> 4 [control: true]

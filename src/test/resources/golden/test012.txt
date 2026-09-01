@@ -38,7 +38,9 @@ nodes:
   10: [exit] return c; <12>
   11: [enter,control] Enter <5...13>
 edges:
+  0 -> 4 [date: a]
   0 -> 9 [date: a]
+  1 -> 7 [date: b]
   1 -> 9 [date: b]
   2 -> 3 [execution: ]
   2 -> 10 [date: c]

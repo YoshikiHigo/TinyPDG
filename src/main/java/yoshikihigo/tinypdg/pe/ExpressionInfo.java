@@ -117,6 +117,11 @@ public class ExpressionInfo extends ProgramElementInfo {
 			for (final ProgramElementInfo expression : this.expressions) {
 				variables.addAll(expression.getAssignedVariables());
 			}
+			// 修飾子は expressions とは別のフィールドに入るため、
+			// ここで明示的に辿らないと部分木がまるごと抜け落ちる。
+			if (null != this.qualifier) {
+				variables.addAll(this.qualifier.getAssignedVariables());
+			}
 			if (null != this.getAnonymousClassDeclaration()) {
 				for (final MethodInfo method : this
 						.getAnonymousClassDeclaration().getMethods()) {
@@ -153,6 +158,16 @@ public class ExpressionInfo extends ProgramElementInfo {
 		default:
 			for (final ProgramElementInfo expression : this.expressions) {
 				variables.addAll(expression.getReferencedVariables());
+			}
+			// レシーバも参照である。reader.read() は reader を読んでいる。
+			//
+			// FieldAccess は受け手を addExpression で持つので以前から
+			// 数えられていたが、QualifiedName・MethodInvocation・
+			// SuperConstructorInvocation は setQualifier で別のフィールドに
+			// 入れるため、この走査から漏れていた。構造的に同じものが、
+			// visitor がどちらのセッターを使ったかだけで別扱いになっていた。
+			if (null != this.qualifier) {
+				variables.addAll(this.qualifier.getReferencedVariables());
 			}
 			if (null != this.getAnonymousClassDeclaration()) {
 				for (final MethodInfo method : this

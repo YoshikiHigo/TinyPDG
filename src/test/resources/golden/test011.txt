@@ -50,6 +50,7 @@ nodes:
 edges:
   0 -> 1 [date: number]
   0 -> 1 [execution: ]
+  1 -> 2 [date: a]
   1 -> 2 [execution: ]
   3 -> 0 [control: true]
   3 -> 0 [execution: ]

@@ -45,6 +45,7 @@ nodes:
   7: [enter,control] Enter <8...15>
 edges:
   1 -> 2 [execution: ]
+  1 -> 5 [date: length]
   2 -> 5 [date: total]
   2 -> 5 [execution: ]
   5 -> 5 [date: total]
@@ -105,6 +106,7 @@ nodes:
   1: [exit] return s.length(); <9>
   2: [enter,control] Enter <9>
 edges:
+  0 -> 1 [date: s]
   2 -> 0 [control: true]
   2 -> 1 [control: true]
   2 -> 1 [execution: ]
@@ -123,6 +125,7 @@ nodes:
   2: [exit] return sum; <27>
   3: [enter,control] Enter <25...28>
 edges:
+  0 -> 1 [date: values]
   1 -> 2 [date: sum]
   1 -> 2 [execution: ]
   3 -> 0 [control: true]

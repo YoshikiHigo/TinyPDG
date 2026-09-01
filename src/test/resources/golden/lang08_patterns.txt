@@ -128,6 +128,7 @@ nodes:
 edges:
   0 -> 2 [date: source]
   1 -> 2 [execution: ]
+  2 -> 3 [date: reader]
   2 -> 3 [execution: ]
   3 -> 6 [date: total]
   3 -> 6 [execution: ]

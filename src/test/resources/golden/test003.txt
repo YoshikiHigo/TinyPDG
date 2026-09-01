@@ -27,8 +27,11 @@ nodes:
   6: [exit] return text.toString(); <9>
   7: [enter,control] Enter <4...10>
 edges:
+  0 -> 3 [date: texts]
   0 -> 5 [date: texts]
   1 -> 2 [execution: ]
+  1 -> 5 [date: text]
+  1 -> 6 [date: text]
   2 -> 3 [date: i]
   2 -> 3 [execution: ]
   2 -> 4 [date: i]

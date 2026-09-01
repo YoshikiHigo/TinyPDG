@@ -22,7 +22,11 @@ nodes:
   4: [exit] return text.toString(); <10>
   5: [enter,control] Enter <5...11>
 edges:
+  0 -> 1 [date: text]
   0 -> 1 [execution: ]
+  0 -> 2 [date: text]
+  0 -> 3 [date: text]
+  0 -> 4 [date: text]
   1 -> 2 [execution: ]
   2 -> 3 [execution: ]
   3 -> 4 [execution: ]
@@ -58,7 +62,12 @@ nodes:
   5: [exit] return text.toString(); <19>
   6: [enter,control] Enter <13...20>
 edges:
+  0 -> 1 [date: text]
   0 -> 1 [execution: ]
+  0 -> 2 [date: text]
+  0 -> 3 [date: text]
+  0 -> 4 [date: text]
+  0 -> 5 [date: text]
   1 -> 2 [execution: ]
   2 -> 3 [execution: ]
   3 -> 4 [execution: ]

@@ -24,6 +24,7 @@ nodes:
   5: [exit] System.out.println(""); <50>
   6: [enter,control] Enter <46...51>
 edges:
+  0 -> 2 [date: arr]
   0 -> 4 [date: arr]
   1 -> 2 [date: i]
   1 -> 2 [execution: ]
