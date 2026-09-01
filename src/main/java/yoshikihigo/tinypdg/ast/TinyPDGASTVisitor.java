@@ -13,6 +13,7 @@ import java.util.List;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTParser;
+import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AnnotationTypeDeclaration;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.ArrayAccess;
@@ -70,7 +71,6 @@ import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
-import org.eclipse.jdt.internal.core.dom.NaiveASTFlattener;
 
 import yoshikihigo.tinypdg.pe.BlockInfo;
 import yoshikihigo.tinypdg.pe.ClassInfo;
@@ -82,7 +82,7 @@ import yoshikihigo.tinypdg.pe.StatementInfo;
 import yoshikihigo.tinypdg.pe.TypeInfo;
 import yoshikihigo.tinypdg.pe.VariableInfo;
 
-public class TinyPDGASTVisitor extends NaiveASTFlattener {
+public class TinyPDGASTVisitor extends ASTVisitor {
 
 	/**
 	 * ソースファイルを UTF-8 として読み込み、AST を構築する。
@@ -132,6 +132,24 @@ public class TinyPDGASTVisitor extends NaiveASTFlattener {
 		this.root = root;
 		this.methods = methods;
 		this.stack = new ArrayDeque<>();
+	}
+
+	/**
+	 * コンパイル単位からは型宣言だけを辿る。
+	 *
+	 * <p>このクラスは全ての visit が false を返し、子ノードの走査を自分で
+	 * 書く方針で作られている。NaiveASTFlattener を継承していた頃は、
+	 * 未対応ノードの走査を基底クラスの visit が肩代わりしていた。
+	 * ASTVisitor は既定で全ての子を辿るため、入口をここで明示しておかないと
+	 * package 宣言や import 宣言の名前まで降りてしまい、visit(SimpleName) が
+	 * 誰も pop しない要素をスタックに積む。
+	 */
+	@Override
+	public boolean visit(final CompilationUnit node) {
+		for (final Object type : node.types()) {
+			((ASTNode) type).accept(this);
+		}
+		return false;
 	}
 
 	@Override
