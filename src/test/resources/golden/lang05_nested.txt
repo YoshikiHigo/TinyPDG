@@ -13,7 +13,7 @@ nodes:
   1: [exit] return v; <10>
   2: [enter,control] Enter <8...11>
 edges:
-  0 -> 1 [date: v]
+  0 -> 1 [data: v]
   0 -> 1 [execution: ]
   2 -> 0 [control: true]
   2 -> 0 [execution: ]
@@ -32,7 +32,7 @@ nodes:
   1: [exit] System.out.println(local); <21>
   2: [enter,control] Enter <18...22>
 edges:
-  0 -> 1 [date: local]
+  0 -> 1 [data: local]
   0 -> 1 [execution: ]
   2 -> 0 [control: true]
   2 -> 0 [execution: ]
@@ -61,11 +61,11 @@ nodes:
   5: [enter,control] Enter <14...26>
 edges:
   0 -> 1 [execution: ]
-  1 -> 2 [date: inner]
-  1 -> 2 [date: value]
+  1 -> 2 [data: inner]
+  1 -> 2 [data: value]
   1 -> 2 [execution: ]
-  1 -> 4 [date: inner]
-  2 -> 3 [date: r]
+  1 -> 4 [data: inner]
+  2 -> 3 [data: r]
   2 -> 3 [execution: ]
   3 -> 4 [execution: ]
   5 -> 0 [control: true]

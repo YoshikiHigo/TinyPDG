@@ -11,7 +11,7 @@ nodes:
   1: [exit] this.code = code; <11>
   2: [enter,control] Enter <10...12>
 edges:
-  0 -> 1 [date: code]
+  0 -> 1 [data: code]
   2 -> 0 [control: true]
   2 -> 1 [control: true]
   2 -> 1 [execution: ]
@@ -29,7 +29,7 @@ nodes:
   1: [exit] return d; <16>
   2: [enter,control] Enter <14...17>
 edges:
-  0 -> 1 [date: d]
+  0 -> 1 [data: d]
   0 -> 1 [execution: ]
   2 -> 0 [control: true]
   2 -> 0 [execution: ]
@@ -54,11 +54,11 @@ nodes:
   4: [exit] return total; <25>
   5: [enter,control] Enter <20...26>
 edges:
-  0 -> 3 [date: total]
+  0 -> 3 [data: total]
   0 -> 3 [execution: ]
-  3 -> 3 [date: total]
+  3 -> 3 [data: total]
   3 -> 3 [execution: ]
-  3 -> 4 [date: total]
+  3 -> 4 [data: total]
   3 -> 4 [execution: ]
   5 -> 0 [control: true]
   5 -> 0 [execution: ]

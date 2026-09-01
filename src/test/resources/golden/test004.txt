@@ -32,7 +32,7 @@ nodes:
   7: [exit] return value; <23>
   8: [enter,control] Enter <5...24>
 edges:
-  0 -> 2 [date: text]
+  0 -> 2 [data: text]
   1 -> 2 [execution: ]
   2 -> 3 [control: true]
   2 -> 3 [execution: ]
@@ -42,13 +42,13 @@ edges:
   2 -> 5 [execution: ]
   2 -> 6 [control: true]
   2 -> 6 [execution: ]
-  3 -> 7 [date: value]
+  3 -> 7 [data: value]
   3 -> 7 [execution: ]
-  4 -> 7 [date: value]
+  4 -> 7 [data: value]
   4 -> 7 [execution: ]
-  5 -> 7 [date: value]
+  5 -> 7 [data: value]
   5 -> 7 [execution: ]
-  6 -> 7 [date: value]
+  6 -> 7 [data: value]
   6 -> 7 [execution: ]
   8 -> 0 [control: true]
   8 -> 1 [control: true]

@@ -21,14 +21,14 @@ nodes:
   4: [exit] return result; <19>
   5: [enter,control] Enter <14...20>
 edges:
-  0 -> 2 [date: o]
+  0 -> 2 [data: o]
   1 -> 2 [execution: ]
-  1 -> 4 [date: result]
+  1 -> 4 [data: result]
   2 -> 3 [control: true]
-  2 -> 3 [date: s]
+  2 -> 3 [data: s]
   2 -> 3 [execution: ]
   2 -> 4 [execution: ]
-  3 -> 4 [date: result]
+  3 -> 4 [data: result]
   3 -> 4 [execution: ]
   5 -> 0 [control: true]
   5 -> 1 [control: true]
@@ -57,14 +57,14 @@ nodes:
   4: [exit] return area; <27>
   5: [enter,control] Enter <22...28>
 edges:
-  0 -> 2 [date: shape]
+  0 -> 2 [data: shape]
   1 -> 2 [execution: ]
-  1 -> 4 [date: area]
+  1 -> 4 [data: area]
   2 -> 3 [control: true]
-  2 -> 3 [date: radius]
+  2 -> 3 [data: radius]
   2 -> 3 [execution: ]
   2 -> 4 [execution: ]
-  3 -> 4 [date: area]
+  3 -> 4 [data: area]
   3 -> 4 [execution: ]
   5 -> 0 [control: true]
   5 -> 1 [control: true]
@@ -89,10 +89,10 @@ nodes:
   3: [exit] return greeting; <35>
   4: [enter,control] Enter <30...36>
 edges:
-  0 -> 2 [date: name]
-  1 -> 2 [date: template]
+  0 -> 2 [data: name]
+  1 -> 2 [data: template]
   1 -> 2 [execution: ]
-  2 -> 3 [date: greeting]
+  2 -> 3 [data: greeting]
   2 -> 3 [execution: ]
   4 -> 0 [control: true]
   4 -> 1 [control: true]
@@ -126,15 +126,15 @@ nodes:
   6: [exit] return total; <45>
   7: [enter,control] Enter <38...46>
 edges:
-  0 -> 2 [date: source]
+  0 -> 2 [data: source]
   1 -> 2 [execution: ]
-  2 -> 3 [date: reader]
+  2 -> 3 [data: reader]
   2 -> 3 [execution: ]
-  3 -> 6 [date: total]
+  3 -> 6 [data: total]
   3 -> 6 [execution: ]
   4 -> 5 [control: true]
   4 -> 5 [execution: ]
-  5 -> 6 [date: total]
+  5 -> 6 [data: total]
   5 -> 6 [execution: ]
   7 -> 0 [control: true]
   7 -> 1 [control: true]

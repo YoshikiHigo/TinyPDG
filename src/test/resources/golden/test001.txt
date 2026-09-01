@@ -20,10 +20,10 @@ nodes:
   4: [enter,control] Enter <5...10>
 edges:
   0 -> 1 [execution: ]
-  0 -> 2 [date: a]
-  1 -> 2 [date: b]
+  0 -> 2 [data: a]
+  1 -> 2 [data: b]
   1 -> 2 [execution: ]
-  2 -> 3 [date: c]
+  2 -> 3 [data: c]
   2 -> 3 [execution: ]
   4 -> 0 [control: true]
   4 -> 0 [execution: ]

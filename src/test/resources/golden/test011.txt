@@ -14,7 +14,7 @@ nodes:
   2: [exit] System.out.println(number); <10>
   3: [enter,control] Enter <8...12>
 edges:
-  0 -> 1 [date: b1]
+  0 -> 1 [data: b1]
   1 -> 2 [control: true]
   1 -> 2 [execution: ]
   3 -> 0 [control: true]
@@ -48,9 +48,9 @@ nodes:
   2: [exit] a.method1(true); <14>
   3: [enter,control] Enter <5...15>
 edges:
-  0 -> 1 [date: number]
+  0 -> 1 [data: number]
   0 -> 1 [execution: ]
-  1 -> 2 [date: a]
+  1 -> 2 [data: a]
   1 -> 2 [execution: ]
   3 -> 0 [control: true]
   3 -> 0 [execution: ]

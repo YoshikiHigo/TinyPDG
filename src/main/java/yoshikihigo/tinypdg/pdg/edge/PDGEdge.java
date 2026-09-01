@@ -100,7 +100,7 @@ public abstract class PDGEdge implements Comparable<PDGEdge> {
 		DATA {
 			@Override
 			public String toString() {
-				return "date";
+				return "data";
 			}
 		},
 		EXECUTION {

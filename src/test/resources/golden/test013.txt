@@ -22,13 +22,13 @@ nodes:
   4: [exit] System.out.println(d); <10>
   5: [enter,control] Enter <5...11>
 edges:
-  0 -> 1 [date: a]
+  0 -> 1 [data: a]
   0 -> 1 [execution: ]
-  1 -> 2 [date: b]
+  1 -> 2 [data: b]
   1 -> 2 [execution: ]
-  2 -> 3 [date: c]
+  2 -> 3 [data: c]
   2 -> 3 [execution: ]
-  3 -> 4 [date: d]
+  3 -> 4 [data: d]
   3 -> 4 [execution: ]
   5 -> 0 [control: true]
   5 -> 0 [execution: ]
@@ -59,13 +59,13 @@ nodes:
   4: [exit] System.out.println(v); <18>
   5: [enter,control] Enter <13...19>
 edges:
-  0 -> 1 [date: s]
+  0 -> 1 [data: s]
   0 -> 1 [execution: ]
-  1 -> 2 [date: t]
+  1 -> 2 [data: t]
   1 -> 2 [execution: ]
-  2 -> 3 [date: u]
+  2 -> 3 [data: u]
   2 -> 3 [execution: ]
-  3 -> 4 [date: v]
+  3 -> 4 [data: v]
   3 -> 4 [execution: ]
   5 -> 0 [control: true]
   5 -> 0 [execution: ]

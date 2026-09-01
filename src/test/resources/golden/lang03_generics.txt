@@ -25,16 +25,16 @@ nodes:
   6: [exit] return best; <17>
   7: [enter,control] Enter <8...18>
 edges:
-  1 -> 4 [date: best]
+  1 -> 4 [data: best]
   1 -> 4 [execution: ]
-  1 -> 6 [date: best]
+  1 -> 6 [data: best]
   4 -> 4 [execution: ]
   4 -> 5 [control: true]
   4 -> 5 [execution: ]
   4 -> 6 [execution: ]
-  5 -> 4 [date: best]
+  5 -> 4 [data: best]
   5 -> 4 [execution: ]
-  5 -> 6 [date: best]
+  5 -> 6 [data: best]
   5 -> 6 [execution: ]
   7 -> 0 [control: true]
   7 -> 1 [control: true]
@@ -60,9 +60,9 @@ nodes:
   2: [exit] return list; <31>
   3: [enter,control] Enter <28...32>
 edges:
-  0 -> 1 [date: list]
+  0 -> 1 [data: list]
   0 -> 1 [execution: ]
-  0 -> 2 [date: list]
+  0 -> 2 [data: list]
   1 -> 2 [execution: ]
   3 -> 0 [control: true]
   3 -> 0 [execution: ]
@@ -91,7 +91,7 @@ nodes:
 edges:
   1 -> 4 [execution: ]
   4 -> 4 [execution: ]
-  4 -> 5 [date: total]
+  4 -> 5 [data: total]
   4 -> 5 [execution: ]
   6 -> 0 [control: true]
   6 -> 1 [control: true]

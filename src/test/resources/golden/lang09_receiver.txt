@@ -17,10 +17,10 @@ nodes:
   3: [exit] return n; <15>
   4: [enter,control] Enter <12...16>
 edges:
-  0 -> 1 [date: values]
-  1 -> 2 [date: first]
+  0 -> 1 [data: values]
+  1 -> 2 [data: first]
   1 -> 2 [execution: ]
-  2 -> 3 [date: n]
+  2 -> 3 [data: n]
   2 -> 3 [execution: ]
   4 -> 0 [control: true]
   4 -> 1 [control: true]
@@ -42,8 +42,8 @@ nodes:
   2: [exit] return n; <9>
   3: [enter,control] Enter <7...10>
 edges:
-  0 -> 1 [date: s]
-  1 -> 2 [date: n]
+  0 -> 1 [data: s]
+  1 -> 2 [data: n]
   1 -> 2 [execution: ]
   3 -> 0 [control: true]
   3 -> 1 [control: true]
@@ -64,8 +64,8 @@ nodes:
   2: [exit] return v; <20>
   3: [enter,control] Enter <18...21>
 edges:
-  0 -> 1 [date: holder]
-  1 -> 2 [date: v]
+  0 -> 1 [data: holder]
+  1 -> 2 [data: v]
   1 -> 2 [execution: ]
   3 -> 0 [control: true]
   3 -> 1 [control: true]
@@ -92,12 +92,12 @@ nodes:
   4: [exit] return n; <27>
   5: [enter,control] Enter <23...28>
 edges:
-  0 -> 1 [date: s]
+  0 -> 1 [data: s]
   1 -> 2 [execution: ]
-  1 -> 3 [date: n]
-  2 -> 3 [date: s]
+  1 -> 3 [data: n]
+  2 -> 3 [data: s]
   2 -> 3 [execution: ]
-  3 -> 4 [date: n]
+  3 -> 4 [data: n]
   3 -> 4 [execution: ]
   5 -> 0 [control: true]
   5 -> 1 [control: true]

@@ -14,9 +14,9 @@ nodes:
   1: [exit,control] i++ < 10 <8>
   2: [enter,control] Enter <5...12>
 edges:
-  0 -> 1 [date: i]
+  0 -> 1 [data: i]
   0 -> 1 [execution: ]
-  1 -> 1 [date: i]
+  1 -> 1 [data: i]
   1 -> 1 [execution: ]
   2 -> 0 [control: true]
   2 -> 0 [execution: ]

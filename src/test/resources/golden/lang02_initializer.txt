@@ -13,7 +13,7 @@ nodes:
   1: [exit] return a; <19>
   2: [enter,control] Enter <17...20>
 edges:
-  0 -> 1 [date: a]
+  0 -> 1 [data: a]
   0 -> 1 [execution: ]
   2 -> 0 [control: true]
   2 -> 0 [execution: ]
