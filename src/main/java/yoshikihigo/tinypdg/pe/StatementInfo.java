@@ -54,6 +54,9 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 				"SWITCH"), Try("TRY"), TypeDeclaration("TYPEDECLARATION"), VariableDeclaration(
 				"VARIABLEDECLARATION"), While("WHILE"),
 
+		/** switch 式から値を返す yield 文。 */
+		Yield("YIELD"),
+
 		/**
 		 * このツールがまだ個別に解釈できない構文。ソース断片をそのまま
 		 * 保持する不透明な 1 要素として扱われる。

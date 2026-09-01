@@ -39,16 +39,22 @@ public class ExpressionInfo extends ProgramElementInfo {
 				"VARIABLEDECLARATIONEXPRESSION"), VariableDeclarationFragment(
 				"VARIABLEDECLARATIONFRAGMENT"), MethodEnter("METHODENTER"),
 
-		/**
-		 * このツールがまだ個別に解釈できない構文。ソース断片をそのまま
-		 * 保持する不透明な 1 要素として扱われる。
-		 */
 		/** ラムダ式。本体は独立した MethodInfo として切り出される。 */
 		Lambda("LAMBDA"),
 
 		/** メソッド参照 (String::length など)。 */
 		MethodReference("METHODREFERENCE"),
 
+		/**
+		 * パターン。record パターンや when 節つきパターンなど、内側に別の
+		 * パターンを含みうるもの。定義される変数は内側のパターンから集まる。
+		 */
+		Pattern("PATTERN"),
+
+		/**
+		 * このツールがまだ個別に解釈できない構文。ソース断片をそのまま
+		 * 保持する不透明な 1 要素として扱われる。
+		 */
 		Unsupported("UNSUPPORTED");
 
 		final public String id;

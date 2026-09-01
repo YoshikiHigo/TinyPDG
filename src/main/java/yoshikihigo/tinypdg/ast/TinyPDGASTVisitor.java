@@ -7,6 +7,7 @@ import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.ArrayDeque;
@@ -49,6 +50,7 @@ import org.eclipse.jdt.core.dom.ExpressionMethodReference;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.ForStatement;
+import org.eclipse.jdt.core.dom.GuardedPattern;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.InstanceofExpression;
@@ -59,10 +61,12 @@ import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.NullLiteral;
 import org.eclipse.jdt.core.dom.NumberLiteral;
 import org.eclipse.jdt.core.dom.ParenthesizedExpression;
+import org.eclipse.jdt.core.dom.PatternInstanceofExpression;
 import org.eclipse.jdt.core.dom.PostfixExpression;
 import org.eclipse.jdt.core.dom.PrefixExpression;
 import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.RecordDeclaration;
+import org.eclipse.jdt.core.dom.RecordPattern;
 import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
@@ -75,6 +79,7 @@ import org.eclipse.jdt.core.dom.SuperMethodReference;
 import org.eclipse.jdt.core.dom.SwitchCase;
 import org.eclipse.jdt.core.dom.SwitchStatement;
 import org.eclipse.jdt.core.dom.SynchronizedStatement;
+import org.eclipse.jdt.core.dom.TextBlock;
 import org.eclipse.jdt.core.dom.ThisExpression;
 import org.eclipse.jdt.core.dom.ThrowStatement;
 import org.eclipse.jdt.core.dom.TryStatement;
@@ -82,10 +87,13 @@ import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclarationStatement;
 import org.eclipse.jdt.core.dom.TypeLiteral;
 import org.eclipse.jdt.core.dom.TypeMethodReference;
+import org.eclipse.jdt.core.dom.TypePattern;
+import org.eclipse.jdt.core.dom.VariableDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
+import org.eclipse.jdt.core.dom.YieldStatement;
 
 import yoshikihigo.tinypdg.pe.BlockInfo;
 import yoshikihigo.tinypdg.pe.ClassInfo;
@@ -393,6 +401,151 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 
 		text.append("}");
 		anonymousClass.setText(text.toString());
+
+		return false;
+	}
+
+	/** テキストブロック。値としては通常の文字列リテラルと変わらない。 */
+	@Override
+	public boolean visit(final TextBlock node) {
+		final ProgramElementInfo expression = new ExpressionInfo(
+				ExpressionInfo.CATEGORY.String, this.getStartLineNumber(node),
+				this.getEndLineNumber(node));
+		expression.setText("\"" + node.getLiteralValue() + "\"");
+		this.stack.push(expression);
+		return false;
+	}
+
+	/**
+	 * 型パターン (o instanceof String s の String s の部分)。
+	 *
+	 * <p>パターン変数はその場での変数定義なので、変数宣言と同じ形にして
+	 * 「定義された変数」として数えられるようにする。
+	 */
+	@Override
+	public boolean visit(final TypePattern node) {
+
+		final int startLine = this.getStartLineNumber(node);
+		final int endLine = this.getEndLineNumber(node);
+		final ExpressionInfo pattern = new ExpressionInfo(
+				ExpressionInfo.CATEGORY.VariableDeclarationFragment, startLine,
+				endLine);
+
+		// getPatternVariable() は JLS20 専用の旧 API で、それより新しい AST では
+		// 例外も出さずに空のダミー ("int MISSING") を返す。JLS22 以降は
+		// getPatternVariable2() を使う。
+		final VariableDeclaration variable = node.getPatternVariable2();
+		final ExpressionInfo name = new ExpressionInfo(
+				ExpressionInfo.CATEGORY.SimpleName, startLine, endLine);
+		name.setText(variable.getName().getIdentifier());
+		pattern.addExpression(name);
+		pattern.setText(flatten(node));
+
+		this.stack.push(pattern);
+		return false;
+	}
+
+	/** record パターン。内側のパターンが定義する変数をまとめて持つ。 */
+	@Override
+	public boolean visit(final RecordPattern node) {
+
+		final int startLine = this.getStartLineNumber(node);
+		final int endLine = this.getEndLineNumber(node);
+		final ExpressionInfo pattern = new ExpressionInfo(
+				ExpressionInfo.CATEGORY.Pattern, startLine, endLine);
+		this.stack.push(pattern);
+
+		final StringBuilder text = new StringBuilder();
+		text.append(node.getPatternType().toString());
+		text.append("(");
+		boolean first = true;
+		for (final Object o : node.patterns()) {
+			if (!first) {
+				text.append(", ");
+			}
+			((ASTNode) o).accept(this);
+			final ProgramElementInfo nested = this.stack.pop();
+			pattern.addExpression(nested);
+			text.append(nested.getText());
+			first = false;
+		}
+		text.append(")");
+		pattern.setText(text.toString());
+
+		return false;
+	}
+
+	/** when 節つきパターン。 */
+	@Override
+	public boolean visit(final GuardedPattern node) {
+
+		final int startLine = this.getStartLineNumber(node);
+		final int endLine = this.getEndLineNumber(node);
+		final ExpressionInfo guarded = new ExpressionInfo(
+				ExpressionInfo.CATEGORY.Pattern, startLine, endLine);
+		this.stack.push(guarded);
+
+		node.getPattern().accept(this);
+		final ProgramElementInfo pattern = this.stack.pop();
+		guarded.addExpression(pattern);
+
+		node.getExpression().accept(this);
+		final ProgramElementInfo guard = this.stack.pop();
+		guarded.addExpression(guard);
+
+		guarded.setText(pattern.getText() + " when " + guard.getText());
+
+		return false;
+	}
+
+	/** o instanceof String s 形式。 */
+	@Override
+	public boolean visit(final PatternInstanceofExpression node) {
+
+		final int startLine = this.getStartLineNumber(node);
+		final int endLine = this.getEndLineNumber(node);
+		final ExpressionInfo instanceofExpression = new ExpressionInfo(
+				ExpressionInfo.CATEGORY.Instanceof, startLine, endLine);
+		this.stack.push(instanceofExpression);
+
+		node.getLeftOperand().accept(this);
+		final ProgramElementInfo left = this.stack.pop();
+		instanceofExpression.addExpression(left);
+
+		node.getPattern().accept(this);
+		final ProgramElementInfo pattern = this.stack.pop();
+		instanceofExpression.addExpression(pattern);
+
+		instanceofExpression.setText(
+				left.getText() + " instanceof " + pattern.getText());
+		return false;
+	}
+
+	/** switch 式から値を返す yield 文。return とほぼ同じ形で持つ。 */
+	@Override
+	public boolean visit(final YieldStatement node) {
+
+		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final ProgramElementInfo ownerBlock = this.stack.peek();
+			final StatementInfo yieldStatement = new StatementInfo(ownerBlock,
+					StatementInfo.CATEGORY.Yield, startLine, endLine);
+			this.stack.push(yieldStatement);
+
+			final StringBuilder text = new StringBuilder();
+			text.append("yield");
+			if (null != node.getExpression()) {
+				node.getExpression().accept(this);
+				final ProgramElementInfo expression = this.stack.pop();
+				yieldStatement.addExpression(expression);
+				text.append(" ");
+				text.append(expression.getText());
+			}
+			text.append(";");
+			yieldStatement.setText(text.toString());
+		}
 
 		return false;
 	}
@@ -1804,13 +1957,66 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 					StatementInfo.CATEGORY.Try, startLine, endLine);
 			this.stack.push(tryBlock);
 
+			// try-with-resources のリソース。JLS 上、リソースは try 本体を
+			// 囲む暗黙のブロックでの変数宣言と定義されている。その形どおりに
+			// 宣言文へ組み替えてブロックの先頭に並べると、CFG のノードとして
+			// 現れ、本体からのデータ依存もそのまま繋がる。
+			final StatementInfo resourceBlock = node.resources().isEmpty() ? null
+					: new StatementInfo(tryBlock,
+							StatementInfo.CATEGORY.SimpleBlock, startLine, endLine);
+
+			final List<StatementInfo> resources = new ArrayList<>();
+			final StringBuilder resourceText = new StringBuilder();
+			for (final Object o : node.resources()) {
+				((ASTNode) o).accept(this);
+				final ProgramElementInfo resource = this.stack.pop();
+
+				final StatementInfo declaration = new StatementInfo(resourceBlock,
+						StatementInfo.CATEGORY.VariableDeclaration,
+						resource.startLine, resource.endLine);
+				declaration.addExpression(resource);
+				declaration.setText(resource.getText() + ";");
+				resources.add(declaration);
+
+				resourceText.append(0 == resourceText.length() ? "(" : "; ");
+				resourceText.append(resource.getText());
+			}
+			if (0 < resourceText.length()) {
+				resourceText.append(") ");
+			}
+
 			node.getBody().accept(this);
 			final StatementInfo body = (StatementInfo) this.stack.pop();
-			tryBlock.setStatement(body);
+
+			final StatementInfo effectiveBody;
+			if (null == resourceBlock) {
+				effectiveBody = body;
+			} else {
+				final StringBuilder blockText = new StringBuilder();
+				blockText.append("{");
+				blockText.append(System.lineSeparator());
+				for (final StatementInfo declaration : resources) {
+					resourceBlock.addStatement(declaration);
+					blockText.append(declaration.getText());
+					blockText.append(System.lineSeparator());
+				}
+				// 本体ブロックをそのまま入れ子にすると、CFG が中身を展開せず
+				// 1 個の不透明なノードにしてしまう。文を取り出して並べる。
+				resourceBlock.addStatements(body.getStatements());
+				for (final StatementInfo statement : body.getStatements()) {
+					blockText.append(statement.getText());
+					blockText.append(System.lineSeparator());
+				}
+				blockText.append("}");
+				resourceBlock.setText(blockText.toString());
+				effectiveBody = resourceBlock;
+			}
+			tryBlock.setStatement(effectiveBody);
 
 			final StringBuilder text = new StringBuilder();
 			text.append("try ");
-			text.append(body.getText());
+			text.append(resourceText);
+			text.append(effectiveBody.getText());
 
 			for (final Object o : node.catchClauses()) {
 				((ASTNode) o).accept(this);

@@ -3,50 +3,56 @@
 ## CFG count <9...20>
 nodes:
   0: [enter,normal] int lines = 0; <10>
-  1: [normal] String line; <12>
-  2: [control] null != (line = reader.readLine()) <13>
-  3: [normal] lines = lines + line.length(); <14>
-  4: [control] final IOException|RuntimeException e <16>
-  5: [normal] lines = -1; <17>
-  6: [exit,normal] return lines; <19>
-edges:
-  0 -> 1 []
-  1 -> 2 []
-  2 -> 3 [true]
-  2 -> 6 [false]
-  3 -> 2 []
-  4 -> 5 [true]
-  5 -> 6 []
-
-## PDG count <9...20>
-nodes:
-  0: [parameter] final String path <9>
-  1: [normal] int lines = 0; <10>
+  1: [normal] BufferedReader reader = new BufferedReader(new FileReader(path)); <11>
   2: [normal] String line; <12>
   3: [control] null != (line = reader.readLine()) <13>
   4: [normal] lines = lines + line.length(); <14>
   5: [control] final IOException|RuntimeException e <16>
   6: [normal] lines = -1; <17>
-  7: [exit] return lines; <19>
-  8: [enter,control] Enter <9...20>
+  7: [exit,normal] return lines; <19>
 edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 3 []
+  3 -> 4 [true]
+  3 -> 7 [false]
+  4 -> 3 []
+  5 -> 6 [true]
+  6 -> 7 []
+
+## PDG count <9...20>
+nodes:
+  0: [parameter] final String path <9>
+  1: [normal] int lines = 0; <10>
+  2: [normal] BufferedReader reader = new BufferedReader(new FileReader(path)); <11>
+  3: [normal] String line; <12>
+  4: [control] null != (line = reader.readLine()) <13>
+  5: [normal] lines = lines + line.length(); <14>
+  6: [control] final IOException|RuntimeException e <16>
+  7: [normal] lines = -1; <17>
+  8: [exit] return lines; <19>
+  9: [enter,control] Enter <9...20>
+edges:
+  0 -> 2 [date: path]
   1 -> 2 [execution: ]
-  1 -> 4 [date: lines]
-  1 -> 7 [date: lines]
+  1 -> 5 [date: lines]
+  1 -> 8 [date: lines]
   2 -> 3 [execution: ]
-  3 -> 4 [control: true]
   3 -> 4 [execution: ]
-  3 -> 7 [execution: ]
-  4 -> 3 [execution: ]
-  4 -> 4 [date: lines]
-  4 -> 7 [date: lines]
-  5 -> 6 [control: true]
-  5 -> 6 [execution: ]
-  6 -> 7 [date: lines]
+  4 -> 5 [control: true]
+  4 -> 5 [execution: ]
+  4 -> 8 [execution: ]
+  5 -> 4 [execution: ]
+  5 -> 5 [date: lines]
+  5 -> 8 [date: lines]
+  6 -> 7 [control: true]
   6 -> 7 [execution: ]
-  8 -> 0 [control: true]
-  8 -> 1 [control: true]
-  8 -> 1 [execution: ]
-  8 -> 2 [control: true]
-  8 -> 3 [control: true]
-  8 -> 7 [control: true]
+  7 -> 8 [date: lines]
+  7 -> 8 [execution: ]
+  9 -> 0 [control: true]
+  9 -> 1 [control: true]
+  9 -> 1 [execution: ]
+  9 -> 2 [control: true]
+  9 -> 3 [control: true]
+  9 -> 4 [control: true]
+  9 -> 8 [control: true]
