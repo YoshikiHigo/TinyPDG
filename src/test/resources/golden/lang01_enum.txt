@@ -1,0 +1,33 @@
+# sample: lang01_enum
+
+## CFG use <20...26>
+nodes:
+  0: [enter,normal] int total = 0; <21>
+  1: [normal] total = total + c.doubled(); <23>
+  2: [exit,normal] return total; <25>
+edges:
+  0 -> 1 []
+  1 -> 1 []
+  1 -> 2 []
+
+## PDG use <20...26>
+nodes:
+  0: [normal] int total = 0; <21>
+  1: [parameter] Color c <22>
+  2: [normal] Color.values() <22>
+  3: [normal] total = total + c.doubled(); <23>
+  4: [exit] return total; <25>
+  5: [enter,control] Enter <20...26>
+edges:
+  0 -> 3 [date: total]
+  0 -> 3 [execution: ]
+  3 -> 3 [date: total]
+  3 -> 3 [execution: ]
+  3 -> 4 [date: total]
+  3 -> 4 [execution: ]
+  5 -> 0 [control: true]
+  5 -> 0 [execution: ]
+  5 -> 1 [control: true]
+  5 -> 2 [control: true]
+  5 -> 3 [control: true]
+  5 -> 4 [control: true]
