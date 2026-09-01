@@ -46,6 +46,12 @@ public class ExpressionInfo extends ProgramElementInfo {
 		MethodReference("METHODREFERENCE"),
 
 		/**
+		 * 前に出せない位置に現れた switch 式。制御フローは持たず、
+		 * セレクタと各アームを子として抱えるだけの 1 要素として扱う。
+		 */
+		SwitchExpression("SWITCHEXPRESSION"),
+
+		/**
 		 * パターン。record パターンや when 節つきパターンなど、内側に別の
 		 * パターンを含みうるもの。定義される変数は内側のパターンから集まる。
 		 */

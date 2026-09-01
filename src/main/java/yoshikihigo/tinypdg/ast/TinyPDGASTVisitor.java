@@ -77,6 +77,7 @@ import org.eclipse.jdt.core.dom.SuperFieldAccess;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.SuperMethodReference;
 import org.eclipse.jdt.core.dom.SwitchCase;
+import org.eclipse.jdt.core.dom.SwitchExpression;
 import org.eclipse.jdt.core.dom.SwitchStatement;
 import org.eclipse.jdt.core.dom.SynchronizedStatement;
 import org.eclipse.jdt.core.dom.TextBlock;
@@ -178,6 +179,26 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 	final private CompilationUnit root;
 	final private List<MethodInfo> methods;
 	final private Deque<ProgramElementInfo> stack;
+
+	/**
+	 * 直前に visit した文の前へ挿入したい文。switch 式の脱糖で生じる。
+	 * ブロックが自分の文を組み立てるときに回収する。
+	 */
+	final private List<StatementInfo> pendingStatements = new ArrayList<>();
+
+	/**
+	 * 脱糖中の switch 式が値を書き込む一時変数。yield をこの変数への代入に
+	 * 読み替えるために使う。switch 式は入れ子になりうるのでスタックで持つ。
+	 */
+	final private Deque<String> yieldTargets = new ArrayDeque<>();
+
+	private int switchExpressionCount = 0;
+
+	/**
+	 * 直前に組み立てた文が、脱糖された yield を含んでいたか。
+	 * switch 式のアームの終わりを見分けるために使う。
+	 */
+	private boolean yieldConverted = false;
 
 	public TinyPDGASTVisitor(final String path, final CompilationUnit root,
 			final List<MethodInfo> methods) {
@@ -405,6 +426,215 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 		return false;
 	}
 
+	/** 挿入待ちの文を取り出し、待ち行列を空にする。 */
+	private List<StatementInfo> drainPendingStatements() {
+		if (this.pendingStatements.isEmpty()) {
+			return List.of();
+		}
+		final List<StatementInfo> drained = List.copyOf(this.pendingStatements);
+		this.pendingStatements.clear();
+		return drained;
+	}
+
+	/** スタック上で最も内側にあるブロックを返す。 */
+	private ProgramElementInfo nearestBlock() {
+		for (final ProgramElementInfo element : this.stack) {
+			if (element instanceof BlockInfo) {
+				return element;
+			}
+		}
+		return this.stack.isEmpty() ? null : this.stack.peek();
+	}
+
+	/**
+	 * switch 式。
+	 *
+	 * <p>値を返す「式」でありながら内部に分岐と文を持つため、そのままでは
+	 * どこにも収まらない。CFG は StatementInfo からしか組み立てられないので、
+	 * 式のままでは分岐が見えない。
+	 *
+	 * <p>そこで、一時変数へ代入する switch 文へ書き換えて元の文の前に置き、
+	 * 元の位置にはその一時変数の参照だけを残す。
+	 *
+	 * <pre>
+	 *   int y = switch (x) { case 1 -&gt; 10; default -&gt; 20; };
+	 *     ↓
+	 *   switch (x) { case 1: $switch1 = 10; default: $switch1 = 20; }
+	 *   int y = $switch1;
+	 * </pre>
+	 *
+	 * <p>ただし前に出せない位置がある。短絡評価の右辺、三項演算子の枝、
+	 * ループの条件や更新式では、前に出すと評価される回数やタイミングが
+	 * 変わってしまう。そうした位置では脱糖せず、セレクタと各アームを子として
+	 * 抱えるだけの式にする。制御フローは見えないが、参照・定義される変数は
+	 * 正しく集まる。
+	 */
+	@Override
+	public boolean visit(final SwitchExpression node) {
+
+		final int startLine = this.getStartLineNumber(node);
+		final int endLine = this.getEndLineNumber(node);
+
+		if (!canHoist(node)) {
+			this.buildInlineSwitchExpression(node, startLine, endLine);
+			return false;
+		}
+
+		final String target = "$switch" + (++this.switchExpressionCount);
+
+		final StatementInfo switchBlock = new StatementInfo(this.nearestBlock(),
+				StatementInfo.CATEGORY.Switch, startLine, endLine);
+		this.stack.push(switchBlock);
+
+		node.getExpression().accept(this);
+		final ProgramElementInfo condition = this.stack.pop();
+		switchBlock.setCondition(condition);
+		condition.setOwnerConditinalBlock(switchBlock);
+
+		final StringBuilder text = new StringBuilder();
+		text.append("switch (");
+		text.append(condition.getText());
+		text.append(") {");
+		text.append(System.lineSeparator());
+
+		this.yieldTargets.push(target);
+		for (final Object o : node.statements()) {
+			this.yieldConverted = false;
+			((ASTNode) o).accept(this);
+			final StatementInfo statement = (StatementInfo) this.stack.pop();
+
+			if (StatementInfo.CATEGORY.SimpleBlock == statement.getCategory()) {
+				// ブロック形式のアーム。入れ子のまま置くと CFG が中身を
+				// 展開せず 1 個の不透明なノードにしてしまうので、
+				// 文を取り出して並べる。
+				for (final StatementInfo inner : statement.getStatements()) {
+					inner.setOwnerBlock(switchBlock);
+					switchBlock.addStatement(inner);
+					text.append(inner.getText());
+					text.append(System.lineSeparator());
+				}
+			} else {
+				switchBlock.addStatement(statement);
+				text.append(statement.getText());
+				text.append(System.lineSeparator());
+			}
+
+			// yield はアームを終わらせる。switch 文へ書き換えた以上、
+			// 明示的に break を置かないと次のアームへ流れてしまう。
+			// フラグは yield が入れ子のブロックの中にあっても立つので、
+			// 矢印形式でもコロン形式でも同じ判定で済む。
+			if (this.yieldConverted) {
+				final StatementInfo jump = new StatementInfo(switchBlock,
+						StatementInfo.CATEGORY.Break, statement.startLine,
+						statement.endLine);
+				jump.setText("break;");
+				switchBlock.addStatement(jump);
+				text.append(jump.getText());
+				text.append(System.lineSeparator());
+			}
+		}
+		this.yieldConverted = false;
+		this.yieldTargets.pop();
+
+		text.append("}");
+		switchBlock.setText(text.toString());
+
+		this.stack.pop();
+		this.pendingStatements.add(switchBlock);
+
+		// 元の位置には一時変数の参照だけを残す。
+		final ExpressionInfo reference = new ExpressionInfo(
+				ExpressionInfo.CATEGORY.SimpleName, startLine, endLine);
+		reference.setText(target);
+		this.stack.push(reference);
+
+		return false;
+	}
+
+	/**
+	 * 前に出せない位置の switch 式を、子を抱えた 1 個の式として組み立てる。
+	 */
+	private void buildInlineSwitchExpression(final SwitchExpression node,
+			final int startLine, final int endLine) {
+
+		final ExpressionInfo switchExpression = new ExpressionInfo(
+				ExpressionInfo.CATEGORY.SwitchExpression, startLine, endLine);
+		this.stack.push(switchExpression);
+
+		node.getExpression().accept(this);
+		final ProgramElementInfo condition = this.stack.pop();
+		switchExpression.addExpression(condition);
+
+		// アームの中身は文なので、文の visit が動くようブロックを一枚かませる。
+		// このブロック自体はグラフに出さず、中身だけを引き取る。
+		final StatementInfo scratch = new StatementInfo(this.nearestBlock(),
+				StatementInfo.CATEGORY.SimpleBlock, startLine, endLine);
+		this.stack.push(scratch);
+		for (final Object o : node.statements()) {
+			((ASTNode) o).accept(this);
+			final ProgramElementInfo statement = this.stack.pop();
+			switchExpression.addExpression(statement);
+		}
+		this.stack.pop();
+
+		switchExpression.setText(flatten(node));
+	}
+
+	/**
+	 * この switch 式を、それを含む文の前へ出しても評価順が変わらないか。
+	 */
+	static private boolean canHoist(final ASTNode node) {
+
+		ASTNode child = node;
+		for (ASTNode parent = node.getParent(); null != parent; child = parent, parent = parent
+				.getParent()) {
+
+			// 短絡評価の右辺や三項演算子の枝は、そもそも評価されないことがある。
+			if (parent instanceof InfixExpression) {
+				final InfixExpression.Operator operator = ((InfixExpression) parent)
+						.getOperator();
+				if (InfixExpression.Operator.CONDITIONAL_AND == operator
+						|| InfixExpression.Operator.CONDITIONAL_OR == operator) {
+					return false;
+				}
+			}
+			if (parent instanceof ConditionalExpression) {
+				return false;
+			}
+			// 別の入れ子の内側からは外へ出せない。
+			if (parent instanceof LambdaExpression
+					|| parent instanceof SwitchExpression) {
+				return false;
+			}
+
+			if (parent instanceof Statement) {
+				// ループの条件と更新式は繰り返し評価される。
+				if (parent instanceof ForStatement) {
+					final ForStatement statement = (ForStatement) parent;
+					if (child == statement.getExpression()
+							|| statement.updaters().contains(child)) {
+						return false;
+					}
+				}
+				if (parent instanceof WhileStatement
+						&& child == ((WhileStatement) parent).getExpression()) {
+					return false;
+				}
+				if (parent instanceof DoStatement
+						&& child == ((DoStatement) parent).getExpression()) {
+					return false;
+				}
+				if (parent instanceof EnhancedForStatement
+						&& child == ((EnhancedForStatement) parent).getExpression()) {
+					return false;
+				}
+				// 挿入先のブロックが要る。
+				return parent.getParent() instanceof Block;
+			}
+		}
+		return false;
+	}
+
 	/** テキストブロック。値としては通常の文字列リテラルと変わらない。 */
 	@Override
 	public boolean visit(final TextBlock node) {
@@ -535,13 +765,36 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			this.stack.push(yieldStatement);
 
 			final StringBuilder text = new StringBuilder();
-			text.append("yield");
 			if (null != node.getExpression()) {
 				node.getExpression().accept(this);
 				final ProgramElementInfo expression = this.stack.pop();
-				yieldStatement.addExpression(expression);
-				text.append(" ");
-				text.append(expression.getText());
+
+				if (this.yieldTargets.isEmpty()) {
+					yieldStatement.addExpression(expression);
+					text.append("yield ");
+					text.append(expression.getText());
+				} else {
+					// 脱糖中。yield expr は一時変数への代入になる。
+					// 変数宣言の断片と同じ形にすると、定義が一時変数、参照が
+					// expr の中身、という関係がそのまま得られる。
+					final String target = this.yieldTargets.peek();
+					final ExpressionInfo assignment = new ExpressionInfo(
+							ExpressionInfo.CATEGORY.VariableDeclarationFragment,
+							startLine, endLine);
+					final ExpressionInfo name = new ExpressionInfo(
+							ExpressionInfo.CATEGORY.SimpleName, startLine, endLine);
+					name.setText(target);
+					assignment.addExpression(name);
+					assignment.addExpression(expression);
+					assignment.setText(target + " = " + expression.getText());
+
+					yieldStatement.setCategory(StatementInfo.CATEGORY.Expression);
+					yieldStatement.addExpression(assignment);
+					text.append(assignment.getText());
+					this.yieldConverted = true;
+				}
+			} else {
+				text.append("yield");
 			}
 			text.append(";");
 			yieldStatement.setText(text.toString());
@@ -2209,6 +2462,15 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			for (final Object o : node.statements()) {
 				((ASTNode) o).accept(this);
 				final ProgramElementInfo statement = this.stack.pop();
+
+				// switch 式の脱糖で生じた文を、元の文の前に置く。
+				for (final StatementInfo pending : this.drainPendingStatements()) {
+					pending.setOwnerBlock(simpleBlock);
+					simpleBlock.addStatement(pending);
+					text.append(pending.getText());
+					text.append(System.lineSeparator());
+				}
+
 				simpleBlock.addStatement((StatementInfo) statement);
 				text.append(statement.getText());
 				text.append(System.getProperty("line.separator"));
