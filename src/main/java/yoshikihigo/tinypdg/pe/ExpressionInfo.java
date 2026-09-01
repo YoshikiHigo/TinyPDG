@@ -23,51 +23,63 @@ public class ExpressionInfo extends ProgramElementInfo {
 
 	public enum CATEGORY {
 
-		ArrayAccess("ARRAYACCESS"), ArrayCreation("ARRAYCREATION"), ArrayInitializer(
-				"ARRAYINITIALIZER"), Assignment("ASSIGNMENT"), Boolean(
-				"BOOLEAN"), Cast("CAST"), Character("CHARACTER"), ClassInstanceCreation(
-				"CLASSINSTANCECREATION"), ConstructorInvocation(
-				"CONSTRUCTORINVOCATION"), FieldAccess("FIELDACCESS"), Infix(
-				"INFIX"), Instanceof("INSTANCEOF"), MethodInvocation(
-				"METHODINVOCATION"), Null("NULL"), Number("NUMBER"), Parenthesized(
-				"PARENTHESIZED"), Postfix("POSTFIX"), Prefix("PREFIX"), QualifiedName(
-				"QUALIFIEDNAME"), SimpleName("SIMPLENAME"), String("STRING"), SuperConstructorInvocation(
-				"SUPERCONSTRUCTORINVOCATION"), SuperFieldAccess(
-				"SUPERFIELDACCESS"), SuperMethodInvocation(
-				"SUPERMETHODINVOCATION"), This("THIS"), Trinomial("TRINOMIAL"), TypeLiteral(
-				"TYPELITERAL"), VariableDeclarationExpression(
-				"VARIABLEDECLARATIONEXPRESSION"), VariableDeclarationFragment(
-				"VARIABLEDECLARATIONFRAGMENT"), MethodEnter("METHODENTER"),
+		ArrayAccess,
+		ArrayCreation,
+		ArrayInitializer,
+		Assignment,
+		Boolean,
+		Cast,
+		Character,
+		ClassInstanceCreation,
+		ConstructorInvocation,
+		FieldAccess,
+		Infix,
+		Instanceof,
+		MethodInvocation,
+		Null,
+		Number,
+		Parenthesized,
+		Postfix,
+		Prefix,
+		QualifiedName,
+		SimpleName,
+		String,
+		SuperConstructorInvocation,
+		SuperFieldAccess,
+		SuperMethodInvocation,
+		This,
+
+		/** 三項演算子 (?:)。JDT の ConditionalExpression にあたる。 */
+		Trinomial,
+
+		TypeLiteral,
+		VariableDeclarationExpression,
+		VariableDeclarationFragment,
+		MethodEnter,
 
 		/** ラムダ式。本体は独立した MethodInfo として切り出される。 */
-		Lambda("LAMBDA"),
+		Lambda,
 
 		/** メソッド参照 (String::length など)。 */
-		MethodReference("METHODREFERENCE"),
+		MethodReference,
 
 		/**
 		 * 前に出せない位置に現れた switch 式。制御フローは持たず、
 		 * セレクタと各アームを子として抱えるだけの 1 要素として扱う。
 		 */
-		SwitchExpression("SWITCHEXPRESSION"),
+		SwitchExpression,
 
 		/**
 		 * パターン。record パターンや when 節つきパターンなど、内側に別の
 		 * パターンを含みうるもの。定義される変数は内側のパターンから集まる。
 		 */
-		Pattern("PATTERN"),
+		Pattern,
 
 		/**
 		 * このツールがまだ個別に解釈できない構文。ソース断片をそのまま
 		 * 保持する不透明な 1 要素として扱われる。
 		 */
-		Unsupported("UNSUPPORTED");
-
-		final public String id;
-
-		CATEGORY(final String id) {
-			this.id = id;
-		}
+		Unsupported
 	}
 
 	public void setQualifier(final ProgramElementInfo qualifier) {

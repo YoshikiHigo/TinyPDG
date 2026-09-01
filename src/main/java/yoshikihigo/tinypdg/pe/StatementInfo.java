@@ -47,27 +47,35 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 
 	public enum CATEGORY {
 
-		Assert("ASSERT"), Break("BREAK"), Case("CASE"), Catch("CATCH"), Continue(
-				"CONTINUE"), Do("DO"), Empty("Empty"), Expression("EXPRESSION"), If(
-				"IF"), For("FOR"), Foreach("FOREACH"), Return("RETURN"), SimpleBlock(
-				"SimpleBlock"), Synchronized("SYNCHRONIZED"), Switch("SWITCH"), Throw(
-				"SWITCH"), Try("TRY"), TypeDeclaration("TYPEDECLARATION"), VariableDeclaration(
-				"VARIABLEDECLARATION"), While("WHILE"),
+		Assert,
+		Break,
+		Case,
+		Catch,
+		Continue,
+		Do,
+		Empty,
+		Expression,
+		If,
+		For,
+		Foreach,
+		Return,
+		SimpleBlock,
+		Synchronized,
+		Switch,
+		Throw,
+		Try,
+		TypeDeclaration,
+		VariableDeclaration,
+		While,
 
 		/** switch 式から値を返す yield 文。 */
-		Yield("YIELD"),
+		Yield,
 
 		/**
 		 * このツールがまだ個別に解釈できない構文。ソース断片をそのまま
 		 * 保持する不透明な 1 要素として扱われる。
 		 */
-		Unsupported("UNSUPPORTED");
-
-		final public String id;
-
-		CATEGORY(final String id) {
-			this.id = id;
-		}
+		Unsupported
 	}
 
 	public ProgramElementInfo getOwnerBlock() {
