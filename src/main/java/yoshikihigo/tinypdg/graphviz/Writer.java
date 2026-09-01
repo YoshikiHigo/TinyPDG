@@ -21,6 +21,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 
+import yoshikihigo.tinypdg.JavaSourceFiles;
 import yoshikihigo.tinypdg.ast.TinyPDGASTVisitor;
 import yoshikihigo.tinypdg.cfg.CFG;
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
@@ -116,7 +117,7 @@ public class Writer {
 					? cmd.getOptionValue("j")
 					: TinyPDGASTVisitor.DEFAULT_JAVA_VERSION;
 
-			final List<File> files = getFiles(target);
+			final List<File> files = JavaSourceFiles.collect(target);
 			final List<MethodInfo> methods = new ArrayList<>();
 			for (final File file : files) {
 				final CompilationUnit unit = TinyPDGASTVisitor.createAST(
@@ -350,24 +351,6 @@ public class Writer {
 
 		writer.write("}");
 		writer.newLine();
-	}
-
-	static private List<File> getFiles(final File file) {
-
-		final List<File> files = new ArrayList<>();
-
-		if (file.isFile() && file.getName().endsWith(".java")) {
-			files.add(file);
-		}
-
-		else if (file.isDirectory()) {
-			for (final File child : file.listFiles()) {
-				final List<File> children = getFiles(child);
-				files.addAll(children);
-			}
-		}
-
-		return files;
 	}
 
 	static private String getMethodSignature(final MethodInfo method) {

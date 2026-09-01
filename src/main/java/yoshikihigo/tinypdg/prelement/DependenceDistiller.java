@@ -20,6 +20,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 
+import yoshikihigo.tinypdg.JavaSourceFiles;
 import yoshikihigo.tinypdg.ast.TinyPDGASTVisitor;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.pdg.PDG;
@@ -111,7 +112,7 @@ public class DependenceDistiller {
 				final String javaVersion = cmd.hasOption("j")
 						? cmd.getOptionValue("j")
 						: TinyPDGASTVisitor.DEFAULT_JAVA_VERSION;
-				final List<File> files = getFiles(target);
+				final List<File> files = JavaSourceFiles.collect(target);
 				final List<MethodInfo> methods = new ArrayList<>();
 				for (final File file : files) {
 					final CompilationUnit unit = TinyPDGASTVisitor.createAST(
@@ -237,29 +238,6 @@ public class DependenceDistiller {
 			e.printStackTrace();
 			System.exit(1);
 		}
-	}
-
-	private static List<File> getFiles(final File file) {
-
-		final List<File> files = new ArrayList<>();
-
-		if (file.isFile()) {
-			if (file.getName().endsWith(".java")) {
-				files.add(file);
-			}
-		}
-
-		else if (file.isDirectory()) {
-			for (final File child : file.listFiles()) {
-				files.addAll(getFiles(child));
-			}
-		}
-
-		else {
-			assert false : "\"file\" is invalid.";
-		}
-
-		return files;
 	}
 
 	private static void addToNodeHash(
