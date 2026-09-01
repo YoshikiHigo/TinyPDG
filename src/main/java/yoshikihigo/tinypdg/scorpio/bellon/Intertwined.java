@@ -22,16 +22,16 @@ public class Intertwined {
 		final String input = args[0];
 		final String output = args[1];
 
-		final List<ClonePairInfo> clonepairs = ClonePairInfo.getClonepairs(
+		final List<BellonClonePair> clonepairs = BellonClonePair.getClonepairs(
 				new File(input), 6, false);
 
 		try (final BufferedWriter writer = new BufferedWriter(new FileWriter(
 				output, StandardCharsets.UTF_8))) {
 
-			for (final ClonePairInfo pair : clonepairs) {
+			for (final BellonClonePair pair : clonepairs) {
 
-				final CodeFragmentInfo left = pair.left;
-				final CodeFragmentInfo right = pair.right;
+				final BellonCodeFragment left = pair.left;
+				final BellonCodeFragment right = pair.right;
 
 				if (left.path.equals(right.path)) {
 

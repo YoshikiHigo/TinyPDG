@@ -13,7 +13,7 @@ import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
 import yoshikihigo.tinypdg.scorpio.data.NodePairInfo;
 import yoshikihigo.tinypdg.scorpio.pdg.PDGMergedNode;
 
-public class CSVNodeWriter extends Writer {
+public class CSVNodeWriter extends ClonePairWriter {
 
 	public CSVNodeWriter(final String path,
 			final SortedSet<ClonePairInfo> clonepairs) {

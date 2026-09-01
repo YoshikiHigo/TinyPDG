@@ -2,13 +2,19 @@ package yoshikihigo.tinypdg.scorpio.bellon;
 
 import java.util.TreeSet;
 
-class CodeFragmentInfo extends TreeSet<Integer> {
+/**
+ * Bellon のベンチマークが使う形式のコード片。行番号の集合として持つ。
+ *
+ * <p>scorpio.data.CodeFragmentInfo とは別物。以前は両方とも
+ * CodeFragmentInfo という名前だった。
+ */
+class BellonCodeFragment extends TreeSet<Integer> {
 
 	private static final long serialVersionUID = 1L;
 
 	final String path;
 	
-	CodeFragmentInfo(final String path, final int startLine, final int endLine){
+	BellonCodeFragment(final String path, final int startLine, final int endLine){
 		this.path = path;
 		for(int line = startLine ; line <= endLine ; line++){
 			this.add(line);

@@ -13,7 +13,7 @@ import yoshikihigo.tinypdg.TinyPDGException;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
 
-public class BellonWriter extends Writer {
+public class BellonWriter extends ClonePairWriter {
 
 	public BellonWriter(final String path,
 			final SortedSet<ClonePairInfo> clonepairs) {

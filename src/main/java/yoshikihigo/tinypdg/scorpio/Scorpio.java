@@ -28,7 +28,7 @@ import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
 import yoshikihigo.tinypdg.scorpio.data.PDGPairInfo;
 import yoshikihigo.tinypdg.scorpio.io.BellonWriter;
-import yoshikihigo.tinypdg.scorpio.io.Writer;
+import yoshikihigo.tinypdg.scorpio.io.ClonePairWriter;
 
 public class Scorpio {
 
@@ -285,7 +285,7 @@ public class Scorpio {
 			printTime(time4 - time3);
 
 			System.out.print("writing to a file ... ");
-			final Writer writer = new BellonWriter(output, clonepairs);
+			final ClonePairWriter writer = new BellonWriter(output, clonepairs);
 			writer.write();
 			System.out.print("done: ");
 			final long time5 = System.nanoTime();

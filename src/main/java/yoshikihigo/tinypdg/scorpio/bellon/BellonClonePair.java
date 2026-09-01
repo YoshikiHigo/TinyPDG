@@ -9,20 +9,26 @@ import java.util.List;
 import java.util.StringTokenizer;
 import yoshikihigo.tinypdg.TinyPDGException;
 
-public class ClonePairInfo {
+/**
+ * Bellon のベンチマークが使う形式のクローンペア。
+ *
+ * <p>scorpio.data.ClonePairInfo とは別物で、あちらは Scorpio が検出した
+ * クローンペアを表す。以前は両方とも ClonePairInfo という名前だった。
+ */
+public class BellonClonePair {
 
-	final CodeFragmentInfo left;
-	final CodeFragmentInfo right;
+	final BellonCodeFragment left;
+	final BellonCodeFragment right;
 	final int type;
 
-	ClonePairInfo(final CodeFragmentInfo left, final CodeFragmentInfo right,
+	BellonClonePair(final BellonCodeFragment left, final BellonCodeFragment right,
 			final int type) {
 		this.left = left;
 		this.right = right;
 		this.type = type;
 	}
 
-	ClonePairInfo(final CodeFragmentInfo left, final CodeFragmentInfo right) {
+	BellonClonePair(final BellonCodeFragment left, final BellonCodeFragment right) {
 		this(left, right, 0);
 	}
 
@@ -39,16 +45,16 @@ public class ClonePairInfo {
 		return text.toString();
 }
 
-	static public List<ClonePairInfo> getClonepairs(final File file,
+	static public List<BellonClonePair> getClonepairs(final File file,
 			final int minimum, final boolean oracle) {
 
-		final List<ClonePairInfo> clonepairs = new ArrayList<>();
+		final List<BellonClonePair> clonepairs = new ArrayList<>();
 
 		try (final BufferedReader reader = new BufferedReader(new FileReader(
 				file, StandardCharsets.UTF_8))) {
 			String line;
 			while (null != (line = reader.readLine())) {
-				final ClonePairInfo pair = ClonePairInfo.getClonepair(line,
+				final BellonClonePair pair = BellonClonePair.getClonepair(line,
 						oracle);
 				if (minimum <= pair.size()) {
 					clonepairs.add(pair);
@@ -63,7 +69,7 @@ public class ClonePairInfo {
 		return clonepairs;
 	}
 
-	static private ClonePairInfo getClonepair(final String line,
+	static private BellonClonePair getClonepair(final String line,
 			final boolean oracle) {
 
 		final StringTokenizer lineTokenizer = new StringTokenizer(line, "\t");
@@ -82,9 +88,9 @@ public class ClonePairInfo {
 		final String leftGaps = lineTokenizer.nextToken();
 		final String rightGaps = lineTokenizer.nextToken();
 
-		final CodeFragmentInfo leftFragment = new CodeFragmentInfo(leftPath,
+		final BellonCodeFragment leftFragment = new BellonCodeFragment(leftPath,
 				Integer.parseInt(leftStartLine), Integer.parseInt(leftEndLine));
-		final CodeFragmentInfo rightFragment = new CodeFragmentInfo(rightPath,
+		final BellonCodeFragment rightFragment = new BellonCodeFragment(rightPath,
 				Integer.parseInt(rightStartLine),
 				Integer.parseInt(rightEndLine));
 
@@ -106,6 +112,6 @@ public class ClonePairInfo {
 			}
 		}
 
-		return new ClonePairInfo(leftFragment, rightFragment, type);
+		return new BellonClonePair(leftFragment, rightFragment, type);
 	}
 }
