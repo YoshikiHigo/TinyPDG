@@ -29,9 +29,7 @@ dependencies {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 
-    // 残る警告は 3 件で、いずれも this-escape。
-    // コンストラクタからオーバライド可能なメソッドを呼んでいる箇所で、
-    // 解消にはクラス階層の見直しが必要なため保留している。
+    // 現在、警告はゼロ。増えたら気づけるようにしておく。
     options.compilerArgs << '-Xlint:all'
 }
 
