@@ -1,5 +1,24 @@
 # sample: lang05_nested
 
+## CFG get <8...11>
+nodes:
+  0: [enter,normal] int v = this.value; <9>
+  1: [exit,normal] return v; <10>
+edges:
+  0 -> 1 []
+
+## PDG get <8...11>
+nodes:
+  0: [normal] int v = this.value; <9>
+  1: [exit] return v; <10>
+  2: [enter,control] Enter <8...11>
+edges:
+  0 -> 1 [date: v]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]
+
 ## CFG use <14...26>
 nodes:
   0: [enter,normal] final Inner inner = new Inner(); <15>

@@ -19,6 +19,7 @@ import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.AnnotationTypeDeclaration;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.ArrayAccess;
@@ -41,6 +42,7 @@ import org.eclipse.jdt.core.dom.ContinueStatement;
 import org.eclipse.jdt.core.dom.DoStatement;
 import org.eclipse.jdt.core.dom.EmptyStatement;
 import org.eclipse.jdt.core.dom.EnhancedForStatement;
+import org.eclipse.jdt.core.dom.EnumDeclaration;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.FieldAccess;
@@ -57,6 +59,7 @@ import org.eclipse.jdt.core.dom.ParenthesizedExpression;
 import org.eclipse.jdt.core.dom.PostfixExpression;
 import org.eclipse.jdt.core.dom.PrefixExpression;
 import org.eclipse.jdt.core.dom.QualifiedName;
+import org.eclipse.jdt.core.dom.RecordDeclaration;
 import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
@@ -260,6 +263,33 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 
 	@Override
 	public boolean visit(final TypeDeclaration node) {
+		this.visitTypeDeclaration(node, node.isInterface() ? "interface " : "class ");
+		return false;
+	}
+
+	@Override
+	public boolean visit(final EnumDeclaration node) {
+		this.visitTypeDeclaration(node, "enum ");
+		return false;
+	}
+
+	@Override
+	public boolean visit(final RecordDeclaration node) {
+		this.visitTypeDeclaration(node, "record ");
+		return false;
+	}
+
+	/**
+	 * 型宣言の中からメソッドとネストした型を拾う。
+	 *
+	 * <p>enum と record も型宣言なので、class や interface と同じ扱いをする。
+	 * enum のコンストラクタやメソッドは、この形の宣言としてここに現れる。
+	 *
+	 * <p>以前はメソッドだけを拾い、ネストした型を素通りしていた。そのため
+	 * 内部クラスや enum の中のメソッドが 1 つも見つからなかった。
+	 */
+	private void visitTypeDeclaration(final AbstractTypeDeclaration node,
+			final String keyword) {
 
 		final int startLine = this.getStartLineNumber(node);
 		final int endLine = this.getEndLineNumber(node);
@@ -268,24 +298,33 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 		this.stack.push(typeDeclaration);
 
 		final StringBuilder text = new StringBuilder();
-		text.append("class ");
+		text.append(keyword);
 		text.append(node.getName().toString());
 		text.append("{");
-		text.append(System.getProperty("line.separator"));
+		text.append(System.lineSeparator());
+
 		for (final Object o : node.bodyDeclarations()) {
+
 			if (o instanceof MethodDeclaration) {
 				((ASTNode) o).accept(this);
 				final ProgramElementInfo method = this.stack.pop();
 				this.methods.add((MethodInfo) method);
 				typeDeclaration.addMethod((MethodInfo) method);
 				text.append(method.getText());
-				text.append(System.getProperty("line.separator"));
+				text.append(System.lineSeparator());
+
+			} else if (o instanceof AbstractTypeDeclaration) {
+				// ネストした型。その中のメソッドは、ネスト側の
+				// visitTypeDeclaration が this.methods に積む。
+				((ASTNode) o).accept(this);
+				final ProgramElementInfo nested = this.stack.pop();
+				text.append(nested.getText());
+				text.append(System.lineSeparator());
 			}
 		}
+
 		text.append("}");
 		typeDeclaration.setText(text.toString());
-
-		return false;
 	}
 
 	@Override

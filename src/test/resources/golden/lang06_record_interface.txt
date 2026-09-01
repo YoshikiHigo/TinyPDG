@@ -1,0 +1,86 @@
+# sample: lang06_record_interface
+
+## CFG doubledSum <20...23>
+nodes:
+  0: [enter,normal] int d = this.sum() * 2; <21>
+  1: [exit,normal] return d; <22>
+edges:
+  0 -> 1 []
+
+## PDG doubledSum <20...23>
+nodes:
+  0: [normal] int d = this.sum() * 2; <21>
+  1: [exit] return d; <22>
+  2: [enter,control] Enter <20...23>
+edges:
+  0 -> 1 [date: d]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]
+
+## CFG index <29...32>
+nodes:
+  0: [enter,normal] int i = this.ordinal(); <30>
+  1: [exit,normal] return i; <31>
+edges:
+  0 -> 1 []
+
+## PDG index <29...32>
+nodes:
+  0: [normal] int i = this.ordinal(); <30>
+  1: [exit] return i; <31>
+  2: [enter,control] Enter <29...32>
+edges:
+  0 -> 1 [date: i]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]
+
+## CFG origin <10...13>
+nodes:
+  0: [enter,normal] final Lang06RecordInterface p = new Lang06RecordInterface(0,0); <11>
+  1: [exit,normal] return p; <12>
+edges:
+  0 -> 1 []
+
+## PDG origin <10...13>
+nodes:
+  0: [normal] final Lang06RecordInterface p = new Lang06RecordInterface(0,0); <11>
+  1: [exit] return p; <12>
+  2: [enter,control] Enter <10...13>
+edges:
+  0 -> 1 [date: p]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]
+
+## CFG sum <5...8>
+nodes:
+  0: [enter,normal] int s = this.x + this.y; <6>
+  1: [exit,normal] return s; <7>
+edges:
+  0 -> 1 []
+
+## PDG sum <5...8>
+nodes:
+  0: [normal] int s = this.x + this.y; <6>
+  1: [exit] return s; <7>
+  2: [enter,control] Enter <5...8>
+edges:
+  0 -> 1 [date: s]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]
+
+## CFG sum <18...18>
+nodes:
+edges:
+
+## PDG sum <18...18>
+nodes:
+  0: [enter,control] Enter <18>
+edges:

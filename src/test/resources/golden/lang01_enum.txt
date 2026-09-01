@@ -1,5 +1,40 @@
 # sample: lang01_enum
 
+## CFG Color <10...12>
+nodes:
+  0: [enter,exit,normal] this.code = code; <11>
+edges:
+
+## PDG Color <10...12>
+nodes:
+  0: [parameter] final int code <10>
+  1: [exit] this.code = code; <11>
+  2: [enter,control] Enter <10...12>
+edges:
+  0 -> 1 [date: code]
+  2 -> 0 [control: true]
+  2 -> 1 [control: true]
+  2 -> 1 [execution: ]
+
+## CFG doubled <14...17>
+nodes:
+  0: [enter,normal] int d = this.code * 2; <15>
+  1: [exit,normal] return d; <16>
+edges:
+  0 -> 1 []
+
+## PDG doubled <14...17>
+nodes:
+  0: [normal] int d = this.code * 2; <15>
+  1: [exit] return d; <16>
+  2: [enter,control] Enter <14...17>
+edges:
+  0 -> 1 [date: d]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]
+
 ## CFG use <20...26>
 nodes:
   0: [enter,normal] int total = 0; <21>
