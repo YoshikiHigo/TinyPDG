@@ -96,6 +96,7 @@ import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import org.eclipse.jdt.core.dom.YieldStatement;
 
+import yoshikihigo.tinypdg.TinyPDGException;
 import yoshikihigo.tinypdg.pe.BlockInfo;
 import yoshikihigo.tinypdg.pe.ClassInfo;
 import yoshikihigo.tinypdg.pe.ExpressionInfo;
@@ -158,7 +159,10 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 				text.append(lineSeparator);
 			}
 		} catch (final IOException e) {
-			e.printStackTrace();
+			// 握り潰すと、空のソースを解析した結果と区別が付かない。
+			// 「メソッドが 1 つもない正常なファイル」に見えてしまう。
+			throw new TinyPDGException(
+					"ソースファイルを読み込めませんでした: " + file, e);
 		}
 
 		// AST の API レベルと、解析対象の言語レベルは別物である。

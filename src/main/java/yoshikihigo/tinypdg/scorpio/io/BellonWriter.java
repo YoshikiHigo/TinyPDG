@@ -8,6 +8,7 @@ import java.util.Comparator;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import yoshikihigo.tinypdg.TinyPDGException;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
 
@@ -53,8 +54,7 @@ public class BellonWriter extends Writer {
 			}
 
 		} catch (final IOException e) {
-			e.printStackTrace();
-			System.exit(0);
+			throw new TinyPDGException("書き込みに失敗しました: " + this.path, e);
 		}
 	}
 

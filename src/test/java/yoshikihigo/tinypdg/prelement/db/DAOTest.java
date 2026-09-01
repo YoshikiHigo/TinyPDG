@@ -1,6 +1,8 @@
 package yoshikihigo.tinypdg.prelement.db;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
@@ -10,6 +12,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import yoshikihigo.tinypdg.TinyPDGException;
 import yoshikihigo.tinypdg.prelement.data.DEPENDENCE_TYPE;
 import yoshikihigo.tinypdg.prelement.data.Frequency;
 
@@ -59,5 +62,18 @@ class DAOTest {
 		} finally {
 			reader.close();
 		}
+	}
+
+	@Test
+	void reportsAnUnopenableDatabaseAsAnException(@TempDir final Path workDir) {
+
+		final Path missing = workDir.resolve("no-such-directory").resolve("x.db");
+
+		// 以前はスタックトレースを出して System.exit(0) を呼んでいた。
+		// ライブラリが呼び出し元の JVM を落とすうえ、終了コードが 0 なので
+		// 失敗したことすら呼び出し元に伝わらなかった。
+		final TinyPDGException thrown = assertThrows(TinyPDGException.class,
+				() -> new DAO(missing.toString(), true));
+		assertNotNull(thrown.getCause(), "元の例外が原因として保持されていること");
 	}
 }

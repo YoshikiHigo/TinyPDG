@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.SortedSet;
 
+import yoshikihigo.tinypdg.TinyPDGException;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
@@ -42,8 +43,7 @@ public class CSVNodeWriter extends Writer {
 			}
 
 		} catch (final IOException e) {
-			e.printStackTrace();
-			System.exit(0);
+			throw new TinyPDGException("書き込みに失敗しました: " + this.path, e);
 		}
 
 	}

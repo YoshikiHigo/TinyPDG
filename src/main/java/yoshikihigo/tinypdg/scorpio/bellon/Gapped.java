@@ -17,7 +17,7 @@ public class Gapped {
 			System.err.println("the first one is an output file of SCORPIO.");
 			System.err
 					.println("the second one is a file for storing intertwined clones.");
-			System.exit(0);
+			System.exit(1);
 		}
 
 		final String input = args[0];

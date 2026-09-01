@@ -22,7 +22,7 @@ public class Bellon {
 			System.err.println("the second one is minimum length of clones.");
 			System.err.println("the thrid one is file of oracle.");
 			System.err.println("the fourth one is file of detection result.");
-			System.exit(0);
+			System.exit(1);
 		}
 
 		final float threshold = Float.parseFloat(args[0]);

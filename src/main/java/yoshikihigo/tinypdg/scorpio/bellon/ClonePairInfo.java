@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
+import yoshikihigo.tinypdg.TinyPDGException;
 
 public class ClonePairInfo {
 
@@ -55,8 +56,8 @@ public class ClonePairInfo {
 			}
 
 		} catch (final Exception e) {
-			e.printStackTrace();
-			System.exit(0);
+			throw new TinyPDGException(
+					"クローンペアを読み込めませんでした: " + file, e);
 		}
 
 		return clonepairs;

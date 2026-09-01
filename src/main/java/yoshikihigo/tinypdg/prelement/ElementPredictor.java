@@ -51,7 +51,8 @@ public class ElementPredictor {
 				if (line.equals("")) {
 					in.close();
 					System.out.println("done.");
-					System.exit(0);
+					// これは正常終了。main から戻れば終了コードは 0 になる。
+					return;
 				}
 
 				final List<CombinationalFrequency> frequencies = getPredictedElements(
@@ -61,7 +62,7 @@ public class ElementPredictor {
 
 		} catch (final Exception e) {
 			e.printStackTrace();
-			System.exit(0);
+			System.exit(1);
 		}
 	}
 

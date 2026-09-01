@@ -109,7 +109,7 @@ public class Writer {
 			if (!target.exists()) {
 				System.err
 						.println("specified directory or file does not exist.");
-				System.exit(0);
+				System.exit(1);
 			}
 
 			final String javaVersion = cmd.hasOption("j")
@@ -174,9 +174,11 @@ public class Writer {
 
 			System.out.println("successfully finished.");
 
-		} catch (Exception e) {
-			System.err.println(e.getMessage());
-			System.exit(0);
+		} catch (final Exception e) {
+			// 異常終了なので終了コードは非 0 にする。0 のままでは、
+			// シェルや CI から呼んだときに成功と区別が付かない。
+			e.printStackTrace();
+			System.exit(1);
 		}
 	}
 

@@ -96,7 +96,7 @@ public class DependenceDistiller {
 			if (!target.exists()) {
 				System.err
 						.println("specified directory or file does not exist.");
-				System.exit(0);
+				System.exit(1);
 			}
 
 			final int SIZE_THRESHOLD = cmd.hasOption("s") ? Integer
@@ -231,9 +231,11 @@ public class DependenceDistiller {
 			// printFrequencies("execution", texts,
 			// frequenciesForExecutionDependence);
 
-		} catch (Exception e) {
-			System.err.println(e.getMessage());
-			System.exit(0);
+		} catch (final Exception e) {
+			// 異常終了なので終了コードは非 0 にする。0 のままでは、
+			// シェルや CI から呼んだときに成功と区別が付かない。
+			e.printStackTrace();
+			System.exit(1);
 		}
 	}
 
