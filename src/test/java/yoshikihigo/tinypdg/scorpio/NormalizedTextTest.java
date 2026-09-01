@@ -56,7 +56,7 @@ class NormalizedTextTest {
 
 		for (final MethodInfo method : methods) {
 			final PDG pdg = new PDG(method, new PDGNodeFactory(),
-					new CFGNodeFactory(), true, true, true);
+					new CFGNodeFactory());
 			pdg.build();
 			for (final PDGNode<?> node : pdg.getAllNodes()) {
 				final String normalized = assertDoesNotThrow(

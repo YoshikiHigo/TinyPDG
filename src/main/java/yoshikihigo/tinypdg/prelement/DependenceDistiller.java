@@ -109,10 +109,11 @@ public class DependenceDistiller {
 				final List<MethodInfo> methods = JavaAstFactory
 						.collectMethods(target, javaVersion);
 
-				// 3 種類の依存を全て作り、ノードの併合はしない。
+				// ノードの併合はしない。
 				final SortedSet<PDG> pdgs = PDGGeneration.buildInParallel(
-						methods, new PDGGeneration.Options(true, true, true,
-								SIZE_THRESHOLD, NUMBER_OF_THREADS));
+						methods, new PDGGeneration.Options(
+								PDG.Dependences.ALL, SIZE_THRESHOLD,
+								NUMBER_OF_THREADS));
 				pdgArray = pdgs.toArray(new PDG[0]);
 			}
 			System.out.print("done: ");

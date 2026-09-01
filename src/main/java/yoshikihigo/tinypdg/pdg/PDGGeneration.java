@@ -28,16 +28,15 @@ public final class PDGGeneration {
 	/**
 	 * 何をどう作るか。
 	 *
-	 * @param useOfControl   制御依存の辺を作るか
-	 * @param useOfData      データ依存の辺を作るか
-	 * @param useOfExecution 実行依存の辺を作るか
-	 * @param minimumSize    これ未満のノード数のグラフは捨てる
-	 * @param threads        並列度
+	 * @param dependences 各 PDG に何を含めるか
+	 * @param minimumSize これ未満のノード数のグラフは捨てる
+	 * @param threads     並列度
 	 */
-	public record Options(boolean useOfControl, boolean useOfData,
-			boolean useOfExecution, int minimumSize, int threads) {
+	public record Options(PDG.Dependences dependences, int minimumSize,
+			int threads) {
 
 		public Options {
+			Objects.requireNonNull(dependences, "\"dependences\" is null.");
 			if (threads < 1) {
 				throw new IllegalArgumentException(
 						"threads は 1 以上でなければならない: " + threads);
@@ -101,9 +100,7 @@ public final class PDGGeneration {
 
 			try {
 				final PDG pdg = new PDG(method, pdgNodeFactory, cfgNodeFactory,
-						options.useOfControl(), options.useOfData(),
-						options.useOfExecution(), Integer.MAX_VALUE,
-						Integer.MAX_VALUE, Integer.MAX_VALUE);
+						options.dependences());
 				pdg.build();
 
 				if (pdg.getAllNodes().size() < options.minimumSize()) {

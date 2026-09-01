@@ -167,8 +167,8 @@ class GoldenGraphTest {
 
 	private static void appendPDG(final StringBuilder out, final MethodInfo method) {
 
-		final PDG pdg = new PDG(method, new PDGNodeFactory(), new CFGNodeFactory(),
-				true, true, true);
+		final PDG pdg = new PDG(method, new PDGNodeFactory(),
+				new CFGNodeFactory());
 		pdg.build();
 
 		out.append("\n## PDG ").append(signature(method)).append('\n');

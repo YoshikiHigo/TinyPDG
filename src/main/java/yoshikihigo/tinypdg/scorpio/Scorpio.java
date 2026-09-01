@@ -193,7 +193,8 @@ public class Scorpio {
 						.collectMethods(target, javaVersion);
 
 				final PDGGeneration.Options generation = new PDGGeneration.Options(
-						useOfControl, useOfData, useOfExecution,
+						new PDG.Dependences(useOfControl, useOfData,
+								useOfExecution),
 						SIZE_THRESHOLD, NUMBER_OF_THREADS);
 				// ノードの併合は Scorpio 固有の処理なので、生成側には
 				// 「作り終えた PDG に何をするか」として渡す。

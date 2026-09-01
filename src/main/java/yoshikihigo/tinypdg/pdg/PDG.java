@@ -42,32 +42,62 @@ public class PDG implements Comparable<PDG> {
 
 	final public MethodInfo unit;
 
-	final public boolean buildControlDependence;
-	final public boolean buildDataDependence;
-	final public boolean buildExecutionDependence;
-
-	final public int controlDependencyDistance;
-	final public int dataDependencyDistance;
-	final public int executionDependencyDistance;
+	final public Dependences dependences;
 
 	private CFG cfg;
 
+	/**
+	 * PDG に何を含めるか。
+	 *
+	 * <p>以前はコンストラクタの引数として並んでいた。真偽値が 3 つ続くので、
+	 * 呼び出し側は {@code new PDG(method, f1, f2, true, true, true)} となり、
+	 * どれがどの依存か読み取れなかった。
+	 *
+	 * <p>制御依存にも距離の引数があったが、比較に使われている場所がなく、
+	 * 渡しても何も起こらなかった。距離を見て辺を落としているのはデータ依存と
+	 * 実行依存だけなので、その 2 つだけを残してある。
+	 *
+	 * @param control           制御依存の辺を作るか
+	 * @param data              データ依存の辺を作るか
+	 * @param execution         実行依存の辺を作るか
+	 * @param dataDistance      データ依存を作る行数の上限
+	 * @param executionDistance 実行依存を作る行数の上限
+	 */
+	public record Dependences(boolean control, boolean data, boolean execution,
+			int dataDistance, int executionDistance) {
+
+		/** 3 種類すべてを、距離の制限なしで作る。 */
+		public static final Dependences ALL = new Dependences(true, true, true);
+
+		public Dependences {
+			if (dataDistance < 1 || executionDistance < 1) {
+				throw new IllegalArgumentException(
+						"距離は 1 以上でなければならない: data=" + dataDistance
+								+ " execution=" + executionDistance);
+			}
+		}
+
+		/** 距離を制限せずに作る。 */
+		public Dependences(final boolean control, final boolean data,
+				final boolean execution) {
+			this(control, data, execution, Integer.MAX_VALUE,
+					Integer.MAX_VALUE);
+		}
+	}
+
 	public PDG(final MethodInfo unit, final PDGNodeFactory pdgNodeFactory,
 			final CFGNodeFactory cfgNodeFactory,
-			final boolean buildControlDependence,
-			final boolean buildDataDependence,
-			final boolean buildExecutionDependence,
-			final int controlDependencyDistance,
-			final int dataDependencyDistance,
-			final int executionDependencyDistance) {
+			final Dependences dependences) {
 
 		Objects.requireNonNull(unit, "\"unit\" is null");
 		Objects.requireNonNull(pdgNodeFactory, "\"pdgNodeFactory\" is null");
 		Objects.requireNonNull(cfgNodeFactory, "\"cfgNodeFactory\" is null");
+		Objects.requireNonNull(dependences, "\"dependences\" is null");
 
 		this.unit = unit;
 		this.pdgNodeFactory = pdgNodeFactory;
 		this.cfgNodeFactory = cfgNodeFactory;
+		this.dependences = dependences;
 
 		this.enterNode = (PDGMethodEnterNode) this.pdgNodeFactory
 				.makeControlNode(unit);
@@ -78,42 +108,15 @@ public class PDG implements Comparable<PDG> {
 					.makeNormalNode(variable);
 			this.parameterNodes.add(parameterNode);
 		}
-
-		this.buildControlDependence = buildControlDependence;
-		this.buildDataDependence = buildDataDependence;
-		this.buildExecutionDependence = buildExecutionDependence;
-
-		this.controlDependencyDistance = controlDependencyDistance;
-		this.dataDependencyDistance = dataDependencyDistance;
-		this.executionDependencyDistance = executionDependencyDistance;
-	}
-
-	public PDG(final MethodInfo unit, final PDGNodeFactory pdgNodeFactory,
-			final CFGNodeFactory cfgNodeFactory,
-			final boolean buildControlDependency,
-			final boolean buildDataDependency,
-			final boolean buildExecutionDependency) {
-
-		this(unit, pdgNodeFactory, cfgNodeFactory, buildControlDependency,
-				buildDataDependency, buildExecutionDependency,
-				Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
 	}
 
 	public PDG(final MethodInfo unit, final PDGNodeFactory pdgNodeFactory,
 			final CFGNodeFactory cfgNodeFactory) {
-		this(unit, pdgNodeFactory, cfgNodeFactory, true, true, true);
+		this(unit, pdgNodeFactory, cfgNodeFactory, Dependences.ALL);
 	}
 
 	public PDG(final MethodInfo unit) {
-		this(unit, new PDGNodeFactory(), new CFGNodeFactory());
-	}
-
-	public PDG(final MethodInfo unit, final boolean buildControlDependency,
-			final boolean buildDataDependencey,
-			final boolean buildExecutionDependency) {
-		this(unit, new PDGNodeFactory(), new CFGNodeFactory(),
-				buildControlDependency, buildDataDependencey,
-				buildExecutionDependency);
+		this(unit, new PDGNodeFactory(), new CFGNodeFactory(), Dependences.ALL);
 	}
 
 	@Override
@@ -205,7 +208,7 @@ public class PDG implements Comparable<PDG> {
 		this.cfg.removeSwitchCases();
 		this.cfg.removeJumpStatements();
 
-		if (this.buildControlDependence) {
+		if (this.dependences.control()) {
 			this.buildControlDependence(this.enterNode, unit);
 			for (final PDGParameterNode parameterNode : this.parameterNodes) {
 				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
@@ -215,7 +218,7 @@ public class PDG implements Comparable<PDG> {
 			}
 		}
 
-		if (this.buildExecutionDependence) {
+		if (this.dependences.execution()) {
 			if (!this.cfg.isEmpty()) {
 				final PDGNode<?> node = this.pdgNodeFactory.makeNode(this.cfg
 						.getEnterNode());
@@ -226,7 +229,7 @@ public class PDG implements Comparable<PDG> {
 			}
 		}
 
-		if (this.buildDataDependence) {
+		if (this.dependences.data()) {
 			for (final PDGParameterNode parameterNode : this.parameterNodes) {
 				if (!this.cfg.isEmpty()) {
 					this.buildDataDependence(this.cfg.getEnterNode(),
@@ -271,7 +274,7 @@ public class PDG implements Comparable<PDG> {
 		}
 
 		final PDGNode<?> pdgNode = this.pdgNodeFactory.makeNode(cfgNode);
-		if (this.buildDataDependence) {
+		if (this.dependences.data()) {
 			for (final String variable : pdgNode.core.getAssignedVariables()) {
 				for (final CFGEdge edge : cfgNode.getForwardEdges()) {
 					final Set<CFGNode<?>> checkedNodesForDefinedVariables = new HashSet<>();
@@ -280,7 +283,7 @@ public class PDG implements Comparable<PDG> {
 				}
 			}
 		}
-		if (this.buildControlDependence) {
+		if (this.dependences.control()) {
 			if (pdgNode instanceof PDGControlNode) {
 				final ProgramElementInfo condition = ((PDGControlNode) pdgNode).core;
 				this.buildControlDependence((PDGControlNode) pdgNode,
@@ -288,13 +291,13 @@ public class PDG implements Comparable<PDG> {
 			}
 		}
 
-		if (this.buildExecutionDependence) {
+		if (this.dependences.execution()) {
 			for (final CFGNode<?> toCFGNode : cfgNode.getForwardNodes()) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNode(toCFGNode);
 				final int distance = Math.abs(toPDGNode.core.startLine
 						- pdgNode.core.startLine) + 1;
-				if (distance <= this.executionDependencyDistance) {
+				if (distance <= this.dependences.executionDistance()) {
 					final PDGExecutionDependenceEdge edge = new PDGExecutionDependenceEdge(
 							pdgNode, toPDGNode);
 					pdgNode.addForwardEdge(edge);
@@ -329,7 +332,7 @@ public class PDG implements Comparable<PDG> {
 			final PDGNode<?> toPDGNode = this.pdgNodeFactory.makeNode(cfgNode);
 			final int distance = Math.abs(toPDGNode.core.startLine
 					- fromPDGNode.core.startLine) + 1;
-			if (distance <= this.dataDependencyDistance) {
+			if (distance <= this.dependences.dataDistance()) {
 				final PDGDataDependenceEdge edge = new PDGDataDependenceEdge(
 						fromPDGNode, toPDGNode, variable);
 				fromPDGNode.addForwardEdge(edge);
