@@ -1,5 +1,6 @@
 package yoshikihigo.tinypdg.pdg.edge;
 
+import java.util.Objects;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
 
 public abstract class PDGEdge implements Comparable<PDGEdge> {
@@ -10,9 +11,9 @@ public abstract class PDGEdge implements Comparable<PDGEdge> {
 
 	protected PDGEdge(final TYPE type, final PDGNode<?> fromNode,
 			final PDGNode<?> toNode) {
-		assert null != type : "\"type\" is null";
-		assert null != fromNode : "\"fromNode\" is null.";
-		assert null != toNode : "\"toNode\" is null.";
+		Objects.requireNonNull(type, "\"type\" is null");
+		Objects.requireNonNull(fromNode, "\"fromNode\" is null.");
+		Objects.requireNonNull(toNode, "\"toNode\" is null.");
 		this.type = type;
 		this.fromNode = fromNode;
 		this.toNode = toNode;
@@ -55,7 +56,7 @@ public abstract class PDGEdge implements Comparable<PDGEdge> {
 	 */
 	@Override
 	final public int compareTo(final PDGEdge edge) {
-		assert null != edge : "\"edge\" is null.";
+		Objects.requireNonNull(edge, "\"edge\" is null.");
 
 		final int fromNodeOrder = this.fromNode.compareTo(edge.fromNode);
 		if (0 != fromNodeOrder) {
@@ -76,7 +77,7 @@ public abstract class PDGEdge implements Comparable<PDGEdge> {
 	}
 
 	public boolean connectedWith(final PDGEdge edge) {
-		assert null != edge : "\"edge\" is null.";
+		Objects.requireNonNull(edge, "\"edge\" is null.");
 		return (0 == this.fromNode.compareTo(edge.fromNode))
 				|| (0 == this.fromNode.compareTo(edge.toNode))
 				|| (0 == this.toNode.compareTo(edge.fromNode))

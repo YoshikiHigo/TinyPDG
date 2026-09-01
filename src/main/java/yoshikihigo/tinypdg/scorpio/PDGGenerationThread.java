@@ -1,6 +1,7 @@
 package yoshikihigo.tinypdg.scorpio;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -29,10 +30,10 @@ public class PDGGenerationThread implements Runnable {
 			final PDGNodeFactory pdgNodeFactory, final boolean useOfControl,
 			final boolean useOfData, final boolean useOfExecution,
 			final boolean useOfMerging, final int threshold) {
-		assert null != methods : "\"methods\" is null.";
-		assert null != pdgs : "\"pdgs\" is null.";
-		assert null != cfgNodeFactory : "\"cfgNodeFactory\" is null.";
-		assert null != pdgNodeFactory : "\"pdgNodeFactory\" is null.";
+		Objects.requireNonNull(methods, "\"methods\" is null.");
+		Objects.requireNonNull(pdgs, "\"pdgs\" is null.");
+		Objects.requireNonNull(cfgNodeFactory, "\"cfgNodeFactory\" is null.");
+		Objects.requireNonNull(pdgNodeFactory, "\"pdgNodeFactory\" is null.");
 		this.methods = methods;
 		this.pdgs = pdgs;
 		this.cfgNodeFactory = cfgNodeFactory;

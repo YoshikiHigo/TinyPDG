@@ -1,5 +1,6 @@
 package yoshikihigo.tinypdg.scorpio.data;
 
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -18,12 +19,12 @@ public class ClonePairInfo implements Comparable<ClonePairInfo> {
 	}
 
 	public void addNodePair(final NodePairInfo nodePair) {
-		assert null != nodePair : "\"nodePair\" is null.";
+		Objects.requireNonNull(nodePair, "\"nodePair\" is null.");
 		this.nodePairs.add(nodePair);
 	}
 
 	public void merge(final ClonePairInfo merged) {
-		assert null != merged : "\"merged\" is null.";
+		Objects.requireNonNull(merged, "\"merged\" is null.");
 		this.nodePairs.addAll(merged.nodePairs);
 	}
 
@@ -83,7 +84,7 @@ public class ClonePairInfo implements Comparable<ClonePairInfo> {
 	}
 
 	public boolean conflict(final ClonePairInfo clonepair) {
-		assert null != clonepair : "\"clonepair\" is null.";
+		Objects.requireNonNull(clonepair, "\"clonepair\" is null.");
 		return this.getLeftCodeFragment().conflict(
 				clonepair.getLeftCodeFragment())
 				|| this.getRightCodeFragment().conflict(

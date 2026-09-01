@@ -1,5 +1,6 @@
 package yoshikihigo.tinypdg.pdg.edge;
 
+import java.util.Objects;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
 
 public class PDGDataDependenceEdge extends PDGEdge {
@@ -14,13 +15,13 @@ public class PDGDataDependenceEdge extends PDGEdge {
 
 	@Override
 	public PDGEdge replaceFromNode(final PDGNode<?> fromNode) {
-		assert null != fromNode : "\"fromNode\" is null.";
+		Objects.requireNonNull(fromNode, "\"fromNode\" is null.");
 		return new PDGDataDependenceEdge(fromNode, this.toNode, this.data);
 	}
 
 	@Override
 	public PDGEdge replaceToNode(final PDGNode<?> toNode) {
-		assert null != fromNode : "\"toNode\" is null.";
+		Objects.requireNonNull(toNode, "\"toNode\" is null.");
 		return new PDGDataDependenceEdge(this.fromNode, toNode, this.data);
 	}
 

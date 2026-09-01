@@ -2,6 +2,7 @@ package yoshikihigo.tinypdg.cfg.node;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -50,7 +51,7 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 	}
 
 	public boolean removeForwardEdge(final CFGEdge forwardEdge) {
-		assert null != forwardEdge : "\"forwardEdge\" is null.";
+		Objects.requireNonNull(forwardEdge, "\"forwardEdge\" is null.");
 		return this.forwardEdges.remove(forwardEdge);
 	}
 
@@ -64,7 +65,7 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 	}
 
 	public boolean removeBackwardEdge(final CFGEdge backwardEdge) {
-		assert null != backwardEdge : "\"backwardEdge\" is null.";
+		Objects.requireNonNull(backwardEdge, "\"backwardEdge\" is null.");
 		return this.backwardEdges.remove(backwardEdge);
 	}
 
@@ -79,7 +80,7 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 
 	public boolean removeForwardNode(
 			final CFGNode<? extends ProgramElementInfo> node) {
-		assert null != node : "\"node\" is null.";
+		Objects.requireNonNull(node, "\"node\" is null.");
 		final Iterator<CFGEdge> iterator = this.forwardEdges.iterator();
 		while (iterator.hasNext()) {
 			final CFGEdge edge = iterator.next();
@@ -93,7 +94,7 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 
 	public boolean removeBackwardNode(
 			final CFGNode<? extends ProgramElementInfo> node) {
-		assert null != node : "\"node\" is null.";
+		Objects.requireNonNull(node, "\"node\" is null.");
 		final Iterator<CFGEdge> iterator = this.backwardEdges.iterator();
 		while (iterator.hasNext()) {
 			final CFGEdge edge = iterator.next();

@@ -1,5 +1,6 @@
 package yoshikihigo.tinypdg.pdg.node;
 
+import java.util.Objects;
 import yoshikihigo.tinypdg.pe.ExpressionInfo;
 import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
@@ -7,7 +8,7 @@ import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 public class PDGMethodEnterNode extends PDGControlNode {
 
 	static public PDGMethodEnterNode getInstance(final MethodInfo method) {
-		assert null != method : "\"method\" is null.";
+		Objects.requireNonNull(method, "\"method\" is null.");
 		final ProgramElementInfo methodEnterExpression = new ExpressionInfo(
 				ExpressionInfo.CATEGORY.MethodEnter, method.startLine,
 				method.endLine);

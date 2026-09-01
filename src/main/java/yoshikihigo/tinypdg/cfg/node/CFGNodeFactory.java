@@ -1,10 +1,12 @@
 package yoshikihigo.tinypdg.cfg.node;
 
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import yoshikihigo.tinypdg.TinyPDGException;
 import yoshikihigo.tinypdg.pe.ExpressionInfo;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 import yoshikihigo.tinypdg.pe.StatementInfo;
@@ -50,8 +52,11 @@ public class CFGNodeFactory {
 			}
 
 			else {
-				assert false : "\"element\" must be StatementInfo.";
-				return null;
+				// 以前は表明を置いて null を返していた。表明は既定で無効なので、
+				// 実際には null が返り、離れた場所で NullPointerException に
+				// なっていた。
+				throw new TinyPDGException(
+						"CFG ノードを作れない要素です: " + element.getClass().getName());
 			}
 		}
 
@@ -76,7 +81,7 @@ public class CFGNodeFactory {
 
 	public CFGNode<? extends ProgramElementInfo> getNode(
 			final ProgramElementInfo element) {
-		assert null != element : "\"element\" is null.";
+		Objects.requireNonNull(element, "\"element\" is null.");
 		return this.elementToNodeMap.get(element);
 	}
 

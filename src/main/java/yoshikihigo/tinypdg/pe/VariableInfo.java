@@ -1,5 +1,7 @@
 package yoshikihigo.tinypdg.pe;
 
+import java.util.Objects;
+
 public class VariableInfo extends ProgramElementInfo {
 
 	private CATEGORY category;
@@ -15,7 +17,7 @@ public class VariableInfo extends ProgramElementInfo {
 	}
 
 	public void setCategory(final CATEGORY category) {
-		assert null != category : "\"category\" is null.";
+		Objects.requireNonNull(category, "\"category\" is null.");
 		this.category = category;
 	}
 

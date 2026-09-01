@@ -3,6 +3,7 @@ package yoshikihigo.tinypdg.scorpio;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -113,8 +114,8 @@ public class Slicing {
 	private void makeCandidates(final List<ClonePairInfo> candidates,
 			final List<ClonePairInfo> clonepairs) {
 
-		assert null != candidates : "\"candidates\" is null.";
-		assert null != clonepairs : "\"clonepairs\" is null.";
+		Objects.requireNonNull(candidates, "\"candidates\" is null.");
+		Objects.requireNonNull(clonepairs, "\"clonepairs\" is null.");
 
 		for (final ClonePairInfo clonepair : clonepairs) {
 			for (final ClonePairInfo candidate : candidates) {

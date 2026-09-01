@@ -1,10 +1,12 @@
 package yoshikihigo.tinypdg.pdg.node;
 
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import yoshikihigo.tinypdg.TinyPDGException;
 import yoshikihigo.tinypdg.cfg.node.CFGControlNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNormalNode;
@@ -24,7 +26,7 @@ public class PDGNodeFactory {
 
 	public PDGNode<?> makeNode(final CFGNode<?> node) {
 
-		assert null != node : "\"node\" is null.";
+		Objects.requireNonNull(node, "\"node\" is null.");
 
 		if (node instanceof CFGControlNode) {
 			return this.makeControlNode(node.core);
@@ -35,15 +37,17 @@ public class PDGNodeFactory {
 		}
 
 		else {
-			assert false : "\"node\" is an invalid parameter.";
-			return null;
+			// 以前は表明を置いて null を返していた。表明は既定で無効なので
+			// 実際には null が返り、離れた場所で NullPointerException になっていた。
+			throw new TinyPDGException(
+					"PDG ノードを作れない CFG ノードです: " + node.getClass().getName());
 		}
 	}
 
 	public synchronized PDGNode<?> makeControlNode(
 			final ProgramElementInfo element) {
 
-		assert null != element : "\"element\" is null.";
+		Objects.requireNonNull(element, "\"element\" is null.");
 
 		PDGNode<?> node = this.elementToNodeMap.get(element);
 		if (null != node) {
@@ -63,7 +67,8 @@ public class PDGNodeFactory {
 		}
 
 		else {
-			assert false : "\"element\" is an invalid parameter.";
+			throw new TinyPDGException(
+					"制御ノードを作れない要素です: " + element.getClass().getName());
 		}
 
 		this.elementToNodeMap.put(element, node);
@@ -74,7 +79,7 @@ public class PDGNodeFactory {
 	public synchronized PDGNode<?> makeNormalNode(
 			final ProgramElementInfo element) {
 
-		assert null != element : "\"element\" is null.";
+		Objects.requireNonNull(element, "\"element\" is null.");
 
 		PDGNode<?> node = this.elementToNodeMap.get(element);
 		if (null != node) {
@@ -94,7 +99,8 @@ public class PDGNodeFactory {
 		}
 
 		else {
-			assert false : "\"element\" is an invalid parameter.";
+			throw new TinyPDGException(
+					"通常ノードを作れない要素です: " + element.getClass().getName());
 		}
 
 		this.elementToNodeMap.put(element, node);

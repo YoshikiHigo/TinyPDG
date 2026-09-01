@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -91,8 +92,8 @@ public class BellonWriter extends Writer {
 		public int compare(final ProgramElementInfo o1,
 				final ProgramElementInfo o2) {
 
-			assert null != o1 : "\"o1\" is null.";
-			assert null != o2 : "\"o2\" is null.";
+			Objects.requireNonNull(o1, "\"o1\" is null.");
+			Objects.requireNonNull(o2, "\"o2\" is null.");
 
 			if (o1.startLine < o2.startLine) {
 				return -1;

@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import yoshikihigo.tinypdg.TinyPDGException;
 import yoshikihigo.tinypdg.cfg.edge.CFGControlEdge;
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
 import yoshikihigo.tinypdg.cfg.node.CFGBreakStatementNode;
@@ -42,7 +44,7 @@ public class CFG {
 	protected boolean built;
 
 	public CFG(final ProgramElementInfo core, final CFGNodeFactory nodeFactory) {
-		assert null != nodeFactory : "\"nodeFactory\" is null.";
+		Objects.requireNonNull(nodeFactory, "\"nodeFactory\" is null.");
 		this.core = core;
 		this.nodeFactory = nodeFactory;
 		this.nodes = new TreeSet<>();
@@ -205,7 +207,8 @@ public class CFG {
 		}
 
 		else {
-			assert false : "unexpected state.";
+			throw new TinyPDGException(
+					"CFG を組み立てられない要素です: " + this.core.getClass().getName());
 		}
 
 		if (null != this.core) {
@@ -669,7 +672,7 @@ public class CFG {
 
 	public final SortedSet<CFGNode<? extends ProgramElementInfo>> getReachableNodes(
 			final CFGNode<? extends ProgramElementInfo> startNode) {
-		assert null != startNode : "\"startNode\" is null.";
+		Objects.requireNonNull(startNode, "\"startNode\" is null.");
 		final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes = new TreeSet<>();
 		this.getReachableNodes(startNode, nodes);
 		return nodes;
@@ -678,8 +681,8 @@ public class CFG {
 	private final void getReachableNodes(
 			final CFGNode<? extends ProgramElementInfo> startNode,
 			final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes) {
-		assert null != startNode : "\"startNode\" is null.";
-		assert null != nodes : "\"nodes\" is null.";
+		Objects.requireNonNull(startNode, "\"startNode\" is null.");
+		Objects.requireNonNull(nodes, "\"nodes\" is null.");
 
 		if (nodes.contains(startNode)) {
 			return;

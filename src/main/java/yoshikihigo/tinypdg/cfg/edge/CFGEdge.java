@@ -1,5 +1,6 @@
 package yoshikihigo.tinypdg.cfg.edge;
 
+import java.util.Objects;
 import yoshikihigo.tinypdg.cfg.node.CFGBreakStatementNode;
 import yoshikihigo.tinypdg.cfg.node.CFGContinueStatementNode;
 import yoshikihigo.tinypdg.cfg.node.CFGControlNode;
@@ -12,8 +13,8 @@ public abstract class CFGEdge implements Comparable<CFGEdge> {
 	static public CFGEdge makeEdge(final CFGNode<?> fromNode,
 			final CFGNode<?> toNode, boolean control) {
 
-		assert null != fromNode : "\"fromNode\" is null.";
-		assert null != toNode : "\"toNode\" is null.";
+		Objects.requireNonNull(fromNode, "\"fromNode\" is null.");
+		Objects.requireNonNull(toNode, "\"toNode\" is null.");
 
 		assert fromNode instanceof CFGControlNode
 				|| fromNode instanceof CFGPseudoNode : "\"fromNode\" is neither CFGControlNode nor CFGPseudoNode.";
@@ -32,8 +33,8 @@ public abstract class CFGEdge implements Comparable<CFGEdge> {
 	static public CFGEdge makeEdge(final CFGNode<?> fromNode,
 			final CFGNode<?> toNode) {
 
-		assert null != fromNode : "\"fromNode\" is null.";
-		assert null != toNode : "\"toNode\" is null.";
+		Objects.requireNonNull(fromNode, "\"fromNode\" is null.");
+		Objects.requireNonNull(toNode, "\"toNode\" is null.");
 
 		if (fromNode instanceof CFGControlNode) {
 			return makeEdge(fromNode, toNode, false);
@@ -48,8 +49,8 @@ public abstract class CFGEdge implements Comparable<CFGEdge> {
 	static public CFGEdge makeJumpEdge(final CFGNode<?> fromNode,
 			final CFGNode<?> toNode) {
 
-		assert null != fromNode : "\"fromNode\" is null.";
-		assert null != toNode : "\"toNode\" is null.";
+		Objects.requireNonNull(fromNode, "\"fromNode\" is null.");
+		Objects.requireNonNull(toNode, "\"toNode\" is null.");
 
 		return new CFGJumpEdge(fromNode, toNode);
 	}
@@ -59,8 +60,8 @@ public abstract class CFGEdge implements Comparable<CFGEdge> {
 
 	CFGEdge(final CFGNode<?> fromNode, final CFGNode<?> toNode) {
 
-		assert null != fromNode : "\"fromNode\" is null.";
-		assert null != toNode : "\"toNode\" is null.";
+		Objects.requireNonNull(fromNode, "\"fromNode\" is null.");
+		Objects.requireNonNull(toNode, "\"toNode\" is null.");
 
 		this.fromNode = fromNode;
 		this.toNode = toNode;

@@ -3,6 +3,7 @@ package yoshikihigo.tinypdg.pdg;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -56,9 +57,9 @@ public class PDG implements Comparable<PDG> {
 			final int dataDependencyDistance,
 			final int executionDependencyDistance) {
 
-		assert null != unit : "\"unit\" is null";
-		assert null != pdgNodeFactory : "\"pdgNodeFactory\" is null";
-		assert null != cfgNodeFactory : "\"cfgNodeFactory\" is null";
+		Objects.requireNonNull(unit, "\"unit\" is null");
+		Objects.requireNonNull(pdgNodeFactory, "\"pdgNodeFactory\" is null");
+		Objects.requireNonNull(cfgNodeFactory, "\"cfgNodeFactory\" is null");
 
 		this.unit = unit;
 		this.pdgNodeFactory = pdgNodeFactory;
@@ -113,7 +114,7 @@ public class PDG implements Comparable<PDG> {
 
 	@Override
 	public int compareTo(final PDG o) {
-		assert null != o : "\"o\" is null.";
+		Objects.requireNonNull(o, "\"o\" is null.");
 		return this.unit.compareTo(o.unit);
 	}
 
@@ -138,8 +139,8 @@ public class PDG implements Comparable<PDG> {
 	private void getAllNodes(final PDGNode<?> node,
 			final SortedSet<PDGNode<?>> nodes) {
 
-		assert null != node : "\"node\" is null.";
-		assert null != nodes : "\"nodes\" is null.";
+		Objects.requireNonNull(node, "\"node\" is null.");
+		Objects.requireNonNull(nodes, "\"nodes\" is null.");
 
 		if (nodes.contains(node)) {
 			return;
@@ -171,8 +172,8 @@ public class PDG implements Comparable<PDG> {
 
 	private void getAllEdges(final PDGEdge edge, final SortedSet<PDGEdge> edges) {
 
-		assert null != edge : "\"edge\" is null.";
-		assert null != edges : "\"edges\" is null.";
+		Objects.requireNonNull(edge, "\"edge\" is null.");
+		Objects.requireNonNull(edges, "\"edges\" is null.");
 
 		if (edges.contains(edge)) {
 			return;
@@ -256,8 +257,8 @@ public class PDG implements Comparable<PDG> {
 	private void buildDependence(final CFGNode<?> cfgNode,
 			final Set<CFGNode<?>> checkedNodes) {
 
-		assert null != cfgNode : "\"cfgNode\" is null.";
-		assert null != checkedNodes : "\"checkedNodes\" is null.";
+		Objects.requireNonNull(cfgNode, "\"cfgNode\" is null.");
+		Objects.requireNonNull(checkedNodes, "\"checkedNodes\" is null.");
 
 		if (checkedNodes.contains(cfgNode)) {
 			return;
@@ -308,10 +309,10 @@ public class PDG implements Comparable<PDG> {
 			final PDGNode<?> fromPDGNode, final String variable,
 			final Set<CFGNode<?>> checkedCFGNodes) {
 
-		assert null != cfgNode : "\"cfgNode\" is null.";
-		assert null != fromPDGNode : "\"fromPDGNode\" is null.";
-		assert null != variable : "\"variable\" is null.";
-		assert null != checkedCFGNodes : "\"checkedCFGnodes\" is null.";
+		Objects.requireNonNull(cfgNode, "\"cfgNode\" is null.");
+		Objects.requireNonNull(fromPDGNode, "\"fromPDGNode\" is null.");
+		Objects.requireNonNull(variable, "\"variable\" is null.");
+		Objects.requireNonNull(checkedCFGNodes, "\"checkedCFGNodes\" is null.");
 
 		if (checkedCFGNodes.contains(cfgNode)) {
 			return;

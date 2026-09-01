@@ -1,5 +1,6 @@
 package yoshikihigo.tinypdg.scorpio;
 
+import java.util.Objects;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,9 +22,9 @@ public class HashCalculationThread implements Runnable {
 			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mappingPDGToPDGNodes,
 			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges) {
 
-		assert null != pdgs : "\"pdgs\" is null.";
-		assert null != mappingPDGToPDGNodes : "\"mappingPDGToPDGNodes\" is null.";
-		assert null != mappingPDGToPDGEdges : "\"mappingPDGToPDGEdges\" is null.";
+		Objects.requireNonNull(pdgs, "\"pdgs\" is null.");
+		Objects.requireNonNull(mappingPDGToPDGNodes, "\"mappingPDGToPDGNodes\" is null.");
+		Objects.requireNonNull(mappingPDGToPDGEdges, "\"mappingPDGToPDGEdges\" is null.");
 
 		this.pdgs = pdgs;
 		this.mappingPDGToPDGNodes = mappingPDGToPDGNodes;

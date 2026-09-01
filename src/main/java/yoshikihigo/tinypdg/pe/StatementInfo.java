@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -83,7 +84,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	}
 
 	public void setOwnerBlock(final ProgramElementInfo ownerBlock) {
-		assert null != "\"ownerBlock\" is null.";
+		Objects.requireNonNull(ownerBlock, "\"ownerBlock\" is null.");
 		this.ownerBlock = ownerBlock;
 	}
 
@@ -92,22 +93,22 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	}
 
 	public void setCategory(final CATEGORY category) {
-		assert null != "\"category\" is null.";
+		Objects.requireNonNull(category, "\"category\" is null.");
 		this.category = category;
 	}
 
 	public void addInitializer(final ProgramElementInfo initializer) {
-		assert null != initializer : "\"initializer\" is null.";
+		Objects.requireNonNull(initializer, "\"initializer\" is null.");
 		this.initializers.add(initializer);
 	}
 
 	public void setCondition(final ProgramElementInfo condition) {
-		assert null != condition : "\"condition\" is null.";
+		Objects.requireNonNull(condition, "\"condition\" is null.");
 		this.condition = condition;
 	}
 
 	public void addUpdater(final ProgramElementInfo updater) {
-		assert null != updater : "\"updater\" is null.";
+		Objects.requireNonNull(updater, "\"updater\" is null.");
 		this.updaters.add(updater);
 	}
 
@@ -129,7 +130,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 
 	@Override
 	public void setStatement(final StatementInfo statement) {
-		assert null != statement : "\"statement\" is null.";
+		Objects.requireNonNull(statement, "\"statement\" is null.");
 		this.statements.clear();
 		if (StatementInfo.CATEGORY.SimpleBlock == statement.getCategory()) {
 			if (statement.getStatements().isEmpty()) {
@@ -144,13 +145,13 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 
 	@Override
 	public void addStatement(final StatementInfo statement) {
-		assert null != statement : "\"statement\" is null.";
+		Objects.requireNonNull(statement, "\"statement\" is null.");
 		this.statements.add(statement);
 	}
 
 	@Override
 	public void addStatements(final Collection<StatementInfo> statements) {
-		assert null != statements : "\"statements\" is null.";
+		Objects.requireNonNull(statements, "\"statements\" is null.");
 		this.statements.addAll(statements);
 	}
 
@@ -160,7 +161,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	}
 
 	public void setElseStatement(final StatementInfo elseBody) {
-		assert null != elseBody : "\"elseStatement\" is null.";
+		Objects.requireNonNull(elseBody, "\"elseBody\" is null.");
 		this.elseStatements.clear();
 		if (StatementInfo.CATEGORY.SimpleBlock == elseBody.getCategory()) {
 			this.elseStatements.addAll(elseBody.getStatements());
@@ -174,7 +175,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	}
 
 	public void addCatchStatement(final StatementInfo catchStatement) {
-		assert null != catchStatement : "\"catchStatement\" is null.";
+		Objects.requireNonNull(catchStatement, "\"catchStatement\" is null.");
 		this.catchStatements.add(catchStatement);
 	}
 
@@ -183,7 +184,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	}
 
 	public void setFinallyStatement(final StatementInfo finallyStatement) {
-		assert null != finallyStatement : "\"finallyStatement\" is null.";
+		Objects.requireNonNull(finallyStatement, "\"finallyStatement\" is null.");
 		this.finallyStatement = finallyStatement;
 	}
 
@@ -192,7 +193,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 	}
 
 	public void addExpression(final ProgramElementInfo element) {
-		assert null != element : "\"element\" is null.";
+		Objects.requireNonNull(element, "\"element\" is null.");
 		this.expressions.add(element);
 	}
 

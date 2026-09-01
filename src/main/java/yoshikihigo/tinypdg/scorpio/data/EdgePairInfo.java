@@ -1,5 +1,6 @@
 package yoshikihigo.tinypdg.scorpio.data;
 
+import java.util.Objects;
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 
 public class EdgePairInfo implements Comparable<EdgePairInfo> {
@@ -9,8 +10,8 @@ public class EdgePairInfo implements Comparable<EdgePairInfo> {
 
 	public EdgePairInfo(final PDGEdge edgeA, final PDGEdge edgeB) {
 
-		assert null != edgeA : "\"edgeA\" is null.";
-		assert null != edgeB : "\"edgeB\" is null.";
+		Objects.requireNonNull(edgeA, "\"edgeA\" is null.");
+		Objects.requireNonNull(edgeB, "\"edgeB\" is null.");
 
 		this.edgeA = edgeA;
 		this.edgeB = edgeB;

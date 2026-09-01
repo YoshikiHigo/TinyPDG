@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -37,11 +38,11 @@ public class SlicingThread implements Runnable {
 			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mapPDGToPDGNodes,
 			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mapPDGToPDGEdges,
 			final SortedSet<ClonePairInfo> clonepairs, final int SIZE_THRESHOLD) {
-		assert null != pdgpairs : "\"pdgpairs\" is null.";
-		assert null != pdgs : "\"pdgs\" is null.";
-		assert null != mapPDGToPDGNodes : "\"mapPDGToPDGNodes\"";
-		assert null != mapPDGToPDGEdges : "\"mapPDGToPDGEdges\" is null.";
-		assert null != clonepairs : "\"clonepairs\" is null.";
+		Objects.requireNonNull(pdgpairs, "\"pdgpairs\" is null.");
+		Objects.requireNonNull(pdgs, "\"pdgs\" is null.");
+		Objects.requireNonNull(mapPDGToPDGNodes, "\"mapPDGToPDGNodes\"");
+		Objects.requireNonNull(mapPDGToPDGEdges, "\"mapPDGToPDGEdges\" is null.");
+		Objects.requireNonNull(clonepairs, "\"clonepairs\" is null.");
 		assert 0 < SIZE_THRESHOLD : "\"THRESHOLD\" must be greater than 0.";
 		this.pdgpairs = pdgpairs;
 		this.pdgs = pdgs;
@@ -275,8 +276,8 @@ public class SlicingThread implements Runnable {
 			final SortedMap<Integer, List<PDGNode<?>>> mappingHashToPDGNodes,
 			final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHash) {
 
-		assert null != mappingHashToPDGNodes : "\"mappingHashToPDGNodes\" is null.";
-		assert null != mappingPDGNodeToHash : "\"mappingPDGNodeToHash\" is null.";
+		Objects.requireNonNull(mappingHashToPDGNodes, "\"mappingHashToPDGNodes\" is null.");
+		Objects.requireNonNull(mappingPDGNodeToHash, "\"mappingPDGNodeToHash\" is null.");
 
 		for (final Entry<PDGNode<?>, Integer> entry : mappingPDGNodeToHash
 				.entrySet()) {
@@ -295,8 +296,8 @@ public class SlicingThread implements Runnable {
 			final SortedMap<Integer, List<PDGEdge>> mappingHashToPDGEdges,
 			final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash) {
 
-		assert null != mappingHashToPDGEdges : "\"mappingHashToPDGEdges\" is null.";
-		assert null != mappingPDGEdgeToHash : "\"mappingPDGEdgeToHash\" is null.";
+		Objects.requireNonNull(mappingHashToPDGEdges, "\"mappingHashToPDGEdges\" is null.");
+		Objects.requireNonNull(mappingPDGEdgeToHash, "\"mappingPDGEdgeToHash\" is null.");
 
 		for (final Entry<PDGEdge, Integer> entry : mappingPDGEdgeToHash
 				.entrySet()) {

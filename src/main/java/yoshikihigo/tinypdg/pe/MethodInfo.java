@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -26,7 +27,7 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 	}
 
 	public void addParameter(final VariableInfo parameter) {
-		assert null != parameter : "\"variable\" is null.";
+		Objects.requireNonNull(parameter, "\"parameter\" is null.");
 		this.parameters.add(parameter);
 	}
 
@@ -38,7 +39,7 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 
 	@Override
 	public void setStatement(final StatementInfo statement) {
-		assert null != statement : "\"statement\" is null.";
+		Objects.requireNonNull(statement, "\"statement\" is null.");
 		this.statements.clear();
 		if (StatementInfo.CATEGORY.SimpleBlock == statement.getCategory()) {
 			this.statements.addAll(statement.getStatements());
@@ -49,13 +50,13 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 
 	@Override
 	public void addStatement(final StatementInfo statement) {
-		assert null != statement : "\"statement\" is null.";
+		Objects.requireNonNull(statement, "\"statement\" is null.");
 		this.statements.add(statement);
 	}
 
 	@Override
 	public void addStatements(final Collection<StatementInfo> statements) {
-		assert null != statements : "\"statements\" is null.";
+		Objects.requireNonNull(statements, "\"statements\" is null.");
 		this.statements.addAll(statements);
 	}
 

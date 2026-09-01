@@ -2,6 +2,7 @@ package yoshikihigo.tinypdg.pe;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -83,7 +84,7 @@ public class ExpressionInfo extends ProgramElementInfo {
 	}
 
 	public void setQualifier(final ProgramElementInfo qualifier) {
-		assert null != qualifier : "\"qualifier\" is null.";
+		Objects.requireNonNull(qualifier, "\"qualifier\" is null.");
 		this.qualifier = qualifier;
 	}
 
@@ -92,7 +93,7 @@ public class ExpressionInfo extends ProgramElementInfo {
 	}
 
 	public void addExpression(final ProgramElementInfo expression) {
-		assert null != expression : "\"expression\" is null.";
+		Objects.requireNonNull(expression, "\"expression\" is null.");
 		this.expressions.add(expression);
 	}
 
@@ -104,7 +105,7 @@ public class ExpressionInfo extends ProgramElementInfo {
 
 	public void setAnonymousClassDeclaration(
 			final ClassInfo anonymousClassDeclaration) {
-		assert null != anonymousClassDeclaration : "\"anonymousClassDeclaration\" is null.";
+		Objects.requireNonNull(anonymousClassDeclaration, "\"anonymousClassDeclaration\" is null.");
 		this.anonymousClassDeclaration = anonymousClassDeclaration;
 	}
 
