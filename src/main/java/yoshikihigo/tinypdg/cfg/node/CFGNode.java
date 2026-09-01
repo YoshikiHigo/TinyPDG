@@ -3,7 +3,6 @@ package yoshikihigo.tinypdg.cfg.node;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Objects;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -175,7 +174,7 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 		return variables;
 	}
 
-	public final Set<String> getReferencedVariables() {
+	public final SortedSet<String> getReferencedVariables() {
 		final SortedSet<String> variables = new TreeSet<>();
 		final SortedSet<String> v = this.core.getReferencedVariables();
 		variables.addAll(v);
