@@ -43,6 +43,12 @@ public class ExpressionInfo extends ProgramElementInfo {
 		 * このツールがまだ個別に解釈できない構文。ソース断片をそのまま
 		 * 保持する不透明な 1 要素として扱われる。
 		 */
+		/** ラムダ式。本体は独立した MethodInfo として切り出される。 */
+		Lambda("LAMBDA"),
+
+		/** メソッド参照 (String::length など)。 */
+		MethodReference("METHODREFERENCE"),
+
 		Unsupported("UNSUPPORTED");
 
 		final public String id;

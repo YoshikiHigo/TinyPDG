@@ -39,11 +39,13 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ConditionalExpression;
 import org.eclipse.jdt.core.dom.ConstructorInvocation;
 import org.eclipse.jdt.core.dom.ContinueStatement;
+import org.eclipse.jdt.core.dom.CreationReference;
 import org.eclipse.jdt.core.dom.DoStatement;
 import org.eclipse.jdt.core.dom.EmptyStatement;
 import org.eclipse.jdt.core.dom.EnhancedForStatement;
 import org.eclipse.jdt.core.dom.EnumDeclaration;
 import org.eclipse.jdt.core.dom.Expression;
+import org.eclipse.jdt.core.dom.ExpressionMethodReference;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.ForStatement;
@@ -51,6 +53,7 @@ import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.InstanceofExpression;
 import org.eclipse.jdt.core.dom.LabeledStatement;
+import org.eclipse.jdt.core.dom.LambdaExpression;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.NullLiteral;
@@ -68,6 +71,7 @@ import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
 import org.eclipse.jdt.core.dom.SuperFieldAccess;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
+import org.eclipse.jdt.core.dom.SuperMethodReference;
 import org.eclipse.jdt.core.dom.SwitchCase;
 import org.eclipse.jdt.core.dom.SwitchStatement;
 import org.eclipse.jdt.core.dom.SynchronizedStatement;
@@ -77,6 +81,7 @@ import org.eclipse.jdt.core.dom.TryStatement;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclarationStatement;
 import org.eclipse.jdt.core.dom.TypeLiteral;
+import org.eclipse.jdt.core.dom.TypeMethodReference;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
@@ -377,6 +382,10 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 			if (o instanceof MethodDeclaration) {
 				((ASTNode) o).accept(this);
 				final ProgramElementInfo method = this.stack.pop();
+				// 匿名クラスのメソッドも 1 つの独立した解析単位として扱う。
+				// ここで this.methods に入れ忘れていたため、これまで
+				// 匿名クラスの中身は誰からも見えていなかった。
+				this.methods.add((MethodInfo) method);
 				anonymousClass.addMethod((MethodInfo) method);
 				text.append(method.getText());
 			}
@@ -385,6 +394,131 @@ public class TinyPDGASTVisitor extends ASTVisitor {
 		text.append("}");
 		anonymousClass.setText(text.toString());
 
+		return false;
+	}
+
+	/**
+	 * ラムダ式。
+	 *
+	 * <p>本体は呼び出し元の式に埋め込まず、独立した 1 つの「メソッド」として
+	 * 切り出す。intraprocedural な解析という前提と整合し、匿名クラスの扱いとも
+	 * 揃う。呼び出し元の式には、ラムダ 1 個ぶんの要素だけを残す。
+	 */
+	@Override
+	public boolean visit(final LambdaExpression node) {
+
+		final int startLine = this.getStartLineNumber(node);
+		final int endLine = this.getEndLineNumber(node);
+
+		final MethodInfo lambda = new MethodInfo(this.path, "lambda$" + startLine,
+				startLine, endLine);
+		this.stack.push(lambda);
+
+		final StringBuilder signature = new StringBuilder();
+		signature.append("(");
+		for (final Object o : node.parameters()) {
+			((ASTNode) o).accept(this);
+			final ProgramElementInfo parameter = this.stack.pop();
+			// (String s) -> ... なら SingleVariableDeclaration として
+			// VariableInfo が積まれる。s -> ... のように型を書かない場合は
+			// VariableDeclarationFragment なので、名前から組み立て直す。
+			final VariableInfo variable;
+			if (parameter instanceof VariableInfo) {
+				variable = (VariableInfo) parameter;
+			} else {
+				variable = new VariableInfo(VariableInfo.CATEGORY.PARAMETER,
+						new TypeInfo("var", parameter.startLine, parameter.endLine),
+						parameter.getText(), parameter.startLine, parameter.endLine);
+				variable.setText(parameter.getText());
+			}
+			variable.setCategory(VariableInfo.CATEGORY.PARAMETER);
+			lambda.addParameter(variable);
+			signature.append(variable.getText());
+			signature.append(",");
+		}
+		if (0 < node.parameters().size()) {
+			signature.deleteCharAt(signature.length() - 1);
+		}
+		signature.append(") -> ");
+
+		final ASTNode body = node.getBody();
+		if (body instanceof Block) {
+			body.accept(this);
+			final ProgramElementInfo statement = this.stack.pop();
+			lambda.setStatement((StatementInfo) statement);
+			signature.append(statement.getText());
+
+		} else {
+			// 式本体のラムダ。x -> expr は return expr; と同じ意味なので
+			// return 文に組み替える。通常のメソッドは本体が必ずブロックであり、
+			// PDG の構築もそれを前提にしているため、ブロックで包んでおく。
+			final int bodyStart = this.getStartLineNumber(body);
+			final int bodyEnd = this.getEndLineNumber(body);
+
+			final StatementInfo block = new StatementInfo(lambda,
+					StatementInfo.CATEGORY.SimpleBlock, bodyStart, bodyEnd);
+			this.stack.push(block);
+
+			final StatementInfo returnStatement = new StatementInfo(block,
+					StatementInfo.CATEGORY.Return, bodyStart, bodyEnd);
+			this.stack.push(returnStatement);
+
+			body.accept(this);
+			final ProgramElementInfo expression = this.stack.pop();
+			returnStatement.addExpression(expression);
+			returnStatement.setText("return " + expression.getText() + ";");
+
+			this.stack.pop();
+			block.addStatement(returnStatement);
+			block.setText("{" + System.lineSeparator() + returnStatement.getText()
+					+ System.lineSeparator() + "}");
+
+			this.stack.pop();
+			lambda.setStatement(block);
+			signature.append(block.getText());
+		}
+
+		lambda.setText(signature.toString());
+
+		this.stack.pop();
+		this.methods.add(lambda);
+
+		// 呼び出し元の式に残すのは、ラムダ 1 個ぶんの要素。
+		final ExpressionInfo reference = new ExpressionInfo(
+				ExpressionInfo.CATEGORY.Lambda, startLine, endLine);
+		reference.setText(flatten(node));
+		this.stack.push(reference);
+
+		return false;
+	}
+
+	/** メソッド参照。式としては 1 個の要素にまとめる。 */
+	@Override
+	public boolean visit(final ExpressionMethodReference node) {
+		return this.visitMethodReference(node);
+	}
+
+	@Override
+	public boolean visit(final TypeMethodReference node) {
+		return this.visitMethodReference(node);
+	}
+
+	@Override
+	public boolean visit(final SuperMethodReference node) {
+		return this.visitMethodReference(node);
+	}
+
+	@Override
+	public boolean visit(final CreationReference node) {
+		return this.visitMethodReference(node);
+	}
+
+	private boolean visitMethodReference(final ASTNode node) {
+		final ExpressionInfo reference = new ExpressionInfo(
+				ExpressionInfo.CATEGORY.MethodReference,
+				this.getStartLineNumber(node), this.getEndLineNumber(node));
+		reference.setText(flatten(node));
+		this.stack.push(reference);
 		return false;
 	}
 

@@ -1,5 +1,26 @@
 # sample: test011
 
+## CFG method1 <8...12>
+nodes:
+  0: [enter,exit,control] b1 <9>
+  1: [exit,normal] System.out.println(number); <10>
+edges:
+  0 -> 1 [true]
+
+## PDG method1 <8...12>
+nodes:
+  0: [parameter] boolean b1 <8>
+  1: [exit,control] b1 <9>
+  2: [exit] System.out.println(number); <10>
+  3: [enter,control] Enter <8...12>
+edges:
+  0 -> 1 [date: b1]
+  1 -> 2 [control: true]
+  1 -> 2 [execution: ]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 1 [execution: ]
+
 ## CFG method1 <19...19>
 nodes:
 edges:

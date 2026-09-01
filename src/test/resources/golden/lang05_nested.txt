@@ -19,6 +19,25 @@ edges:
   2 -> 0 [execution: ]
   2 -> 1 [control: true]
 
+## CFG run <18...22>
+nodes:
+  0: [enter,normal] int local = inner.value; <20>
+  1: [exit,normal] System.out.println(local); <21>
+edges:
+  0 -> 1 []
+
+## PDG run <18...22>
+nodes:
+  0: [normal] int local = inner.value; <20>
+  1: [exit] System.out.println(local); <21>
+  2: [enter,control] Enter <18...22>
+edges:
+  0 -> 1 [date: local]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]
+
 ## CFG use <14...26>
 nodes:
   0: [enter,normal] final Inner inner = new Inner(); <15>
