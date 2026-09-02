@@ -1,0 +1,50 @@
+cff-version: 1.2.0
+message: >-
+  If you use TinyPDG in academic work, please cite the conference paper
+  under preferred-citation.
+title: TinyPDG
+abstract: >-
+  A library for building intraprocedural program dependence graphs for
+  Java programs, with command line tools for writing graphs in dot
+  format, detecting code clones, and collecting dependence frequencies.
+type: software
+authors:
+  - family-names: Higo
+    given-names: Yoshiki
+    affiliation: Osaka University
+repository-code: "https://github.com/YoshikiHigo/TinyPDG"
+license: MIT
+version: 0.1.0
+keywords:
+  - program dependence graph
+  - code clone detection
+  - static analysis
+  - Java
+preferred-citation:
+  type: conference-paper
+  title: Code Clone Detection on Specialized PDGs with Heuristics
+  authors:
+    - family-names: Higo
+      given-names: Yoshiki
+      affiliation: Osaka University
+    - family-names: Kusumoto
+      given-names: Shinji
+      affiliation: Osaka University
+  collection-title: >-
+    Proceedings of the 15th European Conference on Software Maintenance
+    and Reengineering (CSMR 2011)
+  conference:
+    name: >-
+      15th European Conference on Software Maintenance and Reengineering
+      (CSMR 2011)
+    city: Oldenburg
+    country: DE
+    date-start: "2011-03-01"
+    date-end: "2011-03-04"
+  year: 2011
+  month: 3
+  start: 75
+  end: 84
+  publisher:
+    name: IEEE
+  doi: 10.1109/CSMR.2011.12

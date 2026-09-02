@@ -54,6 +54,10 @@ Render the result with `dot -Tpdf pdg.dot -o pdg.pdf`.
 
 ### Detecting clones (Scorpio)
 
+Reports clone pairs as pairs of isomorphic subgraphs of the PDGs, grown
+outwards from pairs of equivalent nodes. The technique and the heuristics
+it rests on are described in the paper under [Publication](#publication).
+
     java -cp <classpath> yoshikihigo.tinypdg.scorpio.Scorpio \
         -d src/main/java -o clonepairs.csv -s 10 -t 4
 
@@ -153,6 +157,35 @@ Layout
 | `graphviz` | writing graphs in dot format |
 | `scorpio` | clone detection |
 | `prelement` | dependence frequencies and the SQLite database behind them |
+
+Publication
+-----------
+
+The clone detection in `scorpio` is the technique described in:
+
+> Yoshiki Higo and Shinji Kusumoto, "Code Clone Detection on Specialized
+> PDGs with Heuristics", Proc. of the 15th European Conference on Software
+> Maintenance and Reengineering (CSMR 2011), pp. 75-84, Oldenburg,
+> Germany, March 1-4, 2011.
+> <https://doi.org/10.1109/CSMR.2011.12>
+
+```bibtex
+@inproceedings{higo2011scorpio,
+  author    = {Higo, Yoshiki and Kusumoto, Shinji},
+  title     = {Code Clone Detection on Specialized {PDGs} with Heuristics},
+  booktitle = {Proc. of the 15th European Conference on Software
+               Maintenance and Reengineering (CSMR 2011)},
+  pages     = {75--84},
+  address   = {Oldenburg, Germany},
+  publisher = {IEEE},
+  month     = mar,
+  year      = {2011},
+  doi       = {10.1109/CSMR.2011.12}
+}
+```
+
+`CITATION.cff` carries the same reference. It is what the "Cite this
+repository" button on the GitHub page reads.
 
 License
 -------
