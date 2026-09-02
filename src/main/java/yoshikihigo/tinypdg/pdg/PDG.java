@@ -137,68 +137,76 @@ public class PDG implements Comparable<PDG> {
 		return parameters;
 	}
 
+	/** ノードを作るときに使っているファクトリ。ノードの併合が対応表を直すのに使う。 */
+	public final PDGNodeFactory getPDGNodeFactory() {
+		return this.pdgNodeFactory;
+	}
+
+	/**
+	 * このグラフのノードを全て返す。
+	 *
+	 * <p>入口ノード、パラメータのノード、CFG の各ノードに対応する PDG ノード、
+	 * そしてそれらから辺を辿って届くノードである。
+	 *
+	 * <p>以前は入口から辺を辿るだけだった。入口に繋がるのは制御依存の辺なので、
+	 * 制御依存を作らない設定にすると入口が孤立し、データ依存の辺が正しく
+	 * 作られていてもグラフが空に見えていた。Scorpio の -C off が何も返さな
+	 * かったのはこれである。CFG のノードを種に加えることで、入口から切れて
+	 * いても本体のノードが見つかる。
+	 *
+	 * <p>辺を辿る walk は残してある。PDG には CFG のノードに対応しない
+	 * ノードもあるからである。for の更新式や foreach が取り出す変数は、
+	 * CFG のノードではなく制御依存を組み立てる過程で作られる。種を CFG だけに
+	 * すると、それらが落ちる。
+	 */
 	public final SortedSet<PDGNode<?>> getAllNodes() {
+
 		final SortedSet<PDGNode<?>> nodes = new TreeSet<>();
-		this.getAllNodes(this.enterNode, nodes);
+
+		this.collectFrom(this.enterNode, nodes);
+		for (final PDGParameterNode parameterNode : this.parameterNodes) {
+			this.collectFrom(parameterNode, nodes);
+		}
+
+		// build する前は CFG がまだない。
+		if (null != this.cfg) {
+			for (final CFGNode<?> cfgNode : this.cfg.getAllNodes()) {
+				this.collectFrom(this.pdgNodeFactory.makeNode(cfgNode), nodes);
+			}
+		}
+
 		return nodes;
 	}
 
-	private void getAllNodes(final PDGNode<?> node,
+	private void collectFrom(final PDGNode<?> node,
 			final SortedSet<PDGNode<?>> nodes) {
 
 		Objects.requireNonNull(node, "\"node\" is null.");
-		Objects.requireNonNull(nodes, "\"nodes\" is null.");
 
-		if (nodes.contains(node)) {
+		if (!nodes.add(node)) {
 			return;
 		}
 
-		nodes.add(node);
 		for (final PDGEdge edge : node.getBackwardEdges()) {
-			this.getAllNodes(edge.fromNode, nodes);
+			this.collectFrom(edge.fromNode, nodes);
 		}
 		for (final PDGEdge edge : node.getForwardEdges()) {
-			this.getAllNodes(edge.toNode, nodes);
+			this.collectFrom(edge.toNode, nodes);
 		}
 	}
 
+	/**
+	 * このグラフの辺を全て返す。
+	 *
+	 * <p>{@link #getAllNodes()} が返す各ノードが持つ辺の総和である。
+	 */
 	public final SortedSet<PDGEdge> getAllEdges() {
 		final SortedSet<PDGEdge> edges = new TreeSet<>();
-//		for (final PDGEdge edge : this.enterNode.getForwardEdges()) {
-//			this.getAllEdges(edge, edges);
-//		}
-		
-		final SortedSet<PDGNode<?>> nodes = this.getAllNodes();
-		for (final PDGNode<?> node : nodes) {
+		for (final PDGNode<?> node : this.getAllNodes()) {
 			edges.addAll(node.getForwardEdges());
 			edges.addAll(node.getBackwardEdges());
 		}
-		
 		return edges;
-	}
-
-	private void getAllEdges(final PDGEdge edge, final SortedSet<PDGEdge> edges) {
-
-		Objects.requireNonNull(edge, "\"edge\" is null.");
-		Objects.requireNonNull(edges, "\"edges\" is null.");
-
-		if (edges.contains(edge)) {
-			return;
-		}
-
-		edges.add(edge);
-		for (final PDGEdge backwardEdge : edge.fromNode.getBackwardEdges()) {
-			this.getAllEdges(backwardEdge, edges);
-		}
-		for (final PDGEdge forwardEdge : edge.fromNode.getForwardEdges()) {
-			this.getAllEdges(forwardEdge, edges);
-		}
-		for (final PDGEdge backwardEdge : edge.toNode.getBackwardEdges()) {
-			this.getAllEdges(backwardEdge, edges);
-		}
-		for (final PDGEdge forwardEdge : edge.toNode.getForwardEdges()) {
-			this.getAllEdges(forwardEdge, edges);
-		}
 	}
 
 	public void build() {

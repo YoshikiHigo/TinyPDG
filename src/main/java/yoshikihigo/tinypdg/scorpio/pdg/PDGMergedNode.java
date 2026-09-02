@@ -53,6 +53,17 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 					replace(fromNode, mergedNode);
 					replace(toNode, mergedNode);
 
+					// 併合した元のノードは辺を全て移されて宙に浮く。要素から
+					// ノードを引く対応表を直しておかないと、PDG がノードを
+					// 数え直したときに、その宙に浮いたノードが出てくる。
+					// getOriginalNodes は入れ子の併合も平らにして返すので、
+					// 併合が重なっても取りこぼさない。
+					for (final PDGNormalNode<?> original : mergedNode
+							.getOriginalNodes()) {
+						pdg.getPDGNodeFactory().replaceNode(original.core,
+								mergedNode);
+					}
+
 					continue MERGE;
 				}
 			}

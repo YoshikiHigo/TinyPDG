@@ -54,9 +54,6 @@ class PDGTest {
 
 	@Test
 	void skipsTheKindsThatAreTurnedOff() {
-		// データ依存だけを切る。制御依存は残す必要がある。getAllNodes は
-		// enterNode から辺を辿って集めるので、制御依存を切ると入口が孤立し、
-		// ほかの辺が作られていてもグラフが空に見える。
 		final PDG pdg = build("reassignedReceiver",
 				new PDG.Dependences(true, false, true));
 		assertEquals(0, dataEdges(pdg),
@@ -64,6 +61,23 @@ class PDGTest {
 		assertTrue(pdg.getAllEdges().stream()
 				.anyMatch(e -> PDGEdge.TYPE.CONTROL == e.type),
 				"ほかの依存は作られること");
+	}
+
+	@Test
+	void findsTheGraphEvenWithoutControlDependences() {
+		// 入口ノードに繋がるのは制御依存の辺だけなので、制御依存を切ると
+		// 入口はどこにも繋がらない。以前は入口から辿ってノードを集めていた
+		// ため、データ依存の辺が作られていてもグラフが空に見えていた。
+		final PDG pdg = build("reassignedReceiver",
+				new PDG.Dependences(false, true, false));
+
+		assertEquals(0, pdg.getAllEdges().stream()
+				.filter(e -> PDGEdge.TYPE.CONTROL == e.type).count(),
+				"制御依存は作られないこと");
+		assertTrue(0 < dataEdges(pdg),
+				"それでもデータ依存は見えること");
+		assertTrue(1 < pdg.getAllNodes().size(),
+				"入口だけのグラフになっていないこと");
 	}
 
 	@Test

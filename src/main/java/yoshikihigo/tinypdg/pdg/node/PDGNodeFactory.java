@@ -108,6 +108,20 @@ public class PDGNodeFactory {
 		return node;
 	}
 
+	/**
+	 * 要素に対応するノードを差し替える。
+	 *
+	 * <p>ノードの併合で使う。併合すると、元のノードは辺を全て新しいノードへ
+	 * 移されて宙に浮く。対応表を書き換えないままだと、要素から引いたときに
+	 * その宙に浮いたノードが返ってきてしまう。
+	 */
+	public synchronized void replaceNode(final ProgramElementInfo element,
+			final PDGNode<?> node) {
+		Objects.requireNonNull(element, "\"element\" is null.");
+		Objects.requireNonNull(node, "\"node\" is null.");
+		this.elementToNodeMap.put(element, node);
+	}
+
 	public SortedSet<PDGNode<?>> getAllNodes() {
 		final SortedSet<PDGNode<?>> nodes = new TreeSet<>();
 		nodes.addAll(this.elementToNodeMap.values());
