@@ -2,6 +2,7 @@ package yoshikihigo.tinypdg.pe;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -26,7 +27,7 @@ abstract public class ProgramElementInfo implements
 		this.id = ID_GENERATOR.getAndIncrement();
 		this.text = "";
 
-		this.modifiers = new ArrayList<String>();
+		this.modifiers = new ArrayList<>();
 
 		this.ownerConditionalBlock = null;
 	}
@@ -52,13 +53,13 @@ abstract public class ProgramElementInfo implements
 	}
 
 	final public void setText(final String text) {
-		assert null != text : "\"text\" is null.";
+		Objects.requireNonNull(text, "\"text\" is null.");
 		this.text = text;
 	}
 
 	@Override
 	final public int compareTo(final ProgramElementInfo element) {
-		assert null != element : "\"element\" is null.";
+		Objects.requireNonNull(element, "\"element\" is null.");
 		if (this.id < element.id) {
 			return -1;
 		} else if (this.id > element.id) {
@@ -69,26 +70,26 @@ abstract public class ProgramElementInfo implements
 	}
 
 	final public void addModifier(final String modifier) {
-		assert null != modifier : "\"modifier\" is null.";
+		Objects.requireNonNull(modifier, "\"modifier\" is null.");
 		this.modifiers.add(modifier);
 	}
 
 	final public List<String> getModifiers() {
-		final List<String> modifiers = new ArrayList<String>();
+		final List<String> modifiers = new ArrayList<>();
 		modifiers.addAll(this.modifiers);
 		return modifiers;
 	}
 
 	public SortedSet<String> getAssignedVariables() {
-		return new TreeSet<String>();
+		return new TreeSet<>();
 	}
 
 	public SortedSet<String> getReferencedVariables() {
-		return new TreeSet<String>();
+		return new TreeSet<>();
 	}
 
 	public void setOwnerConditinalBlock(final BlockInfo ownerConditionalBlock) {
-		assert null != ownerConditionalBlock : "\"ownerConditionalBlock\" is null.";
+		Objects.requireNonNull(ownerConditionalBlock, "\"ownerConditionalBlock\" is null.");
 		this.ownerConditionalBlock = ownerConditionalBlock;
 	}
 

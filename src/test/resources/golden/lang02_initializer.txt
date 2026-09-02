@@ -1,0 +1,20 @@
+# sample: lang02_initializer
+
+## CFG method <17...20>
+nodes:
+  0: [enter,normal] int a = this.instanceField; <18>
+  1: [exit,normal] return a; <19>
+edges:
+  0 -> 1 []
+
+## PDG method <17...20>
+nodes:
+  0: [normal] int a = this.instanceField; <18>
+  1: [exit] return a; <19>
+  2: [enter,control] Enter <17...20>
+edges:
+  0 -> 1 [data: a]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]

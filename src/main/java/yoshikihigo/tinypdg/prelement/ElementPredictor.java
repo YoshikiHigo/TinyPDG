@@ -10,9 +10,9 @@ import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 
 import yoshikihigo.tinypdg.prelement.data.CombinationalFrequency;
 import yoshikihigo.tinypdg.prelement.data.DEPENDENCE_TYPE;
@@ -35,7 +35,7 @@ public class ElementPredictor {
 				options.addOption(b);
 			}
 
-			final CommandLineParser parser = new PosixParser();
+			final CommandLineParser parser = new DefaultParser();
 			final CommandLine cmd = parser.parse(options, args);
 
 			final String database = cmd.getOptionValue("b");
@@ -51,7 +51,8 @@ public class ElementPredictor {
 				if (line.equals("")) {
 					in.close();
 					System.out.println("done.");
-					System.exit(0);
+					// これは正常終了。main から戻れば終了コードは 0 になる。
+					return;
 				}
 
 				final List<CombinationalFrequency> frequencies = getPredictedElements(
@@ -61,14 +62,14 @@ public class ElementPredictor {
 
 		} catch (final Exception e) {
 			e.printStackTrace();
-			System.exit(0);
+			System.exit(1);
 		}
 	}
 
 	public static List<CombinationalFrequency> getPredictedElements(
 			final DAO dao, final String baseText) {
 
-		final List<CombinationalFrequency> frequencies = new ArrayList<CombinationalFrequency>();
+		final List<CombinationalFrequency> frequencies = new ArrayList<>();
 
 		final List<Frequency> frequenciesForControl = dao.getFrequencies(
 				DEPENDENCE_TYPE.CONTROL, baseText.hashCode());

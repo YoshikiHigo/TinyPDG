@@ -1,0 +1,83 @@
+# sample: test009
+
+## CFG method <5...34>
+nodes:
+  0: [enter,normal] System.out.println("start"); <6>
+  1: [control] b1 <10>
+  2: [control] b1 && b2 <14>
+  3: [control] b2 <16>
+  4: [control] b1 && b2 && b3 <20>
+  5: [control] b3 <21>
+  6: [control] b1 <27>
+  7: [control] true <31>
+  8: [exit,normal] System.out.println("end"); <33>
+edges:
+  0 -> 1 []
+  1 -> 2 [false]
+  1 -> 8 [jump]
+  2 -> 3 [true]
+  2 -> 6 [false]
+  3 -> 4 [false]
+  3 -> 8 [jump]
+  4 -> 2 [false]
+  4 -> 5 [true]
+  5 -> 4 [false]
+  5 -> 8 [jump]
+  6 -> 7 [false]
+  6 -> 8 [jump]
+  7 -> 1 [true]
+  7 -> 8 [false]
+
+## PDG method <5...34>
+nodes:
+  0: [parameter] boolean b1 <5>
+  1: [parameter] boolean b2 <5>
+  2: [parameter] boolean b3 <5>
+  3: [normal] System.out.println("start"); <6>
+  4: [control] b1 <10>
+  5: [control] b1 && b2 <14>
+  6: [control] b2 <16>
+  7: [control] b1 && b2 && b3 <20>
+  8: [control] b3 <21>
+  9: [control] b1 <27>
+  10: [control] true <31>
+  11: [exit] System.out.println("end"); <33>
+  12: [enter,control] Enter <5...34>
+edges:
+  0 -> 4 [data: b1]
+  0 -> 5 [data: b1]
+  0 -> 7 [data: b1]
+  0 -> 9 [data: b1]
+  1 -> 5 [data: b2]
+  1 -> 6 [data: b2]
+  1 -> 7 [data: b2]
+  2 -> 7 [data: b3]
+  2 -> 8 [data: b3]
+  3 -> 4 [execution: ]
+  4 -> 5 [execution: ]
+  4 -> 11 [execution: ]
+  5 -> 6 [control: true]
+  5 -> 6 [execution: ]
+  5 -> 7 [control: true]
+  5 -> 9 [execution: ]
+  6 -> 7 [execution: ]
+  6 -> 11 [execution: ]
+  7 -> 5 [execution: ]
+  7 -> 8 [control: true]
+  7 -> 8 [execution: ]
+  8 -> 7 [execution: ]
+  8 -> 11 [execution: ]
+  9 -> 10 [execution: ]
+  9 -> 11 [execution: ]
+  10 -> 4 [control: true]
+  10 -> 4 [execution: ]
+  10 -> 5 [control: true]
+  10 -> 9 [control: true]
+  10 -> 11 [execution: ]
+  12 -> 0 [control: true]
+  12 -> 1 [control: true]
+  12 -> 2 [control: true]
+  12 -> 3 [control: true]
+  12 -> 3 [execution: ]
+  12 -> 10 [control: true]
+  12 -> 11 [control: true]

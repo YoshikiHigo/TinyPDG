@@ -5,6 +5,7 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.StringTokenizer;
 
 public class Gapped {
@@ -12,24 +13,23 @@ public class Gapped {
 	public static void main(final String[] args) {
 
 		if (2 != args.length) {
-			System.err.println("the number of command opetions must be one.");
+			System.err.println("the number of command options must be two.");
 			System.err.println("the first one is an output file of SCORPIO.");
 			System.err
 					.println("the second one is a file for storing intertwined clones.");
-			System.exit(0);
+			System.exit(1);
 		}
 
 		final String input = args[0];
 		final String output = args[1];
 
-		try {
-			final BufferedReader reader = new BufferedReader(new FileReader(
-					input));
-			final BufferedWriter writer = new BufferedWriter(new FileWriter(
-					output));
+		try (final BufferedReader reader = new BufferedReader(new FileReader(
+				input, StandardCharsets.UTF_8));
+				final BufferedWriter writer = new BufferedWriter(new FileWriter(
+						output, StandardCharsets.UTF_8))) {
 
-			while (reader.ready()) {
-				final String line = reader.readLine();
+			String line;
+			while (null != (line = reader.readLine())) {
 				final StringTokenizer tokenizer = new StringTokenizer(line);
 				final String leftPath = tokenizer.nextToken();
 				final String leftStartLine = tokenizer.nextToken();
@@ -45,8 +45,6 @@ public class Gapped {
 					writer.newLine();
 				}
 			}
-			reader.close();
-			writer.close();
 
 		} catch (final IOException e) {
 			e.printStackTrace();

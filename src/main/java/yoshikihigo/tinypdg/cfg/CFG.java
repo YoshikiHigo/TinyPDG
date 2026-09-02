@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import yoshikihigo.tinypdg.TinyPDGException;
 import yoshikihigo.tinypdg.cfg.edge.CFGControlEdge;
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
 import yoshikihigo.tinypdg.cfg.node.CFGBreakStatementNode;
@@ -21,6 +23,11 @@ import yoshikihigo.tinypdg.pe.BlockInfo;
 import yoshikihigo.tinypdg.pe.ExpressionInfo;
 import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
+import yoshikihigo.tinypdg.pe.BlockStatementInfo;
+import yoshikihigo.tinypdg.pe.ConditionalStatementInfo;
+import yoshikihigo.tinypdg.pe.ForStatementInfo;
+import yoshikihigo.tinypdg.pe.IfStatementInfo;
+import yoshikihigo.tinypdg.pe.TryStatementInfo;
 import yoshikihigo.tinypdg.pe.StatementInfo;
 
 public class CFG {
@@ -42,16 +49,16 @@ public class CFG {
 	protected boolean built;
 
 	public CFG(final ProgramElementInfo core, final CFGNodeFactory nodeFactory) {
-		assert null != nodeFactory : "\"nodeFactory\" is null.";
+		Objects.requireNonNull(nodeFactory, "\"nodeFactory\" is null.");
 		this.core = core;
 		this.nodeFactory = nodeFactory;
-		this.nodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
+		this.nodes = new TreeSet<>();
 		this.enterNode = null;
-		this.exitNodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
+		this.exitNodes = new TreeSet<>();
 		this.built = false;
 
-		this.unhandledBreakStatementNodes = new LinkedList<CFGBreakStatementNode>();
-		this.unhandledContinueStatementNodes = new LinkedList<CFGContinueStatementNode>();
+		this.unhandledBreakStatementNodes = new LinkedList<>();
+		this.unhandledContinueStatementNodes = new LinkedList<>();
 	}
 
 	public boolean isEmpty() {
@@ -63,13 +70,13 @@ public class CFG {
 	}
 
 	public SortedSet<CFGNode<? extends ProgramElementInfo>> getExitNodes() {
-		final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
+		final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes = new TreeSet<>();
 		nodes.addAll(this.exitNodes);
 		return nodes;
 	}
 
 	public SortedSet<CFGNode<? extends ProgramElementInfo>> getAllNodes() {
-		final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
+		final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes = new TreeSet<>();
 		nodes.addAll(this.nodes);
 		return nodes;
 	}
@@ -141,57 +148,80 @@ public class CFG {
 
 		else if (this.core instanceof StatementInfo) {
 			final StatementInfo coreStatement = (StatementInfo) this.core;
-			switch (coreStatement.getCategory()) {
-			case Catch:
-				this.buildConditionalBlockCFG(coreStatement, false);
-				break;
-			case Do:
-				this.buildDoBlockCFG(coreStatement);
-				break;
-			case For:
-				this.buildForBlockCFG(coreStatement);
-				break;
-			case Foreach:
-				this.buildConditionalBlockCFG(coreStatement, true);
-				break;
-			case If:
-				this.buildIfBlockCFG(coreStatement);
-				break;
-			case Switch:
-				this.buildSwitchBlockCFG(coreStatement);
-				break;
-			case Synchronized:
-				this.buildConditionalBlockCFG(coreStatement, false);
-				break;
-			case TypeDeclaration:
-				break;
-			case Try:
-				this.buildTryBlockCFG(coreStatement);
-				break;
-			case While:
-				this.buildConditionalBlockCFG(coreStatement, true);
-				break;
-			default:
+			// 種別で振り分けるが、渡すのはその文が実際に持っている状態を
+			// 表す型である。for に更新式があり try に catch 節があることが、
+			// 受け取る側のシグネチャに書いてある。
+			// 中身を展開して部分グラフを作る文と、それ自体が 1 ノードに
+			// なる文とに分かれる。switch 式なので全ての種別に枝が要る。
+			// 種別を足すとここでビルドが止まり、どちらなのかを決めることに
+			// なる。文のままだと黙って「1 ノード」に倒れる。
+			//
+			// 渡すのはその文が実際に持っている状態を表す型である。for に
+			// 更新式があり try に catch 節があることが、受け取る側の
+			// シグネチャに書いてある。
+			final boolean expanded = switch (coreStatement.getCategory()) {
+			case Catch, Synchronized -> {
+				this.buildConditionalBlockCFG(
+						(ConditionalStatementInfo) coreStatement, false);
+				yield true;
+			}
+			case Do -> {
+				this.buildDoBlockCFG((ConditionalStatementInfo) coreStatement);
+				yield true;
+			}
+			case For -> {
+				this.buildForBlockCFG((ForStatementInfo) coreStatement);
+				yield true;
+			}
+			case Foreach -> {
+				this.buildConditionalBlockCFG((ForStatementInfo) coreStatement,
+						true);
+				yield true;
+			}
+			case If -> {
+				this.buildIfBlockCFG((IfStatementInfo) coreStatement);
+				yield true;
+			}
+			case Switch -> {
+				this.buildSwitchBlockCFG(
+						(ConditionalStatementInfo) coreStatement);
+				yield true;
+			}
+			case Try -> {
+				this.buildTryBlockCFG((TryStatementInfo) coreStatement);
+				yield true;
+			}
+			case While -> {
+				this.buildConditionalBlockCFG(
+						(ConditionalStatementInfo) coreStatement, true);
+				yield true;
+			}
+			// 型宣言は制御フローを持たない。ノードも作らない。
+			case TypeDeclaration -> true;
+			case Assert, Break, Case,
+					Continue, Empty, Expression,
+					Return, SimpleBlock, Throw,
+					VariableDeclaration, Yield, Unsupported -> false;
+			};
+
+			if (!expanded) {
 				final CFGNode<? extends ProgramElementInfo> node = this.nodeFactory
 						.makeNormalNode(coreStatement);
 				this.enterNode = node;
-				if (StatementInfo.CATEGORY.Break == coreStatement.getCategory()) {
-					this.unhandledBreakStatementNodes
-							.addFirst((CFGBreakStatementNode) node);
-				} else if (StatementInfo.CATEGORY.Continue == coreStatement
-						.getCategory()) {
+				if (node instanceof CFGBreakStatementNode breakNode) {
+					this.unhandledBreakStatementNodes.addFirst(breakNode);
+				} else if (node instanceof CFGContinueStatementNode continueNode) {
 					this.unhandledContinueStatementNodes
-							.addFirst((CFGContinueStatementNode) node);
+							.addFirst(continueNode);
 				} else {
 					this.exitNodes.add(node);
 				}
 				this.nodes.add(node);
-				break;
 			}
 		}
 
 		else if (this.core instanceof ExpressionInfo) {
-			final ProgramElementInfo coreExpression = (ProgramElementInfo) this.core;
+			final ProgramElementInfo coreExpression = this.core;
 			final CFGNode<? extends ProgramElementInfo> node = this.nodeFactory
 					.makeNormalNode(coreExpression);
 			this.enterNode = node;
@@ -205,7 +235,8 @@ public class CFG {
 		}
 
 		else {
-			assert false : "unexpected state.";
+			throw new TinyPDGException(
+					"CFG を組み立てられない要素です: " + this.core.getClass().getName());
 		}
 
 		if (null != this.core) {
@@ -213,7 +244,7 @@ public class CFG {
 		}
 	}
 
-	private void buildDoBlockCFG(final StatementInfo statement) {
+	private void buildDoBlockCFG(final ConditionalStatementInfo statement) {
 
 		final SequentialCFGs sequentialCFGs = new SequentialCFGs(
 				statement.getStatements());
@@ -245,7 +276,7 @@ public class CFG {
 		this.connectCFGContinueStatementNode(statement, this.enterNode);
 	}
 
-	private void buildForBlockCFG(final StatementInfo statement) {
+	private void buildForBlockCFG(final ForStatementInfo statement) {
 
 		final SequentialCFGs sequentialCFGs = new SequentialCFGs(
 				statement.getStatements());
@@ -305,7 +336,8 @@ public class CFG {
 		this.connectCFGContinueStatementNode(statement, conditionNode);
 	}
 
-	private void buildConditionalBlockCFG(final StatementInfo statement,
+	private void buildConditionalBlockCFG(
+			final ConditionalStatementInfo statement,
 			final boolean loop) {
 
 		final List<StatementInfo> substatements = statement.getStatements();
@@ -355,7 +387,7 @@ public class CFG {
 		}
 	}
 
-	private void buildIfBlockCFG(final StatementInfo statement) {
+	private void buildIfBlockCFG(final IfStatementInfo statement) {
 
 		this.buildConditionalBlockCFG(statement, false);
 
@@ -406,7 +438,7 @@ public class CFG {
 				.addAll(sequentialCFGs.unhandledContinueStatementNodes);
 	}
 
-	private void buildSwitchBlockCFG(final StatementInfo statement) {
+	private void buildSwitchBlockCFG(final ConditionalStatementInfo statement) {
 
 		final ProgramElementInfo condition = statement.getCondition();
 		final CFGNode<? extends ProgramElementInfo> conditionNode = this.nodeFactory
@@ -415,7 +447,7 @@ public class CFG {
 		this.nodes.add(conditionNode);
 
 		final List<StatementInfo> substatements = statement.getStatements();
-		final List<CFG> sequentialCFGs = new ArrayList<CFG>();
+		final List<CFG> sequentialCFGs = new ArrayList<>();
 		for (final StatementInfo substatement : substatements) {
 			final CFG subCFG = new CFG(substatement, this.nodeFactory);
 			subCFG.build();
@@ -426,20 +458,28 @@ public class CFG {
 			this.unhandledContinueStatementNodes
 					.addAll(subCFG.unhandledContinueStatementNodes);
 
-			switch (substatement.getCategory()) {
-			case Case: {
+			final boolean exitsTheSwitch = switch (substatement.getCategory()) {
+			case Case -> {
+				// ラベルには条件から直接繋ぐ。
 				final CFGEdge edge = CFGEdge.makeEdge(conditionNode,
 						subCFG.enterNode, true);
 				conditionNode.addForwardEdge(edge);
 				subCFG.enterNode.addBackwardEdge(edge);
-				break;
+				yield false;
 			}
-			case Break:
-			case Continue: {
+			case Break, Continue -> true;
+			// 直前の文から順に繋がる。ここで足すことはない。
+			case Assert, Catch, Do,
+					Empty, Expression, If,
+					For, Foreach, Return,
+					SimpleBlock, Synchronized, Switch,
+					Throw, Try, TypeDeclaration,
+					VariableDeclaration, While, Yield,
+					Unsupported -> false;
+			};
+
+			if (exitsTheSwitch) {
 				this.exitNodes.addAll(subCFG.exitNodes);
-				break;
-			}
-			default:
 			}
 		}
 
@@ -448,12 +488,21 @@ public class CFG {
 			final CFG posteriorCFG = sequentialCFGs.get(index);
 
 			final ProgramElementInfo anteriorCore = anteriorCFG.core;
-			if (anteriorCore instanceof StatementInfo) {
-				switch (((StatementInfo) anteriorCore).getCategory()) {
-				case Break:
-				case Continue:
+			if (anteriorCore instanceof StatementInfo anteriorStatement) {
+				// break と continue は次の文へ流れない。
+				final boolean fallsThrough = switch (anteriorStatement
+						.getCategory()) {
+				case Break, Continue -> false;
+				case Assert, Case, Catch,
+						Do, Empty, Expression,
+						If, For, Foreach,
+						Return, SimpleBlock, Synchronized,
+						Switch, Throw, Try,
+						TypeDeclaration, VariableDeclaration, While,
+						Yield, Unsupported -> true;
+				};
+				if (!fallsThrough) {
 					continue CFG;
-				default:
 				}
 			}
 
@@ -471,7 +520,7 @@ public class CFG {
 		this.connectCFGBreakStatementNode(statement);
 	}
 
-	private void buildTryBlockCFG(final StatementInfo statement) {
+	private void buildTryBlockCFG(final TryStatementInfo statement) {
 
 		final List<StatementInfo> statements = statement.getStatements();
 		final SequentialCFGs sequentialCFGs = new SequentialCFGs(statements);
@@ -566,7 +615,7 @@ public class CFG {
 				.iterator();
 		while (iterator.hasNext()) {
 			final CFGBreakStatementNode node = iterator.next();
-			final StatementInfo breakStatement = (StatementInfo) node.core;
+			final StatementInfo breakStatement = node.core;
 			final String label = breakStatement.getJumpToLabel();
 
 			if (null == label) {
@@ -591,7 +640,7 @@ public class CFG {
 				.iterator();
 		while (iterator.hasNext()) {
 			final CFGContinueStatementNode node = iterator.next();
-			final StatementInfo continueStatement = (StatementInfo) node.core;
+			final StatementInfo continueStatement = node.core;
 			final String label = continueStatement.getJumpToLabel();
 
 			if (null == label) {
@@ -631,7 +680,7 @@ public class CFG {
 			assert !this.built : "this CFG has already built.";
 			this.built = true;
 
-			final LinkedList<CFG> sequencialCFGs = new LinkedList<CFG>();
+			final LinkedList<CFG> sequencialCFGs = new LinkedList<>();
 			for (final ProgramElementInfo element : this.elements) {
 				final CFG blockCFG = new CFG(element, CFG.this.nodeFactory);
 				blockCFG.build();
@@ -669,8 +718,8 @@ public class CFG {
 
 	public final SortedSet<CFGNode<? extends ProgramElementInfo>> getReachableNodes(
 			final CFGNode<? extends ProgramElementInfo> startNode) {
-		assert null != startNode : "\"startNode\" is null.";
-		final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes = new TreeSet<CFGNode<? extends ProgramElementInfo>>();
+		Objects.requireNonNull(startNode, "\"startNode\" is null.");
+		final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes = new TreeSet<>();
 		this.getReachableNodes(startNode, nodes);
 		return nodes;
 	}
@@ -678,8 +727,8 @@ public class CFG {
 	private final void getReachableNodes(
 			final CFGNode<? extends ProgramElementInfo> startNode,
 			final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes) {
-		assert null != startNode : "\"startNode\" is null.";
-		assert null != nodes : "\"nodes\" is null.";
+		Objects.requireNonNull(startNode, "\"startNode\" is null.");
+		Objects.requireNonNull(nodes, "\"nodes\" is null.");
 
 		if (nodes.contains(startNode)) {
 			return;

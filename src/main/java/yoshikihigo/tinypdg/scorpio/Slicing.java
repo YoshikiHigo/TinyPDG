@@ -3,6 +3,7 @@ package yoshikihigo.tinypdg.scorpio;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -20,6 +21,11 @@ public class Slicing {
 
 	public static long getNumberOfComparison() {
 		return NUMBER_OF_COMPARISON.get();
+	}
+
+	/** 比較回数を数え直す。1 回の検出ごとに呼ぶ。 */
+	static void resetNumberOfComparison() {
+		NUMBER_OF_COMPARISON.set(0);
 	}
 
 	final private SortedSet<NodePairInfo> checkedNodepairs;
@@ -49,8 +55,8 @@ public class Slicing {
 
 	public ClonePairInfo perform() {
 		if (null == this.clonepair) {
-			final SortedSet<PDGNode<?>> checkedNodesA = new TreeSet<PDGNode<?>>();
-			final SortedSet<PDGNode<?>> checkedNodesB = new TreeSet<PDGNode<?>>();
+			final SortedSet<PDGNode<?>> checkedNodesA = new TreeSet<>();
+			final SortedSet<PDGNode<?>> checkedNodesB = new TreeSet<>();
 			this.clonepair = this.perform(this.startNodeA, this.startNodeB,
 					checkedNodesA, checkedNodesB);
 		}
@@ -76,16 +82,16 @@ public class Slicing {
 
 		final PDGEdgeComparator comparator = new PDGEdgeComparator(
 				this.mappingPDGEdgeToPDGEdges);
-		final SortedSet<PDGEdge> bSortedEdgesA = new TreeSet<PDGEdge>(
+		final SortedSet<PDGEdge> bSortedEdgesA = new TreeSet<>(
 				comparator);
 		bSortedEdgesA.addAll(bEdgesA);
-		final SortedSet<PDGEdge> bSortedEdgesB = new TreeSet<PDGEdge>(
+		final SortedSet<PDGEdge> bSortedEdgesB = new TreeSet<>(
 				comparator);
 		bSortedEdgesB.addAll(bEdgesB);
-		final SortedSet<PDGEdge> fSortedEdgesA = new TreeSet<PDGEdge>(
+		final SortedSet<PDGEdge> fSortedEdgesA = new TreeSet<>(
 				comparator);
 		fSortedEdgesA.addAll(fEdgesA);
-		final SortedSet<PDGEdge> fSortedEdgesB = new TreeSet<PDGEdge>(
+		final SortedSet<PDGEdge> fSortedEdgesB = new TreeSet<>(
 				comparator);
 		fSortedEdgesB.addAll(fEdgesB);
 
@@ -94,7 +100,7 @@ public class Slicing {
 		final List<ClonePairInfo> fClonepairs = this.enlargeForwardClonePair(
 				fSortedEdgesA, fSortedEdgesB, checkedNodesA, checkedNodesB);
 
-		final List<ClonePairInfo> candidates = new ArrayList<ClonePairInfo>();
+		final List<ClonePairInfo> candidates = new ArrayList<>();
 		this.makeCandidates(candidates, bClonepairs);
 		this.makeCandidates(candidates, fClonepairs);
 
@@ -113,8 +119,8 @@ public class Slicing {
 	private void makeCandidates(final List<ClonePairInfo> candidates,
 			final List<ClonePairInfo> clonepairs) {
 
-		assert null != candidates : "\"candidates\" is null.";
-		assert null != clonepairs : "\"clonepairs\" is null.";
+		Objects.requireNonNull(candidates, "\"candidates\" is null.");
+		Objects.requireNonNull(clonepairs, "\"clonepairs\" is null.");
 
 		for (final ClonePairInfo clonepair : clonepairs) {
 			for (final ClonePairInfo candidate : candidates) {
@@ -134,7 +140,7 @@ public class Slicing {
 			final Set<PDGNode<?>> checkedNodesA,
 			final Set<PDGNode<?>> checkedNodesB) {
 
-		final List<ClonePairInfo> clonepairs = new ArrayList<ClonePairInfo>();
+		final List<ClonePairInfo> clonepairs = new ArrayList<>();
 
 		EDGEA: for (final PDGEdge edgeA : edgesA) {
 
@@ -173,9 +179,9 @@ public class Slicing {
 						continue EDGEB;
 					}
 
-					final SortedSet<PDGNode<?>> newCheckedNodesA = new TreeSet<PDGNode<?>>(
+					final SortedSet<PDGNode<?>> newCheckedNodesA = new TreeSet<>(
 							checkedNodesA);
-					final SortedSet<PDGNode<?>> newCheckedNodesB = new TreeSet<PDGNode<?>>(
+					final SortedSet<PDGNode<?>> newCheckedNodesB = new TreeSet<>(
 							checkedNodesB);
 					final ClonePairInfo clonepair = this.perform(
 							edgeA.fromNode, edgeB.fromNode, newCheckedNodesA,
@@ -193,7 +199,7 @@ public class Slicing {
 			final Set<PDGNode<?>> checkedNodesA,
 			final Set<PDGNode<?>> checkedNodesB) {
 
-		final List<ClonePairInfo> clonepairs = new ArrayList<ClonePairInfo>();
+		final List<ClonePairInfo> clonepairs = new ArrayList<>();
 
 		EDGEA: for (final PDGEdge edgeA : edgesA) {
 
@@ -232,9 +238,9 @@ public class Slicing {
 						continue EDGEB;
 					}
 
-					final SortedSet<PDGNode<?>> newCheckedNodesA = new TreeSet<PDGNode<?>>(
+					final SortedSet<PDGNode<?>> newCheckedNodesA = new TreeSet<>(
 							checkedNodesA);
-					final SortedSet<PDGNode<?>> newCheckedNodesB = new TreeSet<PDGNode<?>>(
+					final SortedSet<PDGNode<?>> newCheckedNodesB = new TreeSet<>(
 							checkedNodesB);
 					final ClonePairInfo clonepair = this.perform(edgeA.toNode,
 							edgeB.toNode, newCheckedNodesA, newCheckedNodesB);

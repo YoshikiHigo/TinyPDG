@@ -1,0 +1,75 @@
+# sample: test013
+
+## CFG methodA <5...11>
+nodes:
+  0: [enter,normal] int a = 10; <6>
+  1: [normal] int b = a * 2; <7>
+  2: [normal] int c = b / 2; <8>
+  3: [normal] int d = c % 10; <9>
+  4: [exit,normal] System.out.println(d); <10>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 3 []
+  3 -> 4 []
+
+## PDG methodA <5...11>
+nodes:
+  0: [normal] int a = 10; <6>
+  1: [normal] int b = a * 2; <7>
+  2: [normal] int c = b / 2; <8>
+  3: [normal] int d = c % 10; <9>
+  4: [exit] System.out.println(d); <10>
+  5: [enter,control] Enter <5...11>
+edges:
+  0 -> 1 [data: a]
+  0 -> 1 [execution: ]
+  1 -> 2 [data: b]
+  1 -> 2 [execution: ]
+  2 -> 3 [data: c]
+  2 -> 3 [execution: ]
+  3 -> 4 [data: d]
+  3 -> 4 [execution: ]
+  5 -> 0 [control: true]
+  5 -> 0 [execution: ]
+  5 -> 1 [control: true]
+  5 -> 2 [control: true]
+  5 -> 3 [control: true]
+  5 -> 4 [control: true]
+
+## CFG methodB <13...19>
+nodes:
+  0: [enter,normal] int s = 10; <14>
+  1: [normal] int t = s * 2; <15>
+  2: [normal] int u = t / 2; <16>
+  3: [normal] int v = u % 10; <17>
+  4: [exit,normal] System.out.println(v); <18>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 3 []
+  3 -> 4 []
+
+## PDG methodB <13...19>
+nodes:
+  0: [normal] int s = 10; <14>
+  1: [normal] int t = s * 2; <15>
+  2: [normal] int u = t / 2; <16>
+  3: [normal] int v = u % 10; <17>
+  4: [exit] System.out.println(v); <18>
+  5: [enter,control] Enter <13...19>
+edges:
+  0 -> 1 [data: s]
+  0 -> 1 [execution: ]
+  1 -> 2 [data: t]
+  1 -> 2 [execution: ]
+  2 -> 3 [data: u]
+  2 -> 3 [execution: ]
+  3 -> 4 [data: v]
+  3 -> 4 [execution: ]
+  5 -> 0 [control: true]
+  5 -> 0 [execution: ]
+  5 -> 1 [control: true]
+  5 -> 2 [control: true]
+  5 -> 3 [control: true]
+  5 -> 4 [control: true]

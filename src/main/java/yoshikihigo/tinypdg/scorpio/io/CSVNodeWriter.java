@@ -3,15 +3,17 @@ package yoshikihigo.tinypdg.scorpio.io;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.SortedSet;
 
+import yoshikihigo.tinypdg.TinyPDGException;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
 import yoshikihigo.tinypdg.scorpio.data.NodePairInfo;
 import yoshikihigo.tinypdg.scorpio.pdg.PDGMergedNode;
 
-public class CSVNodeWriter extends Writer {
+public class CSVNodeWriter extends ClonePairWriter {
 
 	public CSVNodeWriter(final String path,
 			final SortedSet<ClonePairInfo> clonepairs) {
@@ -21,10 +23,8 @@ public class CSVNodeWriter extends Writer {
 	@Override
 	public void write() {
 
-		try {
-
-			final BufferedWriter writer = new BufferedWriter(new FileWriter(
-					this.path));
+		try (final BufferedWriter writer = new BufferedWriter(new FileWriter(
+				this.path, StandardCharsets.UTF_8))) {
 
 			int identifier = 0;
 			for (final ClonePairInfo clonepair : this.clonepairs) {
@@ -42,11 +42,8 @@ public class CSVNodeWriter extends Writer {
 				}
 			}
 
-			writer.close();
-
 		} catch (final IOException e) {
-			e.printStackTrace();
-			System.exit(0);
+			throw new TinyPDGException("書き込みに失敗しました: " + this.path, e);
 		}
 
 	}

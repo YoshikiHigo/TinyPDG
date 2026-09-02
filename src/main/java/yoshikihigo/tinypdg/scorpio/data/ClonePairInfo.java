@@ -1,5 +1,6 @@
 package yoshikihigo.tinypdg.scorpio.data;
 
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -14,16 +15,16 @@ public class ClonePairInfo implements Comparable<ClonePairInfo> {
 	public ClonePairInfo(final String pathA, final String pathB) {
 		this.pathA = pathA;
 		this.pathB = pathB;
-		this.nodePairs = new TreeSet<NodePairInfo>();
+		this.nodePairs = new TreeSet<>();
 	}
 
 	public void addNodePair(final NodePairInfo nodePair) {
-		assert null != nodePair : "\"nodePair\" is null.";
+		Objects.requireNonNull(nodePair, "\"nodePair\" is null.");
 		this.nodePairs.add(nodePair);
 	}
 
 	public void merge(final ClonePairInfo merged) {
-		assert null != merged : "\"merged\" is null.";
+		Objects.requireNonNull(merged, "\"merged\" is null.");
 		this.nodePairs.addAll(merged.nodePairs);
 	}
 
@@ -44,7 +45,7 @@ public class ClonePairInfo implements Comparable<ClonePairInfo> {
 	}
 
 	public SortedSet<PDGNode<?>> getLeftNodes() {
-		final SortedSet<PDGNode<?>> nodes = new TreeSet<PDGNode<?>>();
+		final SortedSet<PDGNode<?>> nodes = new TreeSet<>();
 		for (final NodePairInfo pair : this.nodePairs) {
 			nodes.add(pair.nodeA);
 		}
@@ -52,7 +53,7 @@ public class ClonePairInfo implements Comparable<ClonePairInfo> {
 	}
 
 	public SortedSet<PDGNode<?>> getRightNodes() {
-		final SortedSet<PDGNode<?>> nodes = new TreeSet<PDGNode<?>>();
+		final SortedSet<PDGNode<?>> nodes = new TreeSet<>();
 		for (final NodePairInfo pair : this.nodePairs) {
 			nodes.add(pair.nodeB);
 		}
@@ -83,7 +84,7 @@ public class ClonePairInfo implements Comparable<ClonePairInfo> {
 	}
 
 	public boolean conflict(final ClonePairInfo clonepair) {
-		assert null != clonepair : "\"clonepair\" is null.";
+		Objects.requireNonNull(clonepair, "\"clonepair\" is null.");
 		return this.getLeftCodeFragment().conflict(
 				clonepair.getLeftCodeFragment())
 				|| this.getRightCodeFragment().conflict(
@@ -96,7 +97,7 @@ public class ClonePairInfo implements Comparable<ClonePairInfo> {
 	}
 
 	public SortedSet<NodePairInfo> getNodePairs() {
-		final SortedSet<NodePairInfo> nodepairs = new TreeSet<NodePairInfo>();
+		final SortedSet<NodePairInfo> nodepairs = new TreeSet<>();
 		nodepairs.addAll(this.nodePairs);
 		return nodepairs;
 	}

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -21,41 +22,37 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 
 		this.path = path;
 		this.name = name;
-		this.parameters = new ArrayList<VariableInfo>();
-		this.statements = new ArrayList<StatementInfo>();
+		this.parameters = new ArrayList<>();
+		this.statements = new ArrayList<>();
 	}
 
 	public void addParameter(final VariableInfo parameter) {
-		assert null != parameter : "\"variable\" is null.";
+		Objects.requireNonNull(parameter, "\"parameter\" is null.");
 		this.parameters.add(parameter);
 	}
 
 	public SortedSet<VariableInfo> getParameters() {
-		final SortedSet<VariableInfo> parameters = new TreeSet<VariableInfo>();
+		final SortedSet<VariableInfo> parameters = new TreeSet<>();
 		parameters.addAll(this.parameters);
 		return parameters;
 	}
 
 	@Override
 	public void setStatement(final StatementInfo statement) {
-		assert null != statement : "\"statement\" is null.";
+		Objects.requireNonNull(statement, "\"statement\" is null.");
 		this.statements.clear();
-		if (StatementInfo.CATEGORY.SimpleBlock == statement.getCategory()) {
-			this.statements.addAll(statement.getStatements());
-		} else {
-			this.statements.add(statement);
-		}
+		this.statements.addAll(BlockStatementInfo.flatten(statement));
 	}
 
 	@Override
 	public void addStatement(final StatementInfo statement) {
-		assert null != statement : "\"statement\" is null.";
+		Objects.requireNonNull(statement, "\"statement\" is null.");
 		this.statements.add(statement);
 	}
 
 	@Override
 	public void addStatements(final Collection<StatementInfo> statements) {
-		assert null != statements : "\"statements\" is null.";
+		Objects.requireNonNull(statements, "\"statements\" is null.");
 		this.statements.addAll(statements);
 	}
 
@@ -66,7 +63,7 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 
 	@Override
 	public SortedSet<String> getAssignedVariables() {
-		final SortedSet<String> variables = new TreeSet<String>();
+		final SortedSet<String> variables = new TreeSet<>();
 		for (final StatementInfo statement : this.statements) {
 			variables.addAll(statement.getAssignedVariables());
 		}
@@ -75,7 +72,7 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 
 	@Override
 	public SortedSet<String> getReferencedVariables() {
-		final SortedSet<String> variables = new TreeSet<String>();
+		final SortedSet<String> variables = new TreeSet<>();
 		for (final StatementInfo statement : this.statements) {
 			variables.addAll(statement.getReferencedVariables());
 		}

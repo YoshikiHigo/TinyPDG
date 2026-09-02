@@ -1,0 +1,11 @@
+# git blame でこのファイルに挙げたコミットを飛ばすには、一度だけ次を実行する:
+#
+#     git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# ここに挙げるのは空白・改行のみを変更したコミットに限ること。
+
+# Normalize line endings to LF and add .gitattributes
+d9e35b7a0293a9e8f051dfd0171f0f566a268b6d
+
+# Add a trailing newline to files that were missing one
+1c444caca36a44df06b9c514c88fdc411ea95f46

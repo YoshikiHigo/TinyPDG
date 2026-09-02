@@ -1,6 +1,7 @@
 package yoshikihigo.tinypdg.scorpio.pdg;
 
 import java.util.Comparator;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -16,7 +17,7 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 
 	public static void mergeNodes(final PDG pdg) {
 
-		assert null != pdg : "\"pdg\" is null.";
+		Objects.requireNonNull(pdg, "\"pdg\" is null.");
 
 		MERGE: while (true) {
 
@@ -52,6 +53,17 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 					replace(fromNode, mergedNode);
 					replace(toNode, mergedNode);
 
+					// 併合した元のノードは辺を全て移されて宙に浮く。要素から
+					// ノードを引く対応表を直しておかないと、PDG がノードを
+					// 数え直したときに、その宙に浮いたノードが出てくる。
+					// getOriginalNodes は入れ子の併合も平らにして返すので、
+					// 併合が重なっても取りこぼさない。
+					for (final PDGNormalNode<?> original : mergedNode
+							.getOriginalNodes()) {
+						pdg.getPDGNodeFactory().replaceNode(original.core,
+								mergedNode);
+					}
+
 					continue MERGE;
 				}
 			}
@@ -63,8 +75,8 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 	private static void replace(final PDGNode<?> replacedNode,
 			final PDGNode<?> replacingNode) {
 
-		assert null != replacedNode : "\"replacedNode\" is null.";
-		assert null != replacingNode : "\"replacingNode\" is null.";
+		Objects.requireNonNull(replacedNode, "\"replacedNode\" is null.");
+		Objects.requireNonNull(replacingNode, "\"replacingNode\" is null.");
 
 		final SortedSet<PDGEdge> backwardEdges = replacedNode
 				.getBackwardEdges();
@@ -103,14 +115,14 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 	public PDGMergedNode(final PDGNormalNode<?> node1,
 			final PDGNormalNode<?> node2) {
 		super(node1.core);
-		this.originalNodes = new TreeSet<PDGNormalNode<?>>(
+		this.originalNodes = new TreeSet<>(
 				new LocationalComparator());
 		this.add(node1);
 		this.add(node2);
 	}
 
 	public SortedSet<PDGNormalNode<?>> getOriginalNodes() {
-		final SortedSet<PDGNormalNode<?>> nodes = new TreeSet<PDGNormalNode<?>>(
+		final SortedSet<PDGNormalNode<?>> nodes = new TreeSet<>(
 				new LocationalComparator());
 		nodes.addAll(this.originalNodes);
 		return nodes;
@@ -127,7 +139,7 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 	}
 
 	private void add(final PDGNormalNode<?> node) {
-		assert null != node : "\"node\" is null.";
+		Objects.requireNonNull(node, "\"node\" is null.");
 
 		if (node instanceof PDGMergedNode) {
 			final SortedSet<PDGNormalNode<?>> originalNodes = ((PDGMergedNode) node)
@@ -147,8 +159,8 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 		@Override
 		public int compare(PDGNormalNode<?> o1, PDGNormalNode<?> o2) {
 
-			assert null != o1 : "\"o1\" is null.";
-			assert null != o2 : "\"o2\" is null.";
+			Objects.requireNonNull(o1, "\"o1\" is null.");
+			Objects.requireNonNull(o2, "\"o2\" is null.");
 
 			if (o1.core.startLine < o2.core.startLine) {
 				return -1;

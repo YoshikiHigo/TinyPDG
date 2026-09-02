@@ -1,0 +1,53 @@
+# sample: test003
+
+## CFG concatinate <4...10>
+nodes:
+  0: [enter,normal] final StringBuilder text = new StringBuilder(); <5>
+  1: [normal] int i = 0 <6>
+  2: [control] i < texts.length <6>
+  3: [normal] i++ <6>
+  4: [normal] text.append(texts[i]); <7>
+  5: [exit,normal] return text.toString(); <9>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 4 [true]
+  2 -> 5 [false]
+  3 -> 2 []
+  4 -> 3 []
+
+## PDG concatinate <4...10>
+nodes:
+  0: [parameter] final String[] texts <4>
+  1: [normal] final StringBuilder text = new StringBuilder(); <5>
+  2: [normal] int i = 0 <6>
+  3: [control] i < texts.length <6>
+  4: [normal] i++ <6>
+  5: [normal] text.append(texts[i]); <7>
+  6: [exit] return text.toString(); <9>
+  7: [enter,control] Enter <4...10>
+edges:
+  0 -> 3 [data: texts]
+  0 -> 5 [data: texts]
+  1 -> 2 [execution: ]
+  1 -> 5 [data: text]
+  1 -> 6 [data: text]
+  2 -> 3 [data: i]
+  2 -> 3 [execution: ]
+  2 -> 4 [data: i]
+  2 -> 5 [data: i]
+  3 -> 4 [control: true]
+  3 -> 5 [control: true]
+  3 -> 5 [execution: ]
+  3 -> 6 [execution: ]
+  4 -> 3 [data: i]
+  4 -> 3 [execution: ]
+  4 -> 4 [data: i]
+  4 -> 5 [data: i]
+  5 -> 4 [execution: ]
+  7 -> 0 [control: true]
+  7 -> 1 [control: true]
+  7 -> 1 [execution: ]
+  7 -> 2 [control: true]
+  7 -> 3 [control: true]
+  7 -> 6 [control: true]

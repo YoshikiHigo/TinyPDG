@@ -4,8 +4,8 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
@@ -15,12 +15,11 @@ import java.util.TreeSet;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
-import org.eclipse.jdt.core.dom.CompilationUnit;
 
-import yoshikihigo.tinypdg.ast.TinyPDGASTVisitor;
+import yoshikihigo.tinypdg.ast.JavaAstFactory;
 import yoshikihigo.tinypdg.cfg.CFG;
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
 import yoshikihigo.tinypdg.cfg.node.CFGControlNode;
@@ -66,12 +65,21 @@ public class Writer {
 			}
 
 			{
-				final Option p = new Option("p", "ProgramDepencencyGraph",
+				final Option p = new Option("p", "ProgramDependencyGraph",
 						true, "program dependency graph");
 				p.setArgName("file");
 				p.setArgs(1);
 				p.setRequired(false);
 				options.addOption(p);
+			}
+
+			{
+				final Option j = new Option("j", "java-version", true,
+						"Java version assumed for the target source files");
+				j.setArgName("version");
+				j.setArgs(1);
+				j.setRequired(false);
+				options.addOption(j);
 			}
 
 			// {
@@ -92,78 +100,76 @@ public class Writer {
 			// options.addOption(a);
 			// }
 
-			final CommandLineParser parser = new PosixParser();
+			final CommandLineParser parser = new DefaultParser();
 			final CommandLine cmd = parser.parse(options, args);
 
 			final File target = new File(cmd.getOptionValue("d"));
 			if (!target.exists()) {
 				System.err
 						.println("specified directory or file does not exist.");
-				System.exit(0);
+				System.exit(1);
 			}
 
-			final List<File> files = getFiles(target);
-			final List<MethodInfo> methods = new ArrayList<MethodInfo>();
-			for (final File file : files) {
-				final CompilationUnit unit = TinyPDGASTVisitor.createAST(file);
-				final List<MethodInfo> m = new ArrayList<MethodInfo>();
-				final TinyPDGASTVisitor visitor = new TinyPDGASTVisitor(
-						file.getAbsolutePath(), unit, methods);
-				unit.accept(visitor);
-				methods.addAll(m);
-			}
+			final String javaVersion = cmd.hasOption("j")
+					? cmd.getOptionValue("j")
+					: JavaAstFactory.DEFAULT_JAVA_VERSION;
+
+			final List<MethodInfo> methods = JavaAstFactory.collectMethods(
+					target, javaVersion);
 
 			if (cmd.hasOption("c")) {
 				System.out.println("building and outputing CFGs ...");
-				final BufferedWriter writer = new BufferedWriter(
-						new FileWriter(cmd.getOptionValue("c")));
+				try (final BufferedWriter writer = new BufferedWriter(
+						new FileWriter(cmd.getOptionValue("c"),
+								StandardCharsets.UTF_8))) {
 
-				writer.write("digraph CFG {");
-				writer.newLine();
+					writer.write("digraph CFG {");
+					writer.newLine();
 
-				final CFGNodeFactory nodeFactory = new CFGNodeFactory();
+					final CFGNodeFactory nodeFactory = new CFGNodeFactory();
 
-				int createdGraphNumber = 0;
-				for (final MethodInfo method : methods) {
-					final CFG cfg = new CFG(method, nodeFactory);
-					cfg.build();
-					cfg.removeSwitchCases();
-					cfg.removeJumpStatements();
-					writeMethodCFG(cfg, createdGraphNumber++, writer);
+					int createdGraphNumber = 0;
+					for (final MethodInfo method : methods) {
+						final CFG cfg = new CFG(method, nodeFactory);
+						cfg.build();
+						cfg.removeSwitchCases();
+						cfg.removeJumpStatements();
+						writeMethodCFG(cfg, createdGraphNumber++, writer);
+					}
+
+					writer.write("}");
 				}
-
-				writer.write("}");
-
-				writer.close();
 			}
 
 			if (cmd.hasOption("p")) {
 				System.out.println("building and outputing PDGs ...");
-				final BufferedWriter writer = new BufferedWriter(
-						new FileWriter(cmd.getOptionValue("p")));
+				try (final BufferedWriter writer = new BufferedWriter(
+						new FileWriter(cmd.getOptionValue("p"),
+								StandardCharsets.UTF_8))) {
 
-				writer.write("digraph {");
-				writer.newLine();
+					writer.write("digraph {");
+					writer.newLine();
 
-				int createdGraphNumber = 0;
-				for (final MethodInfo method : methods) {
+					int createdGraphNumber = 0;
+					for (final MethodInfo method : methods) {
 
-					final PDG pdg = new PDG(method, new PDGNodeFactory(),
-							new CFGNodeFactory(), true, true, true);
-					pdg.build();
-					writePDG(pdg, createdGraphNumber++, writer);
+						final PDG pdg = new PDG(method, new PDGNodeFactory(),
+								new CFGNodeFactory());
+						pdg.build();
+						writePDG(pdg, createdGraphNumber++, writer);
+					}
+
+					writer.write("}");
 				}
-
-				writer.write("}");
-
-				writer.close();
 			}
 
 			System.out.println("successfully finished.");
 
-		} catch (Exception e) {
-			System.err.println(e.getMessage());
-			System.exit(0);
+		} catch (final Exception e) {
+			// 異常終了なので終了コードは非 0 にする。0 のままでは、
+			// シェルや CI から呼んだときに成功と区別が付かない。
+			e.printStackTrace();
+			System.exit(1);
 		}
 	}
 
@@ -181,7 +187,7 @@ public class Writer {
 		writer.write("\";");
 		writer.newLine();
 
-		final SortedMap<CFGNode<? extends ProgramElementInfo>, Integer> nodeLabels = new TreeMap<CFGNode<? extends ProgramElementInfo>, Integer>();
+		final SortedMap<CFGNode<? extends ProgramElementInfo>, Integer> nodeLabels = new TreeMap<>();
 		for (final CFGNode<?> node : cfg.getAllNodes()) {
 			nodeLabels.put(node, nodeLabels.size());
 		}
@@ -239,7 +245,7 @@ public class Writer {
 			return;
 		}
 
-		final SortedSet<CFGEdge> edges = new TreeSet<CFGEdge>();
+		final SortedSet<CFGEdge> edges = new TreeSet<>();
 		for (final CFGNode<?> node : cfg.getAllNodes()) {
 			edges.addAll(node.getBackwardEdges());
 			edges.addAll(node.getForwardEdges());
@@ -274,7 +280,7 @@ public class Writer {
 		writer.write("\";");
 		writer.newLine();
 
-		final Map<PDGNode<?>, Integer> nodeLabels = new HashMap<PDGNode<?>, Integer>();
+		final Map<PDGNode<?>, Integer> nodeLabels = new LinkedHashMap<>();
 		for (final PDGNode<?> node : pdg.getAllNodes()) {
 			nodeLabels.put(node, nodeLabels.size());
 		}
@@ -335,24 +341,6 @@ public class Writer {
 
 		writer.write("}");
 		writer.newLine();
-	}
-
-	static private List<File> getFiles(final File file) {
-
-		final List<File> files = new ArrayList<File>();
-
-		if (file.isFile() && file.getName().endsWith(".java")) {
-			files.add(file);
-		}
-
-		else if (file.isDirectory()) {
-			for (final File child : file.listFiles()) {
-				final List<File> children = getFiles(child);
-				files.addAll(children);
-			}
-		}
-
-		return files;
 	}
 
 	static private String getMethodSignature(final MethodInfo method) {

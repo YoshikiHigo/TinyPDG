@@ -1,0 +1,23 @@
+# sample: test005
+
+## CFG method <5...12>
+nodes:
+  0: [enter,normal] int i = 0; <6>
+  1: [exit,control] i++ < 10 <8>
+edges:
+  0 -> 1 []
+  1 -> 1 [false]
+
+## PDG method <5...12>
+nodes:
+  0: [normal] int i = 0; <6>
+  1: [exit,control] i++ < 10 <8>
+  2: [enter,control] Enter <5...12>
+edges:
+  0 -> 1 [data: i]
+  0 -> 1 [execution: ]
+  1 -> 1 [data: i]
+  1 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]

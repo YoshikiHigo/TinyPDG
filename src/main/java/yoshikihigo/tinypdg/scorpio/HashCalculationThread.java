@@ -1,7 +1,10 @@
 package yoshikihigo.tinypdg.scorpio;
 
+import java.util.Objects;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import yoshikihigo.tinypdg.pdg.PDG;
@@ -10,21 +13,48 @@ import yoshikihigo.tinypdg.pdg.node.PDGNode;
 
 public class HashCalculationThread implements Runnable {
 
-	final static private AtomicInteger INDEX = new AtomicInteger(0);
+	/**
+	 * 取り出し位置。1 回の計算ごとに用意する。
+	 *
+	 * <p>以前はこれが static だった。1 回の実行では各スレッドに次の PDG を
+	 * 配る役目を果たすが、JVM 内の全ての計算で共有され巻き戻らないので、
+	 * 2 回目は数え終わった位置から始まり、ハッシュが 1 つも計算されない
+	 * まま正常終了していた。
+	 */
+	final private AtomicInteger next;
 
 	final private PDG[] pdgs;
 	final private SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mappingPDGToPDGNodes;
 	final private SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges;
 
-	public HashCalculationThread(
+	/**
+	 * 全ての PDG のノードと辺のハッシュを、スレッドを分けて計算する。
+	 */
+	public static void calculate(final PDG[] pdgs,
+			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mappingPDGToPDGNodes,
+			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges,
+			final int threads) {
+
+		final AtomicInteger next = new AtomicInteger(0);
+		try (final ExecutorService pool = Executors
+				.newFixedThreadPool(threads)) {
+			for (int i = 0; i < threads; i++) {
+				pool.execute(new HashCalculationThread(next, pdgs,
+						mappingPDGToPDGNodes, mappingPDGToPDGEdges));
+			}
+		}
+	}
+
+	private HashCalculationThread(final AtomicInteger next,
 			final PDG[] pdgs,
 			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mappingPDGToPDGNodes,
 			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges) {
 
-		assert null != pdgs : "\"pdgs\" is null.";
-		assert null != mappingPDGToPDGNodes : "\"mappingPDGToPDGNodes\" is null.";
-		assert null != mappingPDGToPDGEdges : "\"mappingPDGToPDGEdges\" is null.";
+		Objects.requireNonNull(pdgs, "\"pdgs\" is null.");
+		Objects.requireNonNull(mappingPDGToPDGNodes, "\"mappingPDGToPDGNodes\" is null.");
+		Objects.requireNonNull(mappingPDGToPDGEdges, "\"mappingPDGToPDGEdges\" is null.");
 
+		this.next = next;
 		this.pdgs = pdgs;
 		this.mappingPDGToPDGNodes = mappingPDGToPDGNodes;
 		this.mappingPDGToPDGEdges = mappingPDGToPDGEdges;
@@ -33,14 +63,14 @@ public class HashCalculationThread implements Runnable {
 	@Override
 	public void run() {
 
-		for (int index = INDEX.getAndIncrement(); index < this.pdgs.length; index = INDEX
+		for (int index = this.next.getAndIncrement(); index < this.pdgs.length; index = this.next
 				.getAndIncrement()) {
 
 			final PDG pdg = this.pdgs[index];
 
 			try {
 
-				final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHash = new TreeMap<PDGNode<?>, Integer>();
+				final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHash = new TreeMap<>();
 				for (final PDGNode<?> node : pdg.getAllNodes()) {
 
 					final NormalizedText t1 = new NormalizedText(node.core);
@@ -51,7 +81,7 @@ public class HashCalculationThread implements Runnable {
 				}
 				this.mappingPDGToPDGNodes.put(pdg, mappingPDGNodeToHash);
 
-				final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash = new TreeMap<PDGEdge, Integer>();
+				final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash = new TreeMap<>();
 				for (final PDGEdge edge : pdg.getAllEdges()) {
 
 					final NormalizedText t1 = new NormalizedText(

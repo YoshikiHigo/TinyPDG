@@ -1,0 +1,81 @@
+# sample: test024
+
+## CFG method1 <5...11>
+nodes:
+  0: [enter,normal] StringBuilder text = new StringBuilder(); <6>
+  1: [normal] text.append("a"); <7>
+  2: [normal] text.append("b"); <8>
+  3: [normal] text.append("c"); <9>
+  4: [exit,normal] return text.toString(); <10>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 3 []
+  3 -> 4 []
+
+## PDG method1 <5...11>
+nodes:
+  0: [normal] StringBuilder text = new StringBuilder(); <6>
+  1: [normal] text.append("a"); <7>
+  2: [normal] text.append("b"); <8>
+  3: [normal] text.append("c"); <9>
+  4: [exit] return text.toString(); <10>
+  5: [enter,control] Enter <5...11>
+edges:
+  0 -> 1 [data: text]
+  0 -> 1 [execution: ]
+  0 -> 2 [data: text]
+  0 -> 3 [data: text]
+  0 -> 4 [data: text]
+  1 -> 2 [execution: ]
+  2 -> 3 [execution: ]
+  3 -> 4 [execution: ]
+  5 -> 0 [control: true]
+  5 -> 0 [execution: ]
+  5 -> 1 [control: true]
+  5 -> 2 [control: true]
+  5 -> 3 [control: true]
+  5 -> 4 [control: true]
+
+## CFG method2 <13...20>
+nodes:
+  0: [enter,normal] StringBuilder text = new StringBuilder(); <14>
+  1: [normal] text.append("a"); <15>
+  2: [normal] text.append("b"); <16>
+  3: [normal] text.append("c"); <17>
+  4: [normal] text.append("d"); <18>
+  5: [exit,normal] return text.toString(); <19>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 3 []
+  3 -> 4 []
+  4 -> 5 []
+
+## PDG method2 <13...20>
+nodes:
+  0: [normal] StringBuilder text = new StringBuilder(); <14>
+  1: [normal] text.append("a"); <15>
+  2: [normal] text.append("b"); <16>
+  3: [normal] text.append("c"); <17>
+  4: [normal] text.append("d"); <18>
+  5: [exit] return text.toString(); <19>
+  6: [enter,control] Enter <13...20>
+edges:
+  0 -> 1 [data: text]
+  0 -> 1 [execution: ]
+  0 -> 2 [data: text]
+  0 -> 3 [data: text]
+  0 -> 4 [data: text]
+  0 -> 5 [data: text]
+  1 -> 2 [execution: ]
+  2 -> 3 [execution: ]
+  3 -> 4 [execution: ]
+  4 -> 5 [execution: ]
+  6 -> 0 [control: true]
+  6 -> 0 [execution: ]
+  6 -> 1 [control: true]
+  6 -> 2 [control: true]
+  6 -> 3 [control: true]
+  6 -> 4 [control: true]
+  6 -> 5 [control: true]

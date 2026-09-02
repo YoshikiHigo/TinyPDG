@@ -11,22 +11,21 @@ import java.util.TreeSet;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
-import org.eclipse.jdt.core.dom.CompilationUnit;
 
-import yoshikihigo.tinypdg.ast.TinyPDGASTVisitor;
-import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
+import yoshikihigo.tinypdg.ast.JavaAstFactory;
 import yoshikihigo.tinypdg.pdg.PDG;
+import yoshikihigo.tinypdg.pdg.PDGGeneration;
+import yoshikihigo.tinypdg.scorpio.pdg.PDGMergedNode;
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
-import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
 import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
 import yoshikihigo.tinypdg.scorpio.data.PDGPairInfo;
 import yoshikihigo.tinypdg.scorpio.io.BellonWriter;
-import yoshikihigo.tinypdg.scorpio.io.Writer;
+import yoshikihigo.tinypdg.scorpio.io.ClonePairWriter;
 
 public class Scorpio {
 
@@ -106,14 +105,23 @@ public class Scorpio {
 				options.addOption(M);
 			}
 
-			final CommandLineParser parser = new PosixParser();
+			{
+				final Option j = new Option("j", "java-version", true,
+						"Java version assumed for the target source files");
+				j.setArgName("version");
+				j.setArgs(1);
+				j.setRequired(false);
+				options.addOption(j);
+			}
+
+			final CommandLineParser parser = new DefaultParser();
 			final CommandLine cmd = parser.parse(options, args);
 
 			final File target = new File(cmd.getOptionValue("d"));
 			if (!target.exists()) {
 				System.err
 						.println("specified directory or file does not exist.");
-				System.exit(0);
+				System.exit(1);
 			}
 
 			final String output = cmd.getOptionValue("o");
@@ -178,36 +186,22 @@ public class Scorpio {
 			System.out.print("generating PDGs ... ");
 			final PDG[] pdgArray;
 			{
-				final List<File> files = getFiles(target);
-				final List<MethodInfo> methods = new ArrayList<MethodInfo>();
-				for (final File file : files) {
-					final CompilationUnit unit = TinyPDGASTVisitor
-							.createAST(file);
-					final TinyPDGASTVisitor visitor = new TinyPDGASTVisitor(
-							file.getAbsolutePath(), unit, methods);
-					unit.accept(visitor);
-				}
+				final String javaVersion = cmd.hasOption("j")
+						? cmd.getOptionValue("j")
+						: JavaAstFactory.DEFAULT_JAVA_VERSION;
+				final List<MethodInfo> methods = JavaAstFactory
+						.collectMethods(target, javaVersion);
 
-				final SortedSet<PDG> pdgs = Collections
-						.synchronizedSortedSet(new TreeSet<PDG>());
-				final CFGNodeFactory cfgNodeFactory = new CFGNodeFactory();
-				final PDGNodeFactory pdgNodeFactory = new PDGNodeFactory();
-				final Thread[] pdgGenerationThreads = new Thread[NUMBER_OF_THREADS];
-				for (int i = 0; i < pdgGenerationThreads.length; i++) {
-					pdgGenerationThreads[i] = new Thread(
-							new PDGGenerationThread(methods, pdgs,
-									cfgNodeFactory, pdgNodeFactory,
-									useOfControl, useOfData, useOfExecution,
-									useOfMerging, SIZE_THRESHOLD));
-					pdgGenerationThreads[i].start();
-				}
-				for (final Thread thread : pdgGenerationThreads) {
-					try {
-						thread.join();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
+				final PDGGeneration.Options generation = new PDGGeneration.Options(
+						new PDG.Dependences(useOfControl, useOfData,
+								useOfExecution),
+						SIZE_THRESHOLD, NUMBER_OF_THREADS);
+				// ノードの併合は Scorpio 固有の処理なので、生成側には
+				// 「作り終えた PDG に何をするか」として渡す。
+				final SortedSet<PDG> pdgs = useOfMerging
+						? PDGGeneration.buildInParallel(methods, generation,
+								PDGMergedNode::mergeNodes)
+						: PDGGeneration.buildInParallel(methods, generation);
 				pdgArray = pdgs.toArray(new PDG[0]);
 			}
 			System.out.print("done: ");
@@ -218,22 +212,10 @@ public class Scorpio {
 			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mappingPDGToPDGNodes = Collections
 					.synchronizedSortedMap(new TreeMap<PDG, SortedMap<PDGNode<?>, Integer>>());
 			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges = Collections
-					.synchronizedSortedMap(new TreeMap<PDG, SortedMap<PDGEdge, Integer>>());
+					.synchronizedSortedMap(new TreeMap<>());
 			{
-				final Thread[] hashCalculationThreads = new Thread[NUMBER_OF_THREADS];
-				for (int i = 0; i < hashCalculationThreads.length; i++) {
-					hashCalculationThreads[i] = new Thread(
-							new HashCalculationThread(pdgArray,
-									mappingPDGToPDGNodes, mappingPDGToPDGEdges));
-					hashCalculationThreads[i].start();
-				}
-				for (final Thread thread : hashCalculationThreads) {
-					try {
-						thread.join();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
+				HashCalculationThread.calculate(pdgArray, mappingPDGToPDGNodes,
+						mappingPDGToPDGEdges, NUMBER_OF_THREADS);
 			}
 			System.out.print("done: ");
 			final long time3 = System.nanoTime();
@@ -241,9 +223,9 @@ public class Scorpio {
 
 			System.out.print("detecting clone pairs ... ");
 			final SortedSet<ClonePairInfo> clonepairs = Collections
-					.synchronizedSortedSet(new TreeSet<ClonePairInfo>());
+					.synchronizedSortedSet(new TreeSet<>());
 			{
-				final List<PDGPairInfo> pdgpairs = new ArrayList<PDGPairInfo>();
+				final List<PDGPairInfo> pdgpairs = new ArrayList<>();
 				for (int i = 0; i < pdgArray.length; i++) {
 					for (int j = i + 1; j < pdgArray.length; j++) {
 						pdgpairs.add(new PDGPairInfo(pdgArray[i], pdgArray[j]));
@@ -251,27 +233,16 @@ public class Scorpio {
 				}
 				final PDGPairInfo[] pdgpairArray = pdgpairs
 						.toArray(new PDGPairInfo[0]);
-				final Thread[] slicingThreads = new Thread[NUMBER_OF_THREADS];
-				for (int i = 0; i < slicingThreads.length; i++) {
-					slicingThreads[i] = new Thread(new SlicingThread(
-							pdgpairArray, pdgArray, mappingPDGToPDGNodes,
-							mappingPDGToPDGEdges, clonepairs, SIZE_THRESHOLD));
-					slicingThreads[i].start();
-				}
-				for (final Thread thread : slicingThreads) {
-					try {
-						thread.join();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
+				SlicingThread.detect(pdgpairArray, pdgArray,
+						mappingPDGToPDGNodes, mappingPDGToPDGEdges, clonepairs,
+						SIZE_THRESHOLD, NUMBER_OF_THREADS);
 			}
 			System.out.print("done: ");
 			final long time4 = System.nanoTime();
 			printTime(time4 - time3);
 
 			System.out.print("writing to a file ... ");
-			final Writer writer = new BellonWriter(output, clonepairs);
+			final ClonePairWriter writer = new BellonWriter(output, clonepairs);
 			writer.write();
 			System.out.print("done: ");
 			final long time5 = System.nanoTime();
@@ -283,33 +254,12 @@ public class Scorpio {
 			System.out.print("number of comparisons: ");
 			printNumberOfComparison(Slicing.getNumberOfComparison());
 
-		} catch (Exception e) {
-			System.err.println(e.getMessage());
-			System.exit(0);
+		} catch (final Exception e) {
+			// 異常終了なので終了コードは非 0 にする。0 のままでは、
+			// シェルや CI から呼んだときに成功と区別が付かない。
+			e.printStackTrace();
+			System.exit(1);
 		}
-	}
-
-	private static List<File> getFiles(final File file) {
-
-		final List<File> files = new ArrayList<File>();
-
-		if (file.isFile()) {
-			if (file.getName().endsWith(".java")) {
-				files.add(file);
-			}
-		}
-
-		else if (file.isDirectory()) {
-			for (final File child : file.listFiles()) {
-				files.addAll(getFiles(child));
-			}
-		}
-
-		else {
-			assert false : "\"file\" is invalid.";
-		}
-
-		return files;
 	}
 
 	private static void printNumberOfRemoval(final long number) {

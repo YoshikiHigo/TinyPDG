@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import yoshikihigo.tinypdg.TinyPDGException;
 import yoshikihigo.tinypdg.pe.ClassInfo;
 import yoshikihigo.tinypdg.pe.ExpressionInfo;
 import yoshikihigo.tinypdg.pe.OperatorInfo;
@@ -18,7 +19,7 @@ public class NormalizedText {
 
 //		StringBuilder normalizedText = new StringBuilder(text);
 		StringBuilder normalizedText = new StringBuilder(resolveDuplicatedMarkingTokens(text));
-		final Map<String, String> mapper = new HashMap<String, String>();
+		final Map<String, String> mapper = new HashMap<>();
 
 		int startIndex = 0;
 		int endIndex = 0;
@@ -90,8 +91,9 @@ public class NormalizedText {
 
 			final StringBuilder text = new StringBuilder();
 			final StatementInfo core = (StatementInfo) this.core;
-			switch (core.getCategory()) {
-			case Assert: {
+			this.text = switch (core.getCategory()) {
+
+			case Assert -> {
 				text.append("assert ");
 				final ProgramElementInfo expression = core.getExpressions()
 						.get(0);
@@ -103,13 +105,15 @@ public class NormalizedText {
 				final NormalizedText messageText = new NormalizedText(message);
 				text.append(messageText.getText());
 				text.append(";");
-				break;
+				yield text.toString();
 			}
-			case Break: {
+
+			case Break -> {
 				text.append("break;");
-				break;
+				yield text.toString();
 			}
-			case Case: {
+
+			case Case -> {
 				if (0 < core.getExpressions().size()) {
 					text.append("case ");
 					final ProgramElementInfo label = core.getExpressions().get(
@@ -120,36 +124,30 @@ public class NormalizedText {
 				} else {
 					text.append("default:");
 				}
-				break;
+				yield text.toString();
 			}
-			case Catch:
-				break;
-			case Continue: {
+
+			case Continue -> {
 				text.append("continue;");
-				break;
+				yield text.toString();
 			}
-			case Do:
-				break;
-			case Empty: {
+
+			case Empty -> {
 				text.append(";");
-				break;
+				yield text.toString();
 			}
-			case Expression: {
+
+			case Expression -> {
 				final ProgramElementInfo expression = core.getExpressions()
 						.get(0);
 				final NormalizedText expressionText = new NormalizedText(
 						expression);
 				text.append(expressionText.getText());
 				text.append(";");
-				break;
+				yield text.toString();
 			}
-			case For:
-				break;
-			case Foreach:
-				break;
-			case If:
-				break;
-			case Return: {
+
+			case Return -> {
 				text.append("return");
 				if (0 < core.getExpressions().size()) {
 					text.append(" ");
@@ -160,15 +158,10 @@ public class NormalizedText {
 					text.append(expressionText.getText());
 				}
 				text.append(";");
-				break;
+				yield text.toString();
 			}
-			case SimpleBlock:
-				break;
-			case Switch:
-				break;
-			case Synchronized:
-				break;
-			case Throw: {
+
+			case Throw -> {
 				text.append("throw ");
 				final ProgramElementInfo expression = ((StatementInfo) this.core)
 						.getExpressions().get(0);
@@ -176,19 +169,19 @@ public class NormalizedText {
 						expression);
 				text.append(expressionText.getText());
 				text.append(";");
-				break;
+				yield text.toString();
 			}
-			case Try:
-				break;
-			case TypeDeclaration: {
+
+			case TypeDeclaration -> {
 				final ClassInfo typeDeclaration = (ClassInfo) ((StatementInfo) this.core)
 						.getExpressions().get(0);
 				text.append("class ");
 				text.append(typeDeclaration.name);
 				text.append("{}");
-				break;
+				yield text.toString();
 			}
-			case VariableDeclaration: {
+
+			case VariableDeclaration -> {
 				final List<ProgramElementInfo> expressions = ((StatementInfo) this.core)
 						.getExpressions();
 				final NormalizedText typeText = new NormalizedText(
@@ -207,23 +200,44 @@ public class NormalizedText {
 					text.deleteCharAt(text.length() - 1);
 				}
 				text.append(";");
-				break;
+				yield text.toString();
 			}
-			case While:
-				break;
-			default:
-				assert false : "invalide status.";
-				break;
+
+			case Yield -> {
+				text.append("yield");
+				if (0 < core.getExpressions().size()) {
+					text.append(" ");
+					final ProgramElementInfo expression = core.getExpressions()
+							.get(0);
+					final NormalizedText expressionText = new NormalizedText(
+							expression);
+					text.append(expressionText.getText());
+				}
+				text.append(";");
+				yield text.toString();
 			}
-			this.text = text.toString();
-		}
+
+			case Unsupported -> {
+// 解釈できない構文は、ソース断片をそのまま持っている。
+				// 正規化はできないが、落とすと中身が消えてしまう。
+				text.append(core.getText());
+				yield text.toString();
+			}
+
+			// 中身は子の要素として別に正規化される。文そのものは何も足さない。
+			case Catch, Do, For,
+					Foreach, If, SimpleBlock,
+					Switch, Synchronized, Try,
+					While -> "";
+			};		}
 
 		else if (this.core instanceof ExpressionInfo) {
 
 			final ExpressionInfo coreExp = (ExpressionInfo) this.core;
 			final StringBuilder text = new StringBuilder();
-			switch (((ExpressionInfo) this.core).category) {
-			case ArrayAccess: {
+			this.text = switch (coreExp.category) {
+
+			case ArrayAccess -> {
 				final ProgramElementInfo expression = coreExp.getExpressions()
 						.get(0);
 				final NormalizedText expressionText = new NormalizedText(
@@ -235,9 +249,10 @@ public class NormalizedText {
 				final NormalizedText indexText = new NormalizedText(index);
 				text.append(indexText.getText());
 				text.append("]");
-				break;
+				yield text.toString();
 			}
-			case ArrayCreation: {
+
+			case ArrayCreation -> {
 				text.append("new ");
 				final ProgramElementInfo type = coreExp.getExpressions().get(0);
 				text.append(type.getText());
@@ -249,9 +264,10 @@ public class NormalizedText {
 							initializer);
 					text.append(initializerText.getText());
 				}
-				break;
+				yield text.toString();
 			}
-			case ArrayInitializer: {
+
+			case ArrayInitializer -> {
 				text.append("{");
 				for (final ProgramElementInfo expression : coreExp
 						.getExpressions()) {
@@ -262,9 +278,10 @@ public class NormalizedText {
 				}
 				text.deleteCharAt(text.length() - 1);
 				text.append("}");
-				break;
+				yield text.toString();
 			}
-			case Assignment: {
+
+			case Assignment -> {
 				final ProgramElementInfo left = coreExp.getExpressions().get(0);
 				final NormalizedText leftText = new NormalizedText(left);
 				text.append(leftText.getText());
@@ -278,15 +295,17 @@ public class NormalizedText {
 						.get(2);
 				final NormalizedText rightText = new NormalizedText(right);
 				text.append(rightText.getText());
-				break;
+				yield text.toString();
 			}
-			case Boolean: {
+
+			case Boolean -> {
 				text.append("$$");
 				text.append(coreExp.getText());
 				text.append("$$");
-				break;
+				yield text.toString();
 			}
-			case Cast: {
+
+			case Cast -> {
 				text.append("(");
 				final ProgramElementInfo type = coreExp.getExpressions().get(0);
 				final NormalizedText typeText = new NormalizedText(type);
@@ -297,15 +316,17 @@ public class NormalizedText {
 				final NormalizedText expressionText = new NormalizedText(
 						expression);
 				text.append(expressionText.getText());
-				break;
+				yield text.toString();
 			}
-			case Character: {
+
+			case Character -> {
 				text.append("$$");
 				text.append(coreExp.getText());
 				text.append("$$");
-				break;
+				yield text.toString();
 			}
-			case ClassInstanceCreation: {
+
+			case ClassInstanceCreation -> {
 				text.append("new ");
 				final ProgramElementInfo type = coreExp.getExpressions().get(0);
 				text.append(type.getText());
@@ -324,9 +345,10 @@ public class NormalizedText {
 				}
 
 				text.append(")");
-				break;
+				yield text.toString();
 			}
-			case ConstructorInvocation: {
+
+			case ConstructorInvocation -> {
 				text.append("this(");
 
 				for (final ProgramElementInfo argument : coreExp
@@ -341,9 +363,10 @@ public class NormalizedText {
 				}
 
 				text.append(")");
-				break;
+				yield text.toString();
 			}
-			case FieldAccess: {
+
+			case FieldAccess -> {
 				final ProgramElementInfo expression = coreExp.getExpressions()
 						.get(0);
 				final NormalizedText expressionText = new NormalizedText(
@@ -353,9 +376,10 @@ public class NormalizedText {
 				final ProgramElementInfo name = coreExp.getExpressions().get(1);
 				final NormalizedText nameText = new NormalizedText(name);
 				text.append(nameText.getText());
-				break;
+				yield text.toString();
 			}
-			case Infix: {
+
+			case Infix -> {
 				for (final ProgramElementInfo expression : coreExp
 						.getExpressions()) {
 					final NormalizedText expressionText = new NormalizedText(
@@ -364,9 +388,10 @@ public class NormalizedText {
 					text.append(" ");
 				}
 				text.deleteCharAt(text.length() - 1);
-				break;
+				yield text.toString();
 			}
-			case Instanceof: {
+
+			case Instanceof -> {
 				final ProgramElementInfo left = coreExp.getExpressions().get(0);
 				final NormalizedText leftText = new NormalizedText(left);
 				text.append(leftText.getText());
@@ -374,13 +399,15 @@ public class NormalizedText {
 				final ProgramElementInfo right = coreExp.getExpressions()
 						.get(1);
 				text.append(right.getText());
-				break;
+				yield text.toString();
 			}
-			case MethodEnter: {
+
+			case MethodEnter -> {
 				text.append("METHODENTER");
-				break;
+				yield text.toString();
 			}
-			case MethodInvocation: {
+
+			case MethodInvocation -> {
 				if (null != coreExp.getQualifier()) {
 					final ProgramElementInfo qualifier = coreExp.getQualifier();
 					final NormalizedText qualifierText = new NormalizedText(
@@ -408,19 +435,22 @@ public class NormalizedText {
 				}
 
 				text.append(")");
-				break;
+				yield text.toString();
 			}
-			case Null: {
+
+			case Null -> {
 				text.append("null");
-				break;
+				yield text.toString();
 			}
-			case Number: {
+
+			case Number -> {
 				text.append("$$");
 				text.append(coreExp.getText());
 				text.append("$$");
-				break;
+				yield text.toString();
 			}
-			case Parenthesized: {
+
+			case Parenthesized -> {
 				text.append("(");
 
 				final ProgramElementInfo expression = coreExp.getExpressions()
@@ -430,9 +460,10 @@ public class NormalizedText {
 				text.append(expressionText.getText());
 
 				text.append(")");
-				break;
+				yield text.toString();
 			}
-			case Postfix: {
+
+			case Postfix -> {
 				final ProgramElementInfo operand = coreExp.getExpressions()
 						.get(0);
 				final NormalizedText operandText = new NormalizedText(operand);
@@ -442,9 +473,10 @@ public class NormalizedText {
 						.get(1);
 				final NormalizedText operatorText = new NormalizedText(operator);
 				text.append(operatorText.getText());
-				break;
+				yield text.toString();
 			}
-			case Prefix: {
+
+			case Prefix -> {
 				final ProgramElementInfo operator = coreExp.getExpressions()
 						.get(0);
 				final NormalizedText operatorText = new NormalizedText(operator);
@@ -454,9 +486,10 @@ public class NormalizedText {
 						.get(1);
 				final NormalizedText operandText = new NormalizedText(operand);
 				text.append(operandText.getText());
-				break;
+				yield text.toString();
 			}
-			case QualifiedName: {
+
+			case QualifiedName -> {
 				final ProgramElementInfo qualifier = coreExp.getQualifier();
 				final NormalizedText qualifierText = new NormalizedText(
 						qualifier);
@@ -467,21 +500,24 @@ public class NormalizedText {
 				final ProgramElementInfo name = coreExp.getExpressions().get(0);
 				final NormalizedText nameText = new NormalizedText(name);
 				text.append(nameText.getText());
-				break;
+				yield text.toString();
 			}
-			case SimpleName: {
+
+			case SimpleName -> {
 				text.append("$$");
 				text.append(coreExp.getText());
 				text.append("$$");
-				break;
+				yield text.toString();
 			}
-			case String: {
+
+			case String -> {
 				text.append("$$");
 				text.append(coreExp.getText());
 				text.append("$$");
-				break;
+				yield text.toString();
 			}
-			case SuperConstructorInvocation: {
+
+			case SuperConstructorInvocation -> {
 
 				if (null != coreExp.getQualifier()) {
 					final ProgramElementInfo qualifier = coreExp.getQualifier();
@@ -503,16 +539,18 @@ public class NormalizedText {
 					text.deleteCharAt(text.length() - 1);
 				}
 				text.append(")");
-				break;
+				yield text.toString();
 			}
-			case SuperFieldAccess: {
+
+			case SuperFieldAccess -> {
 				text.append("super.");
 				final ProgramElementInfo name = coreExp.getExpressions().get(0);
 				final NormalizedText nameText = new NormalizedText(name);
 				text.append(nameText.getText());
-				break;
+				yield text.toString();
 			}
-			case SuperMethodInvocation: {
+
+			case SuperMethodInvocation -> {
 				text.append("super.");
 				final ProgramElementInfo name = coreExp.getExpressions().get(0);
 				final NormalizedText nameText = new NormalizedText(name);
@@ -533,13 +571,15 @@ public class NormalizedText {
 				}
 
 				text.append(")");
-				break;
+				yield text.toString();
 			}
-			case This: {
+
+			case This -> {
 				text.append("this");
-				break;
+				yield text.toString();
 			}
-			case Trinomial: {
+
+			case Trinomial -> {
 				final ProgramElementInfo expression = coreExp.getExpressions()
 						.get(0);
 				final NormalizedText expressionText = new NormalizedText(
@@ -559,11 +599,10 @@ public class NormalizedText {
 						.get(2);
 				final NormalizedText elseExpText = new NormalizedText(elseExp);
 				text.append(elseExpText.getText());
-				break;
+				yield text.toString();
 			}
-			case TypeLiteral:
-				break;
-			case VariableDeclarationExpression: {
+
+			case VariableDeclarationExpression -> {
 				final List<ProgramElementInfo> expressions = coreExp
 						.getExpressions();
 				text.append(expressions.get(0).getText());
@@ -571,9 +610,10 @@ public class NormalizedText {
 				final NormalizedText expressionText = new NormalizedText(
 						expressions.get(1));
 				text.append(expressionText.getText());
-				break;
+				yield text.toString();
 			}
-			case VariableDeclarationFragment: {
+
+			case VariableDeclarationFragment -> {
 				final List<ProgramElementInfo> expressions = coreExp
 						.getExpressions();
 				final ProgramElementInfo left = expressions.get(0);
@@ -586,16 +626,40 @@ public class NormalizedText {
 					final NormalizedText rightText = new NormalizedText(right);
 					text.append(rightText.getText());
 				}
-				break;
-			}
-			default:
-				assert false : "invalid status.";
-				break;
-
+				yield text.toString();
 			}
 
-			this.text = text.toString();
-		}
+			case Lambda, MethodReference -> {
+// 本体は別の解析単位になっているか、そもそも本体を持たない。
+				// ここでは字面をそのまま使う。
+				text.append(coreExp.getText());
+				yield text.toString();
+			}
+
+			case SwitchExpression, Pattern -> {
+				// 子を順に正規化して並べる。
+				boolean first = true;
+				for (final ProgramElementInfo expression : coreExp
+						.getExpressions()) {
+					if (!first) {
+						text.append(" ");
+					}
+					final NormalizedText expressionText = new NormalizedText(
+							expression);
+					text.append(expressionText.getText());
+					first = false;
+				}
+				yield text.toString();
+			}
+
+			case Unsupported -> {
+text.append(coreExp.getText());
+				yield text.toString();
+			}
+
+			// 字面を持たない、あるいは子として別に正規化されるもの。
+			case TypeLiteral -> "";
+			};		}
 
 		else if (this.core instanceof TypeInfo) {
 			this.text = this.core.getText();

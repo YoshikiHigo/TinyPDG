@@ -1,0 +1,56 @@
+# sample: test007
+
+## CFG method <5...15>
+nodes:
+  0: [enter,normal] System.out.println("enter"); <6>
+  1: [normal] int i = 0 <7>
+  2: [control] i < 10 <7>
+  3: [normal] i++ <7>
+  4: [control] true <8>
+  5: [control] i == 5 <9>
+  6: [exit,normal] System.out.println("exit"); <14>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 4 [true]
+  2 -> 6 [false]
+  3 -> 2 []
+  4 -> 3 [false]
+  4 -> 5 [true]
+  5 -> 3 [jump]
+  5 -> 4 [false]
+
+## PDG method <5...15>
+nodes:
+  0: [normal] System.out.println("enter"); <6>
+  1: [normal] int i = 0 <7>
+  2: [control] i < 10 <7>
+  3: [normal] i++ <7>
+  4: [control] true <8>
+  5: [control] i == 5 <9>
+  6: [exit] System.out.println("exit"); <14>
+  7: [enter,control] Enter <5...15>
+edges:
+  0 -> 1 [execution: ]
+  1 -> 2 [data: i]
+  1 -> 2 [execution: ]
+  1 -> 3 [data: i]
+  1 -> 5 [data: i]
+  2 -> 3 [control: true]
+  2 -> 4 [control: true]
+  2 -> 4 [execution: ]
+  2 -> 6 [execution: ]
+  3 -> 2 [data: i]
+  3 -> 2 [execution: ]
+  3 -> 3 [data: i]
+  3 -> 5 [data: i]
+  4 -> 3 [execution: ]
+  4 -> 5 [control: true]
+  4 -> 5 [execution: ]
+  5 -> 3 [execution: ]
+  5 -> 4 [execution: ]
+  7 -> 0 [control: true]
+  7 -> 0 [execution: ]
+  7 -> 1 [control: true]
+  7 -> 2 [control: true]
+  7 -> 6 [control: true]

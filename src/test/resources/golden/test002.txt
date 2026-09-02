@@ -1,0 +1,27 @@
+# sample: test002
+
+## CFG judge <5...11>
+nodes:
+  0: [enter,control] 0 == number % 2 <6>
+  1: [exit,normal] return "even"; <7>
+  2: [exit,normal] return "odd"; <9>
+edges:
+  0 -> 1 [true]
+  0 -> 2 [false]
+
+## PDG judge <5...11>
+nodes:
+  0: [parameter] final int number <5>
+  1: [control] 0 == number % 2 <6>
+  2: [exit] return "even"; <7>
+  3: [exit] return "odd"; <9>
+  4: [enter,control] Enter <5...11>
+edges:
+  0 -> 1 [data: number]
+  1 -> 2 [control: true]
+  1 -> 2 [execution: ]
+  1 -> 3 [control: false]
+  1 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 1 [control: true]
+  4 -> 1 [execution: ]

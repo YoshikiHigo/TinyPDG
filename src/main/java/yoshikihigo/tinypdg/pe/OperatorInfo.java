@@ -1,6 +1,9 @@
 package yoshikihigo.tinypdg.pe;
 
-public class OperatorInfo extends ProgramElementInfo {
+/**
+ * 演算子の名前を持つだけの要素。final にしている理由は TypeInfo と同じ。
+ */
+final public class OperatorInfo extends ProgramElementInfo {
 
 	final public String name;
 

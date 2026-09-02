@@ -1,0 +1,91 @@
+# sample: test010
+
+## CFG method <5...37>
+nodes:
+  0: [enter,normal] System.out.println("start"); <6>
+  1: [control] b1 <8>
+  2: [control] b1 <10>
+  3: [control] b2 <14>
+  4: [control] b1 && b2 <16>
+  5: [control] b3 <20>
+  6: [control] b1 && b2 && b3 <21>
+  7: [control] b1 && b2 <26>
+  8: [control] b1 <31>
+  9: [exit,normal] System.out.println("end"); <36>
+edges:
+  0 -> 1 []
+  1 -> 2 [true]
+  1 -> 9 [false]
+  2 -> 1 [jump]
+  2 -> 3 [false]
+  3 -> 4 [true]
+  3 -> 8 [false]
+  4 -> 3 [jump]
+  4 -> 5 [false]
+  5 -> 6 [true]
+  5 -> 7 [false]
+  6 -> 1 [jump]
+  6 -> 5 [false]
+  7 -> 3 [false]
+  7 -> 3 [jump]
+  8 -> 1 [false]
+  8 -> 1 [jump]
+
+## PDG method <5...37>
+nodes:
+  0: [parameter] boolean b1 <5>
+  1: [parameter] boolean b2 <5>
+  2: [parameter] boolean b3 <5>
+  3: [normal] System.out.println("start"); <6>
+  4: [control] b1 <8>
+  5: [control] b1 <10>
+  6: [control] b2 <14>
+  7: [control] b1 && b2 <16>
+  8: [control] b3 <20>
+  9: [control] b1 && b2 && b3 <21>
+  10: [control] b1 && b2 <26>
+  11: [control] b1 <31>
+  12: [exit] System.out.println("end"); <36>
+  13: [enter,control] Enter <5...37>
+edges:
+  0 -> 4 [data: b1]
+  0 -> 5 [data: b1]
+  0 -> 7 [data: b1]
+  0 -> 9 [data: b1]
+  0 -> 10 [data: b1]
+  0 -> 11 [data: b1]
+  1 -> 6 [data: b2]
+  1 -> 7 [data: b2]
+  1 -> 9 [data: b2]
+  1 -> 10 [data: b2]
+  2 -> 8 [data: b3]
+  2 -> 9 [data: b3]
+  3 -> 4 [execution: ]
+  4 -> 5 [control: true]
+  4 -> 5 [execution: ]
+  4 -> 6 [control: true]
+  4 -> 11 [control: true]
+  4 -> 12 [execution: ]
+  5 -> 4 [execution: ]
+  5 -> 6 [execution: ]
+  6 -> 7 [control: true]
+  6 -> 7 [execution: ]
+  6 -> 8 [control: true]
+  6 -> 10 [control: true]
+  6 -> 11 [execution: ]
+  7 -> 6 [execution: ]
+  7 -> 8 [execution: ]
+  8 -> 9 [control: true]
+  8 -> 9 [execution: ]
+  8 -> 10 [execution: ]
+  9 -> 4 [execution: ]
+  9 -> 8 [execution: ]
+  10 -> 6 [execution: ]
+  11 -> 4 [execution: ]
+  13 -> 0 [control: true]
+  13 -> 1 [control: true]
+  13 -> 2 [control: true]
+  13 -> 3 [control: true]
+  13 -> 3 [execution: ]
+  13 -> 4 [control: true]
+  13 -> 12 [control: true]

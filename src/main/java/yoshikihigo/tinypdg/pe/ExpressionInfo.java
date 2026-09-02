@@ -2,7 +2,9 @@ package yoshikihigo.tinypdg.pe;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.SortedSet;
+import java.util.function.Function;
 import java.util.TreeSet;
 
 public class ExpressionInfo extends ProgramElementInfo {
@@ -17,37 +19,73 @@ public class ExpressionInfo extends ProgramElementInfo {
 		super(startLine, endLine);
 		this.category = category;
 		this.qualifier = null;
-		this.expressions = new ArrayList<ProgramElementInfo>();
+		this.expressions = new ArrayList<>();
 		this.anonymousClassDeclaration = null;
 	}
 
 	public enum CATEGORY {
 
-		ArrayAccess("ARRAYACCESS"), ArrayCreation("ARRAYCREATION"), ArrayInitializer(
-				"ARRAYINITIALIZER"), Assignment("ASSIGNMENT"), Boolean(
-				"BOOLEAN"), Cast("CAST"), Character("CHARACTER"), ClassInstanceCreation(
-				"CLASSINSTANCECREATION"), ConstructorInvocation(
-				"CONSTRUCTORINVOCATION"), FieldAccess("FIELDACCESS"), Infix(
-				"INFIX"), Instanceof("INSTANCEOF"), MethodInvocation(
-				"METHODINVOCATION"), Null("NULL"), Number("NUMBER"), Parenthesized(
-				"PARENTHESIZED"), Postfix("POSTFIX"), Prefix("PREFIX"), QualifiedName(
-				"QUALIFIEDNAME"), SimpleName("SIMPLENAME"), String("STRING"), SuperConstructorInvocation(
-				"SUPERCONSTRUCTORINVOCATION"), SuperFieldAccess(
-				"SUPERFIELDACCESS"), SuperMethodInvocation(
-				"SUPERMETHODINVOCATION"), This("THIS"), Trinomial("TRINOMIAL"), TypeLiteral(
-				"TYPELITERAL"), VariableDeclarationExpression(
-				"VARIABLEDECLARATIONEXPRESSION"), VariableDeclarationFragment(
-				"VARIABLEDECLARATIONFRAGMENT"), MethodEnter("METHODENTER");
+		ArrayAccess,
+		ArrayCreation,
+		ArrayInitializer,
+		Assignment,
+		Boolean,
+		Cast,
+		Character,
+		ClassInstanceCreation,
+		ConstructorInvocation,
+		FieldAccess,
+		Infix,
+		Instanceof,
+		MethodInvocation,
+		Null,
+		Number,
+		Parenthesized,
+		Postfix,
+		Prefix,
+		QualifiedName,
+		SimpleName,
+		String,
+		SuperConstructorInvocation,
+		SuperFieldAccess,
+		SuperMethodInvocation,
+		This,
 
-		final public String id;
+		/** 三項演算子 (?:)。JDT の ConditionalExpression にあたる。 */
+		Trinomial,
 
-		CATEGORY(final String id) {
-			this.id = id;
-		}
+		TypeLiteral,
+		VariableDeclarationExpression,
+		VariableDeclarationFragment,
+		MethodEnter,
+
+		/** ラムダ式。本体は独立した MethodInfo として切り出される。 */
+		Lambda,
+
+		/** メソッド参照 (String::length など)。 */
+		MethodReference,
+
+		/**
+		 * 前に出せない位置に現れた switch 式。制御フローは持たず、
+		 * セレクタと各アームを子として抱えるだけの 1 要素として扱う。
+		 */
+		SwitchExpression,
+
+		/**
+		 * パターン。record パターンや when 節つきパターンなど、内側に別の
+		 * パターンを含みうるもの。定義される変数は内側のパターンから集まる。
+		 */
+		Pattern,
+
+		/**
+		 * このツールがまだ個別に解釈できない構文。ソース断片をそのまま
+		 * 保持する不透明な 1 要素として扱われる。
+		 */
+		Unsupported
 	}
 
 	public void setQualifier(final ProgramElementInfo qualifier) {
-		assert null != qualifier : "\"qualifier\" is null.";
+		Objects.requireNonNull(qualifier, "\"qualifier\" is null.");
 		this.qualifier = qualifier;
 	}
 
@@ -56,19 +94,19 @@ public class ExpressionInfo extends ProgramElementInfo {
 	}
 
 	public void addExpression(final ProgramElementInfo expression) {
-		assert null != expression : "\"expression\" is null.";
+		Objects.requireNonNull(expression, "\"expression\" is null.");
 		this.expressions.add(expression);
 	}
 
 	public List<ProgramElementInfo> getExpressions() {
-		final List<ProgramElementInfo> expressions = new ArrayList<ProgramElementInfo>();
+		final List<ProgramElementInfo> expressions = new ArrayList<>();
 		expressions.addAll(this.expressions);
 		return expressions;
 	}
 
 	public void setAnonymousClassDeclaration(
 			final ClassInfo anonymousClassDeclaration) {
-		assert null != anonymousClassDeclaration : "\"anonymousClassDeclaration\" is null.";
+		Objects.requireNonNull(anonymousClassDeclaration, "\"anonymousClassDeclaration\" is null.");
 		this.anonymousClassDeclaration = anonymousClassDeclaration;
 	}
 
@@ -76,74 +114,125 @@ public class ExpressionInfo extends ProgramElementInfo {
 		return this.anonymousClassDeclaration;
 	}
 
+	/** 名前 1 つだけを含む集合を作る。 */
+	private static SortedSet<String> only(final String name) {
+		final SortedSet<String> variables = new TreeSet<>();
+		variables.add(name);
+		return variables;
+	}
+
+	/**
+	 * 子要素をひととおり辿って変数を集める。
+	 *
+	 * <p>ほとんどの種別の式は、自分では何も足さず子の結果を集めるだけである。
+	 * その共通部分をここに置く。
+	 *
+	 * <p>子は 3 か所に分かれて入っている。expressions のほかに、修飾子が
+	 * 専用のフィールドに、無名クラスの本体がさらに別のフィールドに入る。
+	 * 修飾子を辿り忘れると、reader.read() の reader のようなレシーバが
+	 * まるごと抜け落ちる。
+	 */
+	private SortedSet<String> collectFromChildren(
+			final Function<ProgramElementInfo, SortedSet<String>> collector) {
+
+		final SortedSet<String> variables = new TreeSet<>();
+
+		for (final ProgramElementInfo expression : this.expressions) {
+			variables.addAll(collector.apply(expression));
+		}
+
+		if (null != this.qualifier) {
+			variables.addAll(collector.apply(this.qualifier));
+		}
+
+		if (null != this.anonymousClassDeclaration) {
+			for (final MethodInfo method : this.anonymousClassDeclaration
+					.getMethods()) {
+				variables.addAll(collector.apply(method));
+			}
+		}
+
+		return variables;
+	}
+
+	/*
+	 * 以下 2 つは switch 文ではなく switch 式である。default 節を持たない
+	 * 代わりに全ての定数を挙げてあり、CATEGORY に定数を足すとコンパイルが
+	 * 通らなくなる。新しい種別をどちらの扱いにするか決めることを強制される。
+	 *
+	 * 文ではなく式にしているのはそのためである。switch 文は網羅していなくても
+	 * コンパイルが通ってしまい、書き漏らした種別は黙って何もせず素通りする。
+	 * 網羅性を検査してもらえるのは switch 式だけである。
+	 */
+
 	@Override
 	public SortedSet<String> getAssignedVariables() {
 
-		final SortedSet<String> variables = new TreeSet<String>();
-		switch (this.category) {
-		case Assignment:
-			final ProgramElementInfo left = this.expressions.get(0);
-			variables.addAll(left.getReferencedVariables());
-			final ProgramElementInfo right = this.expressions.get(2);
-			variables.addAll(right.getAssignedVariables());
-			break;
-		case VariableDeclarationFragment:
-			variables.add(this.getExpressions().get(0).getText());
-			break;
-		case Postfix:
-		case Prefix:
-			final ProgramElementInfo operand = this.expressions.get(0);
-			variables.addAll(operand.getReferencedVariables());
-			break;
-		default:
-			for (final ProgramElementInfo expression : this.expressions) {
-				variables.addAll(expression.getAssignedVariables());
-			}
-			if (null != this.getAnonymousClassDeclaration()) {
-				for (final MethodInfo method : this
-						.getAnonymousClassDeclaration().getMethods()) {
-					variables.addAll(method.getAssignedVariables());
-				}
-			}
-			break;
+		return switch (this.category) {
+
+		case Assignment -> {
+			// 左辺が代入先。右辺は右辺でさらに代入しているかもしれない (a = b = c)。
+			final SortedSet<String> variables = new TreeSet<>(
+					this.expressions.get(0).getReferencedVariables());
+			variables.addAll(this.expressions.get(2).getAssignedVariables());
+			yield variables;
 		}
-		return variables;
+
+		case VariableDeclarationFragment ->
+			only(this.expressions.get(0).getText());
+
+		case Postfix, Prefix ->
+			// i++ は i を読み、かつ書く。
+			new TreeSet<>(this.expressions.get(0).getReferencedVariables());
+
+		case ArrayAccess, ArrayCreation, ArrayInitializer,
+				Boolean, Cast, Character,
+				ClassInstanceCreation, ConstructorInvocation, FieldAccess,
+				Infix, Instanceof, MethodInvocation,
+				Null, Number, Parenthesized,
+				QualifiedName, SimpleName, String,
+				SuperConstructorInvocation, SuperFieldAccess, SuperMethodInvocation,
+				This, Trinomial, TypeLiteral,
+				VariableDeclarationExpression, MethodEnter, Lambda,
+				MethodReference, SwitchExpression, Pattern,
+				Unsupported ->
+			collectFromChildren(ProgramElementInfo::getAssignedVariables);
+		};
 	}
 
 	@Override
 	public SortedSet<String> getReferencedVariables() {
-		final SortedSet<String> variables = new TreeSet<String>();
-		switch (this.category) {
-		case Assignment:
-			final ProgramElementInfo right = this.expressions.get(2);
-			variables.addAll(right.getReferencedVariables());
-			break;
-		case VariableDeclarationFragment:
-			if (1 < this.getExpressions().size()) {
-				variables.addAll(this.getExpressions().get(1)
-						.getReferencedVariables());
-			}
-			break;
-		case Postfix:
-		case Prefix:
-			final ProgramElementInfo operand = this.expressions.get(0);
-			variables.addAll(operand.getReferencedVariables());
-			break;
-		case SimpleName:
-			variables.add(this.getText());
-			break;
-		default:
-			for (final ProgramElementInfo expression : this.expressions) {
-				variables.addAll(expression.getReferencedVariables());
-			}
-			if (null != this.getAnonymousClassDeclaration()) {
-				for (final MethodInfo method : this
-						.getAnonymousClassDeclaration().getMethods()) {
-					variables.addAll(method.getReferencedVariables());
-				}
-			}
-			break;
-		}
-		return variables;
+
+		return switch (this.category) {
+
+		case Assignment ->
+			// 左辺は書き込み先であって読み出しではない。
+			new TreeSet<>(this.expressions.get(2).getReferencedVariables());
+
+		case VariableDeclarationFragment ->
+			// 初期化子を持たない宣言では、読み出している変数はない。
+			1 < this.expressions.size()
+					? new TreeSet<>(this.expressions.get(1)
+							.getReferencedVariables())
+					: new TreeSet<>();
+
+		case Postfix, Prefix ->
+			new TreeSet<>(this.expressions.get(0).getReferencedVariables());
+
+		case SimpleName ->
+			only(this.getText());
+
+		case ArrayAccess, ArrayCreation, ArrayInitializer,
+				Boolean, Cast, Character,
+				ClassInstanceCreation, ConstructorInvocation, FieldAccess,
+				Infix, Instanceof, MethodInvocation,
+				Null, Number, Parenthesized,
+				QualifiedName, String, SuperConstructorInvocation,
+				SuperFieldAccess, SuperMethodInvocation, This,
+				Trinomial, TypeLiteral, VariableDeclarationExpression,
+				MethodEnter, Lambda, MethodReference,
+				SwitchExpression, Pattern, Unsupported ->
+			collectFromChildren(ProgramElementInfo::getReferencedVariables);
+		};
 	}
 }

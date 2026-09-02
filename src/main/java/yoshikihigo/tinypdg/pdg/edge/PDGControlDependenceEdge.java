@@ -1,5 +1,6 @@
 package yoshikihigo.tinypdg.pdg.edge;
 
+import java.util.Objects;
 import yoshikihigo.tinypdg.pdg.node.PDGControlNode;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
 
@@ -23,15 +24,17 @@ public class PDGControlDependenceEdge extends PDGEdge {
 
 	@Override
 	public PDGEdge replaceFromNode(final PDGNode<?> fromNode) {
-		assert null != fromNode : "\"fromNode\" is null.";
-		assert !(fromNode instanceof PDGControlNode) : "\"fromNode\" must be an instanceof PDGControlNode.";
+		Objects.requireNonNull(fromNode, "\"fromNode\" is null.");
+		// 条件が反転していた。直後で PDGControlNode へキャストしているのだから、
+		// 求めているのは「制御ノードであること」である。
+		assert fromNode instanceof PDGControlNode : "\"fromNode\" must be an instance of PDGControlNode.";
 		return new PDGControlDependenceEdge((PDGControlNode) fromNode,
 				this.toNode, this.trueDependence);
 	}
 
 	@Override
 	public PDGEdge replaceToNode(final PDGNode<?> toNode) {
-		assert null != fromNode : "\"toNode\" is null.";
+		Objects.requireNonNull(toNode, "\"toNode\" is null.");
 		return new PDGControlDependenceEdge((PDGControlNode) this.fromNode,
 				toNode, this.trueDependence);
 	}

@@ -16,13 +16,13 @@ public class Bellon {
 	public static void main(final String[] args) {
 
 		if (4 != args.length) {
-			System.err.println("the number of command opetions must be four.");
+			System.err.println("the number of command options must be four.");
 			System.err
 					.println("the first one is a threshold for matching with oracle.");
 			System.err.println("the second one is minimum length of clones.");
-			System.err.println("the thrid one is file of oracle.");
+			System.err.println("the third one is file of oracle.");
 			System.err.println("the fourth one is file of detection result.");
-			System.exit(0);
+			System.exit(1);
 		}
 
 		final float threshold = Float.parseFloat(args[0]);
@@ -31,19 +31,19 @@ public class Bellon {
 		final String detectionResult = args[3];
 		final Bellon bellon = new Bellon(threshold, oracle, detectionResult);
 
-		final List<ClonePairInfo> references = ClonePairInfo.getClonepairs(
+		final List<BellonClonePair> references = BellonClonePair.getClonepairs(
 				new File(oracle), minimum, true);
-		final List<ClonePairInfo> candidates = ClonePairInfo.getClonepairs(
+		final List<BellonClonePair> candidates = BellonClonePair.getClonepairs(
 				new File(detectionResult), minimum, false);
 
-		final Set<ClonePairInfo> okReferences = bellon.getOKDetectedReferences(
+		final Set<BellonClonePair> okReferences = bellon.getOKDetectedReferences(
 				candidates, references);
-		final Set<ClonePairInfo> goodReferences = bellon
+		final Set<BellonClonePair> goodReferences = bellon
 				.getGoodDetectedReferences(candidates, references);
 
-		final Set<ClonePairInfo> okCandidates = bellon.getOKDetectedReferences(
+		final Set<BellonClonePair> okCandidates = bellon.getOKDetectedReferences(
 				references, candidates);
-		final Set<ClonePairInfo> goodCandidates = bellon
+		final Set<BellonClonePair> goodCandidates = bellon
 				.getGoodDetectedReferences(references, candidates);
 
 		final int numberOfOKContiguousReferences = bellon
@@ -106,19 +106,19 @@ public class Bellon {
 		this.detectionResult = detectionResult;
 	}
 
-	private boolean isOKClone(final ClonePairInfo candidate,
-			final List<ClonePairInfo> references) {
+	private boolean isOKClone(final BellonClonePair candidate,
+			final List<BellonClonePair> references) {
 
-		for (final ClonePairInfo reference : references) {
+		for (final BellonClonePair reference : references) {
 
 			if (candidate.left.path.equals(reference.left.path)
 					&& candidate.right.path.equals(reference.right.path)) {
 
-				final SortedSet<Integer> leftIntersection = new TreeSet<Integer>();
+				final SortedSet<Integer> leftIntersection = new TreeSet<>();
 				leftIntersection.addAll(candidate.left);
 				leftIntersection.retainAll(reference.left);
 
-				final SortedSet<Integer> rightIntersection = new TreeSet<Integer>();
+				final SortedSet<Integer> rightIntersection = new TreeSet<>();
 				rightIntersection.addAll(candidate.right);
 				rightIntersection.retainAll(reference.right);
 
@@ -141,27 +141,27 @@ public class Bellon {
 		return false;
 	}
 
-	private boolean isGoodClone(final ClonePairInfo candidate,
-			final List<ClonePairInfo> references) {
+	private boolean isGoodClone(final BellonClonePair candidate,
+			final List<BellonClonePair> references) {
 
-		for (final ClonePairInfo reference : references) {
+		for (final BellonClonePair reference : references) {
 
 			if (candidate.left.path.equals(reference.left.path)
 					&& candidate.right.path.equals(reference.right.path)) {
 
-				final SortedSet<Integer> leftIntersection = new TreeSet<Integer>();
+				final SortedSet<Integer> leftIntersection = new TreeSet<>();
 				leftIntersection.addAll(candidate.left);
 				leftIntersection.retainAll(reference.left);
 
-				final SortedSet<Integer> leftUnion = new TreeSet<Integer>();
+				final SortedSet<Integer> leftUnion = new TreeSet<>();
 				leftUnion.addAll(candidate.left);
 				leftUnion.addAll(reference.left);
 
-				final SortedSet<Integer> rightIntersection = new TreeSet<Integer>();
+				final SortedSet<Integer> rightIntersection = new TreeSet<>();
 				rightIntersection.addAll(candidate.right);
 				rightIntersection.retainAll(reference.right);
 
-				final SortedSet<Integer> rightUnion = new TreeSet<Integer>();
+				final SortedSet<Integer> rightUnion = new TreeSet<>();
 				rightUnion.addAll(candidate.right);
 				rightUnion.addAll(reference.right);
 
@@ -180,12 +180,12 @@ public class Bellon {
 		return false;
 	}
 
-	private Set<ClonePairInfo> getOKDetectedReferences(
-			final List<ClonePairInfo> candidates,
-			final List<ClonePairInfo> references) {
+	private Set<BellonClonePair> getOKDetectedReferences(
+			final List<BellonClonePair> candidates,
+			final List<BellonClonePair> references) {
 
-		final Set<ClonePairInfo> detectedReferences = new HashSet<ClonePairInfo>();
-		for (final ClonePairInfo reference : references) {
+		final Set<BellonClonePair> detectedReferences = new HashSet<>();
+		for (final BellonClonePair reference : references) {
 			if (this.isOKClone(reference, candidates)) {
 				detectedReferences.add(reference);
 			}
@@ -193,12 +193,12 @@ public class Bellon {
 		return detectedReferences;
 	}
 
-	private Set<ClonePairInfo> getGoodDetectedReferences(
-			final List<ClonePairInfo> candidates,
-			final List<ClonePairInfo> references) {
+	private Set<BellonClonePair> getGoodDetectedReferences(
+			final List<BellonClonePair> candidates,
+			final List<BellonClonePair> references) {
 
-		final Set<ClonePairInfo> detectedReferences = new HashSet<ClonePairInfo>();
-		for (final ClonePairInfo reference : references) {
+		final Set<BellonClonePair> detectedReferences = new HashSet<>();
+		for (final BellonClonePair reference : references) {
 			if (this.isGoodClone(reference, candidates)) {
 				detectedReferences.add(reference);
 			}
@@ -206,9 +206,9 @@ public class Bellon {
 		return detectedReferences;
 	}
 
-	private int getNumberOfContiguousClone(final Set<ClonePairInfo> pairs) {
+	private int getNumberOfContiguousClone(final Set<BellonClonePair> pairs) {
 		int number = 0;
-		for (final ClonePairInfo pair : pairs) {
+		for (final BellonClonePair pair : pairs) {
 			if ((1 == pair.type) || (2 == pair.type)) {
 				number++;
 			}
@@ -216,9 +216,9 @@ public class Bellon {
 		return number;
 	}
 
-	private int getNumberOfNoncontiguousClone(final Set<ClonePairInfo> pairs) {
+	private int getNumberOfNoncontiguousClone(final Set<BellonClonePair> pairs) {
 		int number = 0;
-		for (final ClonePairInfo pair : pairs) {
+		for (final BellonClonePair pair : pairs) {
 			if (3 == pair.type) {
 				number++;
 			}

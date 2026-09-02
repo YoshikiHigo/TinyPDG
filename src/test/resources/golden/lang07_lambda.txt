@@ -1,0 +1,153 @@
+# sample: lang07_lambda
+
+## CFG blockBody <17...23>
+nodes:
+  0: [enter,normal] final Runnable r = () -> { int local=seed * 2; System.out.println(local); }; <18...21>
+  1: [exit,normal] return r; <22>
+edges:
+  0 -> 1 []
+
+## PDG blockBody <17...23>
+nodes:
+  0: [parameter] final int seed <17>
+  1: [normal] final Runnable r = () -> { int local=seed * 2; System.out.println(local); }; <18...21>
+  2: [exit] return r; <22>
+  3: [enter,control] Enter <17...23>
+edges:
+  1 -> 2 [data: r]
+  1 -> 2 [execution: ]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 1 [execution: ]
+  3 -> 2 [control: true]
+
+## CFG expressionBody <8...15>
+nodes:
+  0: [enter,normal] final Function<String,Integer> length = s -> s.length(); <9>
+  1: [normal] int total = 0; <10>
+  2: [normal] total = total + length.apply(v); <12>
+  3: [exit,normal] return total; <14>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 2 []
+  2 -> 3 []
+
+## PDG expressionBody <8...15>
+nodes:
+  0: [parameter] final List<String> values <8>
+  1: [normal] final Function<String,Integer> length = s -> s.length(); <9>
+  2: [normal] int total = 0; <10>
+  3: [parameter] final String v <11>
+  4: [normal] values <11>
+  5: [normal] total = total + length.apply(v); <12>
+  6: [exit] return total; <14>
+  7: [enter,control] Enter <8...15>
+edges:
+  1 -> 2 [execution: ]
+  1 -> 5 [data: length]
+  2 -> 5 [data: total]
+  2 -> 5 [execution: ]
+  5 -> 5 [data: total]
+  5 -> 5 [execution: ]
+  5 -> 6 [data: total]
+  5 -> 6 [execution: ]
+  7 -> 0 [control: true]
+  7 -> 1 [control: true]
+  7 -> 1 [execution: ]
+  7 -> 2 [control: true]
+  7 -> 3 [control: true]
+  7 -> 4 [control: true]
+  7 -> 5 [control: true]
+  7 -> 6 [control: true]
+
+## CFG lambda$18 <18...21>
+nodes:
+  0: [enter,normal] int local = seed * 2; <19>
+  1: [exit,normal] System.out.println(local); <20>
+edges:
+  0 -> 1 []
+
+## PDG lambda$18 <18...21>
+nodes:
+  0: [normal] int local = seed * 2; <19>
+  1: [exit] System.out.println(local); <20>
+  2: [enter,control] Enter <18...21>
+edges:
+  0 -> 1 [data: local]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]
+
+## CFG lambda$31 <31...31>
+nodes:
+  0: [enter,exit,normal] return new int[][]; <31>
+edges:
+
+## PDG lambda$31 <31...31>
+nodes:
+  0: [parameter] Integer n <31>
+  1: [exit] return new int[][]; <31>
+  2: [enter,control] Enter <31>
+edges:
+  2 -> 0 [control: true]
+  2 -> 1 [control: true]
+  2 -> 1 [execution: ]
+
+## CFG lambda$9 <9...9>
+nodes:
+  0: [enter,exit,normal] return s.length(); <9>
+edges:
+
+## PDG lambda$9 <9...9>
+nodes:
+  0: [parameter] s <9>
+  1: [exit] return s.length(); <9>
+  2: [enter,control] Enter <9>
+edges:
+  0 -> 1 [data: s]
+  2 -> 0 [control: true]
+  2 -> 1 [control: true]
+  2 -> 1 [execution: ]
+
+## CFG methodReference <25...28>
+nodes:
+  0: [enter,normal] final int sum = values.stream().map(String::length).reduce(0,Integer::sum); <26>
+  1: [exit,normal] return sum; <27>
+edges:
+  0 -> 1 []
+
+## PDG methodReference <25...28>
+nodes:
+  0: [parameter] final List<String> values <25>
+  1: [normal] final int sum = values.stream().map(String::length).reduce(0,Integer::sum); <26>
+  2: [exit] return sum; <27>
+  3: [enter,control] Enter <25...28>
+edges:
+  0 -> 1 [data: values]
+  1 -> 2 [data: sum]
+  1 -> 2 [execution: ]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 1 [execution: ]
+  3 -> 2 [control: true]
+
+## CFG typedParameter <30...33>
+nodes:
+  0: [enter,normal] final Function<Integer,int[]> f = (Integer n) -> new int[n]; <31>
+  1: [exit,normal] return f; <32>
+edges:
+  0 -> 1 []
+
+## PDG typedParameter <30...33>
+nodes:
+  0: [normal] final Function<Integer,int[]> f = (Integer n) -> new int[n]; <31>
+  1: [exit] return f; <32>
+  2: [enter,control] Enter <30...33>
+edges:
+  0 -> 1 [data: f]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]

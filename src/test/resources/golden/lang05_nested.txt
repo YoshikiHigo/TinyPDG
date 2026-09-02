@@ -1,0 +1,76 @@
+# sample: lang05_nested
+
+## CFG get <8...11>
+nodes:
+  0: [enter,normal] int v = this.value; <9>
+  1: [exit,normal] return v; <10>
+edges:
+  0 -> 1 []
+
+## PDG get <8...11>
+nodes:
+  0: [normal] int v = this.value; <9>
+  1: [exit] return v; <10>
+  2: [enter,control] Enter <8...11>
+edges:
+  0 -> 1 [data: v]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]
+
+## CFG run <18...22>
+nodes:
+  0: [enter,normal] int local = inner.value; <20>
+  1: [exit,normal] System.out.println(local); <21>
+edges:
+  0 -> 1 []
+
+## PDG run <18...22>
+nodes:
+  0: [normal] int local = inner.value; <20>
+  1: [exit] System.out.println(local); <21>
+  2: [enter,control] Enter <18...22>
+edges:
+  0 -> 1 [data: local]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]
+
+## CFG use <14...26>
+nodes:
+  0: [enter,normal] final Inner inner = new Inner(); <15>
+  1: [normal] inner.value = 5; <16>
+  2: [normal] final Runnable r = new Runnable(){\n@Override public void run(){\nint local = inner.value;\nSystem.out.println(local);\n}}; <17...23>
+  3: [normal] r.run(); <24>
+  4: [exit,normal] return inner.get(); <25>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 3 []
+  3 -> 4 []
+
+## PDG use <14...26>
+nodes:
+  0: [normal] final Inner inner = new Inner(); <15>
+  1: [normal] inner.value = 5; <16>
+  2: [normal] final Runnable r = new Runnable(){\n@Override public void run(){\nint local = inner.value;\nSystem.out.println(local);\n}}; <17...23>
+  3: [normal] r.run(); <24>
+  4: [exit] return inner.get(); <25>
+  5: [enter,control] Enter <14...26>
+edges:
+  0 -> 1 [execution: ]
+  1 -> 2 [data: inner]
+  1 -> 2 [data: value]
+  1 -> 2 [execution: ]
+  1 -> 4 [data: inner]
+  2 -> 3 [data: r]
+  2 -> 3 [execution: ]
+  3 -> 4 [execution: ]
+  5 -> 0 [control: true]
+  5 -> 0 [execution: ]
+  5 -> 1 [control: true]
+  5 -> 2 [control: true]
+  5 -> 3 [control: true]
+  5 -> 4 [control: true]

@@ -7,33 +7,29 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
-import org.eclipse.jdt.core.dom.CompilationUnit;
 
-import yoshikihigo.tinypdg.ast.TinyPDGASTVisitor;
-import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
+import yoshikihigo.tinypdg.ast.JavaAstFactory;
 import yoshikihigo.tinypdg.pdg.PDG;
+import yoshikihigo.tinypdg.pdg.PDGGeneration;
 import yoshikihigo.tinypdg.pdg.edge.PDGControlDependenceEdge;
 import yoshikihigo.tinypdg.pdg.edge.PDGDataDependenceEdge;
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.pdg.edge.PDGExecutionDependenceEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
-import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
 import yoshikihigo.tinypdg.pe.MethodInfo;
 import yoshikihigo.tinypdg.prelement.data.DEPENDENCE_TYPE;
 import yoshikihigo.tinypdg.prelement.data.Frequency;
 import yoshikihigo.tinypdg.prelement.db.DAO;
 import yoshikihigo.tinypdg.scorpio.NormalizedText;
-import yoshikihigo.tinypdg.scorpio.PDGGenerationThread;
 
 public class DependenceDistiller {
 
@@ -77,7 +73,16 @@ public class DependenceDistiller {
 				options.addOption(t);
 			}
 
-			final CommandLineParser parser = new PosixParser();
+			{
+				final Option j = new Option("j", "java-version", true,
+						"Java version assumed for the target source files");
+				j.setArgName("version");
+				j.setArgs(1);
+				j.setRequired(false);
+				options.addOption(j);
+			}
+
+			final CommandLineParser parser = new DefaultParser();
 			final CommandLine cmd = parser.parse(options, args);
 
 			final String database = cmd.getOptionValue("b");
@@ -86,7 +91,7 @@ public class DependenceDistiller {
 			if (!target.exists()) {
 				System.err
 						.println("specified directory or file does not exist.");
-				System.exit(0);
+				System.exit(1);
 			}
 
 			final int SIZE_THRESHOLD = cmd.hasOption("s") ? Integer
@@ -98,35 +103,17 @@ public class DependenceDistiller {
 			System.out.print("generating PDGs ... ");
 			final PDG[] pdgArray;
 			{
-				final List<File> files = getFiles(target);
-				final List<MethodInfo> methods = new ArrayList<MethodInfo>();
-				for (final File file : files) {
-					final CompilationUnit unit = TinyPDGASTVisitor
-							.createAST(file);
-					final TinyPDGASTVisitor visitor = new TinyPDGASTVisitor(
-							file.getAbsolutePath(), unit, methods);
-					unit.accept(visitor);
-				}
+				final String javaVersion = cmd.hasOption("j")
+						? cmd.getOptionValue("j")
+						: JavaAstFactory.DEFAULT_JAVA_VERSION;
+				final List<MethodInfo> methods = JavaAstFactory
+						.collectMethods(target, javaVersion);
 
-				final SortedSet<PDG> pdgs = Collections
-						.synchronizedSortedSet(new TreeSet<PDG>());
-				final CFGNodeFactory cfgNodeFactory = new CFGNodeFactory();
-				final PDGNodeFactory pdgNodeFactory = new PDGNodeFactory();
-				final Thread[] pdgGenerationThreads = new Thread[NUMBER_OF_THREADS];
-				for (int i = 0; i < pdgGenerationThreads.length; i++) {
-					pdgGenerationThreads[i] = new Thread(
-							new PDGGenerationThread(methods, pdgs,
-									cfgNodeFactory, pdgNodeFactory, true, true,
-									true, false, SIZE_THRESHOLD));
-					pdgGenerationThreads[i].start();
-				}
-				for (final Thread thread : pdgGenerationThreads) {
-					try {
-						thread.join();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
+				// ノードの併合はしない。
+				final SortedSet<PDG> pdgs = PDGGeneration.buildInParallel(
+						methods, new PDGGeneration.Options(
+								PDG.Dependences.ALL, SIZE_THRESHOLD,
+								NUMBER_OF_THREADS));
 				pdgArray = pdgs.toArray(new PDG[0]);
 			}
 			System.out.print("done: ");
@@ -134,11 +121,11 @@ public class DependenceDistiller {
 			printTime(time2 - time1);
 
 			System.out.print("distilling dependencies ... ");
-			final ConcurrentMap<Integer, String> texts = new ConcurrentHashMap<Integer, String>();
-			final ConcurrentMap<Integer, AtomicInteger> fromNodeFrequencies = new ConcurrentHashMap<Integer, AtomicInteger>();
-			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeControlFrequencies = new ConcurrentHashMap<Integer, ConcurrentMap<Integer, AtomicInteger>>();
-			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeDataFrequencies = new ConcurrentHashMap<Integer, ConcurrentMap<Integer, AtomicInteger>>();
-			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeExecutionFrequencies = new ConcurrentHashMap<Integer, ConcurrentMap<Integer, AtomicInteger>>();
+			final ConcurrentMap<Integer, String> texts = new ConcurrentHashMap<>();
+			final ConcurrentMap<Integer, AtomicInteger> fromNodeFrequencies = new ConcurrentHashMap<>();
+			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeControlFrequencies = new ConcurrentHashMap<>();
+			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeDataFrequencies = new ConcurrentHashMap<>();
+			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeExecutionFrequencies = new ConcurrentHashMap<>();
 			for (final PDG pdg : pdgArray) {
 				final SortedSet<PDGNode<?>> nodes = pdg.getAllNodes();
 				for (final PDGNode<?> fromNode : nodes) {
@@ -182,9 +169,9 @@ public class DependenceDistiller {
 			printTime(time3 - time2);
 
 			System.out.print("sorting frequencies ... ");
-			final ConcurrentMap<Integer, List<Frequency>> frequenciesForControlDependence = new ConcurrentHashMap<Integer, List<Frequency>>();
-			final ConcurrentMap<Integer, List<Frequency>> frequenciesForDataDependence = new ConcurrentHashMap<Integer, List<Frequency>>();
-			final ConcurrentMap<Integer, List<Frequency>> frequenciesForExecutionDependence = new ConcurrentHashMap<Integer, List<Frequency>>();
+			final ConcurrentMap<Integer, List<Frequency>> frequenciesForControlDependence = new ConcurrentHashMap<>();
+			final ConcurrentMap<Integer, List<Frequency>> frequenciesForDataDependence = new ConcurrentHashMap<>();
+			final ConcurrentMap<Integer, List<Frequency>> frequenciesForExecutionDependence = new ConcurrentHashMap<>();
 			calculateFrequencies(fromNodeFrequencies, toNodeControlFrequencies,
 					texts, frequenciesForControlDependence);
 			calculateFrequencies(fromNodeFrequencies, toNodeDataFrequencies,
@@ -218,33 +205,12 @@ public class DependenceDistiller {
 			// printFrequencies("execution", texts,
 			// frequenciesForExecutionDependence);
 
-		} catch (Exception e) {
-			System.err.println(e.getMessage());
-			System.exit(0);
+		} catch (final Exception e) {
+			// 異常終了なので終了コードは非 0 にする。0 のままでは、
+			// シェルや CI から呼んだときに成功と区別が付かない。
+			e.printStackTrace();
+			System.exit(1);
 		}
-	}
-
-	private static List<File> getFiles(final File file) {
-
-		final List<File> files = new ArrayList<File>();
-
-		if (file.isFile()) {
-			if (file.getName().endsWith(".java")) {
-				files.add(file);
-			}
-		}
-
-		else if (file.isDirectory()) {
-			for (final File child : file.listFiles()) {
-				files.addAll(getFiles(child));
-			}
-		}
-
-		else {
-			assert false : "\"file\" is invalid.";
-		}
-
-		return files;
 	}
 
 	private static void addToNodeHash(
@@ -255,7 +221,7 @@ public class DependenceDistiller {
 		ConcurrentMap<Integer, AtomicInteger> toNodeHashes = toNodeFrequencies
 				.get(fromNodeHash);
 		if (null == toNodeHashes) {
-			toNodeHashes = new ConcurrentHashMap<Integer, AtomicInteger>();
+			toNodeHashes = new ConcurrentHashMap<>();
 			toNodeFrequencies.put(fromNodeHash, toNodeHashes);
 		}
 		AtomicInteger frequency = toNodeHashes.get(toNodeHash);
@@ -285,7 +251,7 @@ public class DependenceDistiller {
 			final int fromNodeHash = entry.getKey();
 			final int totalTime = fromNodeAllFrequencies.get(fromNodeHash)
 					.get();
-			final List<Frequency> frequencies = new ArrayList<Frequency>();
+			final List<Frequency> frequencies = new ArrayList<>();
 			final ConcurrentMap<Integer, AtomicInteger> toNodeFrequencies = entry
 					.getValue();
 			for (final Entry<Integer, AtomicInteger> entry2 : toNodeFrequencies

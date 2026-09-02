@@ -3,14 +3,17 @@ package yoshikihigo.tinypdg.scorpio.io;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import yoshikihigo.tinypdg.TinyPDGException;
 import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
 
-public class BellonWriter extends Writer {
+public class BellonWriter extends ClonePairWriter {
 
 	public BellonWriter(final String path,
 			final SortedSet<ClonePairInfo> clonepairs) {
@@ -20,16 +23,14 @@ public class BellonWriter extends Writer {
 	@Override
 	public void write() {
 
-		try {
-
-			final BufferedWriter writer = new BufferedWriter(new FileWriter(
-					this.path));
+		try (final BufferedWriter writer = new BufferedWriter(new FileWriter(
+				this.path, StandardCharsets.UTF_8))) {
 
 			for (final ClonePairInfo clonepair : this.clonepairs) {
 
-				final SortedSet<ProgramElementInfo> elementsA = new TreeSet<ProgramElementInfo>(
+				final SortedSet<ProgramElementInfo> elementsA = new TreeSet<>(
 						new LocationalComparator());
-				final SortedSet<ProgramElementInfo> elementsB = new TreeSet<ProgramElementInfo>(
+				final SortedSet<ProgramElementInfo> elementsB = new TreeSet<>(
 						new LocationalComparator());
 				elementsA.addAll(clonepair.getLeftCodeFragment().getElements());
 				elementsB
@@ -53,17 +54,14 @@ public class BellonWriter extends Writer {
 				writer.newLine();
 			}
 
-			writer.close();
-
 		} catch (final IOException e) {
-			e.printStackTrace();
-			System.exit(0);
+			throw new TinyPDGException("書き込みに失敗しました: " + this.path, e);
 		}
 	}
 
 	private String generateGapsText(final SortedSet<ProgramElementInfo> elements) {
 
-		final SortedSet<Integer> lines = new TreeSet<Integer>();
+		final SortedSet<Integer> lines = new TreeSet<>();
 		for (int line = elements.first().startLine; line <= elements.last().endLine; line++) {
 			lines.add(line);
 		}
@@ -94,8 +92,8 @@ public class BellonWriter extends Writer {
 		public int compare(final ProgramElementInfo o1,
 				final ProgramElementInfo o2) {
 
-			assert null != o1 : "\"o1\" is null.";
-			assert null != o2 : "\"o2\" is null.";
+			Objects.requireNonNull(o1, "\"o1\" is null.");
+			Objects.requireNonNull(o2, "\"o2\" is null.");
 
 			if (o1.startLine < o2.startLine) {
 				return -1;

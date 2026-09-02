@@ -1,0 +1,188 @@
+# sample: lang10_switchexpr
+
+## CFG arrowArms <5...13>
+nodes:
+  0: [enter,normal] final int base = 100; <6>
+  1: [normal] int y = $switch1; <7...11>
+  2: [control] x <7>
+  3: [normal] $switch1 = base + 10; <8>
+  4: [normal] $switch1 = base + 20; <9>
+  5: [normal] $switch1 = 0; <10>
+  6: [exit,normal] return y; <12>
+edges:
+  0 -> 2 []
+  1 -> 6 []
+  2 -> 3 [true]
+  2 -> 4 [true]
+  2 -> 5 [true]
+  3 -> 1 [jump]
+  4 -> 1 [jump]
+  5 -> 1 [jump]
+
+## PDG arrowArms <5...13>
+nodes:
+  0: [parameter] final int x <5>
+  1: [normal] final int base = 100; <6>
+  2: [normal] int y = $switch1; <7...11>
+  3: [control] x <7>
+  4: [normal] $switch1 = base + 10; <8>
+  5: [normal] $switch1 = base + 20; <9>
+  6: [normal] $switch1 = 0; <10>
+  7: [exit] return y; <12>
+  8: [enter,control] Enter <5...13>
+edges:
+  0 -> 3 [data: x]
+  1 -> 3 [execution: ]
+  1 -> 4 [data: base]
+  1 -> 5 [data: base]
+  2 -> 7 [data: y]
+  2 -> 7 [execution: ]
+  3 -> 4 [control: true]
+  3 -> 4 [execution: ]
+  3 -> 5 [control: true]
+  3 -> 5 [execution: ]
+  3 -> 6 [control: true]
+  3 -> 6 [execution: ]
+  4 -> 2 [data: $switch1]
+  4 -> 2 [execution: ]
+  5 -> 2 [data: $switch1]
+  5 -> 2 [execution: ]
+  6 -> 2 [data: $switch1]
+  6 -> 2 [execution: ]
+  8 -> 0 [control: true]
+  8 -> 1 [control: true]
+  8 -> 1 [execution: ]
+  8 -> 2 [control: true]
+  8 -> 3 [control: true]
+  8 -> 7 [control: true]
+
+## CFG blockArmWithYield <15...25>
+nodes:
+  0: [enter,normal] int a = 0; <16>
+  1: [normal] int y = $switch2; <17...23>
+  2: [control] x <17>
+  3: [normal] a = 5; <19>
+  4: [normal] $switch2 = a * 2; <20>
+  5: [normal] $switch2 = 20; <22>
+  6: [exit,normal] return a + y; <24>
+edges:
+  0 -> 2 []
+  1 -> 6 []
+  2 -> 3 [true]
+  2 -> 5 [true]
+  3 -> 4 []
+  4 -> 1 [jump]
+  5 -> 1 [jump]
+
+## PDG blockArmWithYield <15...25>
+nodes:
+  0: [parameter] final int x <15>
+  1: [normal] int a = 0; <16>
+  2: [normal] int y = $switch2; <17...23>
+  3: [control] x <17>
+  4: [normal] a = 5; <19>
+  5: [normal] $switch2 = a * 2; <20>
+  6: [normal] $switch2 = 20; <22>
+  7: [exit] return a + y; <24>
+  8: [enter,control] Enter <15...25>
+edges:
+  0 -> 3 [data: x]
+  1 -> 3 [execution: ]
+  1 -> 7 [data: a]
+  2 -> 7 [data: y]
+  2 -> 7 [execution: ]
+  3 -> 4 [control: true]
+  3 -> 4 [execution: ]
+  3 -> 5 [control: true]
+  3 -> 6 [control: true]
+  3 -> 6 [execution: ]
+  4 -> 5 [data: a]
+  4 -> 5 [execution: ]
+  4 -> 7 [data: a]
+  5 -> 2 [data: $switch2]
+  5 -> 2 [execution: ]
+  6 -> 2 [data: $switch2]
+  6 -> 2 [execution: ]
+  8 -> 0 [control: true]
+  8 -> 1 [control: true]
+  8 -> 1 [execution: ]
+  8 -> 2 [control: true]
+  8 -> 3 [control: true]
+  8 -> 7 [control: true]
+
+## CFG insideLoopCondition <27...33>
+nodes:
+  0: [enter,normal] int count = 0; <28>
+  1: [control] count < (switch (limit) { case 0 -> yield 1; default ->yield limit; }) <29>
+  2: [normal] count = count + 1; <30>
+  3: [exit,normal] return count; <32>
+edges:
+  0 -> 1 []
+  1 -> 2 [true]
+  1 -> 3 [false]
+  2 -> 1 []
+
+## PDG insideLoopCondition <27...33>
+nodes:
+  0: [parameter] final int limit <27>
+  1: [normal] int count = 0; <28>
+  2: [control] count < (switch (limit) { case 0 -> yield 1; default ->yield limit; }) <29>
+  3: [normal] count = count + 1; <30>
+  4: [exit] return count; <32>
+  5: [enter,control] Enter <27...33>
+edges:
+  0 -> 2 [data: limit]
+  1 -> 2 [data: count]
+  1 -> 2 [execution: ]
+  1 -> 3 [data: count]
+  1 -> 4 [data: count]
+  2 -> 3 [control: true]
+  2 -> 3 [execution: ]
+  2 -> 4 [execution: ]
+  3 -> 2 [data: count]
+  3 -> 2 [execution: ]
+  3 -> 3 [data: count]
+  3 -> 4 [data: count]
+  5 -> 0 [control: true]
+  5 -> 1 [control: true]
+  5 -> 1 [execution: ]
+  5 -> 2 [control: true]
+  5 -> 4 [control: true]
+
+## CFG insideShortCircuit <35...41>
+nodes:
+  0: [enter,normal] int r = 0; <36>
+  1: [control] flag && 0 < (switch (x) { case 1 -> yield 5; default ->yield 0; }) <37>
+  2: [normal] r = 1; <38>
+  3: [exit,normal] return r; <40>
+edges:
+  0 -> 1 []
+  1 -> 2 [true]
+  1 -> 3 [false]
+  2 -> 3 []
+
+## PDG insideShortCircuit <35...41>
+nodes:
+  0: [parameter] final int x <35>
+  1: [parameter] final boolean flag <35>
+  2: [normal] int r = 0; <36>
+  3: [control] flag && 0 < (switch (x) { case 1 -> yield 5; default ->yield 0; }) <37>
+  4: [normal] r = 1; <38>
+  5: [exit] return r; <40>
+  6: [enter,control] Enter <35...41>
+edges:
+  0 -> 3 [data: x]
+  1 -> 3 [data: flag]
+  2 -> 3 [execution: ]
+  2 -> 5 [data: r]
+  3 -> 4 [control: true]
+  3 -> 4 [execution: ]
+  3 -> 5 [execution: ]
+  4 -> 5 [data: r]
+  4 -> 5 [execution: ]
+  6 -> 0 [control: true]
+  6 -> 1 [control: true]
+  6 -> 2 [control: true]
+  6 -> 2 [execution: ]
+  6 -> 3 [control: true]
+  6 -> 5 [control: true]

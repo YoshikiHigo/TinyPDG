@@ -1,0 +1,60 @@
+# sample: lang04_trywithresources
+
+## CFG count <9...20>
+nodes:
+  0: [enter,normal] int lines = 0; <10>
+  1: [normal] BufferedReader reader = new BufferedReader(new FileReader(path)); <11>
+  2: [normal] String line; <12>
+  3: [control] null != (line = reader.readLine()) <13>
+  4: [normal] lines = lines + line.length(); <14>
+  5: [control] final IOException|RuntimeException e <16>
+  6: [normal] lines = -1; <17>
+  7: [exit,normal] return lines; <19>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 3 []
+  3 -> 4 [true]
+  3 -> 7 [false]
+  4 -> 3 []
+  5 -> 6 [true]
+  6 -> 7 []
+
+## PDG count <9...20>
+nodes:
+  0: [parameter] final String path <9>
+  1: [normal] int lines = 0; <10>
+  2: [normal] BufferedReader reader = new BufferedReader(new FileReader(path)); <11>
+  3: [normal] String line; <12>
+  4: [control] null != (line = reader.readLine()) <13>
+  5: [normal] lines = lines + line.length(); <14>
+  6: [control] final IOException|RuntimeException e <16>
+  7: [normal] lines = -1; <17>
+  8: [exit] return lines; <19>
+  9: [enter,control] Enter <9...20>
+edges:
+  0 -> 2 [data: path]
+  1 -> 2 [execution: ]
+  1 -> 5 [data: lines]
+  1 -> 8 [data: lines]
+  2 -> 3 [execution: ]
+  2 -> 4 [data: reader]
+  3 -> 4 [execution: ]
+  4 -> 5 [control: true]
+  4 -> 5 [data: line]
+  4 -> 5 [execution: ]
+  4 -> 8 [execution: ]
+  5 -> 4 [execution: ]
+  5 -> 5 [data: lines]
+  5 -> 8 [data: lines]
+  6 -> 7 [control: true]
+  6 -> 7 [execution: ]
+  7 -> 8 [data: lines]
+  7 -> 8 [execution: ]
+  9 -> 0 [control: true]
+  9 -> 1 [control: true]
+  9 -> 1 [execution: ]
+  9 -> 2 [control: true]
+  9 -> 3 [control: true]
+  9 -> 4 [control: true]
+  9 -> 8 [control: true]

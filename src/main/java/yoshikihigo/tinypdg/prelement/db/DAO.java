@@ -9,6 +9,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+import yoshikihigo.tinypdg.TinyPDGException;
 import yoshikihigo.tinypdg.prelement.data.DEPENDENCE_TYPE;
 import yoshikihigo.tinypdg.prelement.data.Frequency;
 
@@ -30,8 +31,8 @@ public class DAO {
 		try {
 			Class.forName("org.sqlite.JDBC");
 		} catch (final ClassNotFoundException e) {
-			e.printStackTrace();
-			System.exit(0);
+			throw new TinyPDGException(
+					"sqlite の JDBC ドライバが見つかりません。", e);
 		}
 
 		try {
@@ -57,8 +58,8 @@ public class DAO {
 					.prepareStatement("select tohash, (select text from texts T where T.hash = F.tohash), support, probability from frequencies F where (fromhash = ?) and (type = ?)");
 
 		} catch (final SQLException e) {
-			e.printStackTrace();
-			System.exit(0);
+			throw new TinyPDGException(
+					"データベースを開けませんでした: " + database, e);
 		}
 
 		this.numberInWaitingBatchForTexts = 0;
@@ -78,8 +79,7 @@ public class DAO {
 			}
 
 		} catch (final SQLException e) {
-			e.printStackTrace();
-			System.exit(0);
+			throw new TinyPDGException("texts への書き込みに失敗しました。", e);
 		}
 	}
 
@@ -100,15 +100,15 @@ public class DAO {
 			}
 
 		} catch (final SQLException e) {
-			e.printStackTrace();
-			System.exit(0);
+			throw new TinyPDGException(
+					"frequencies への書き込みに失敗しました。", e);
 		}
 	}
 
 	public List<Frequency> getFrequencies(final DEPENDENCE_TYPE type,
 			final int fromhash) {
 
-		final List<Frequency> frequencies = new ArrayList<Frequency>();
+		final List<Frequency> frequencies = new ArrayList<>();
 
 		try {
 			this.selectFromFrequencies.clearParameters();
@@ -127,8 +127,8 @@ public class DAO {
 			}
 
 		} catch (final SQLException e) {
-			e.printStackTrace();
-			System.exit(0);
+			throw new TinyPDGException(
+					"frequencies の読み出しに失敗しました。", e);
 		}
 
 		return frequencies;
@@ -152,9 +152,8 @@ public class DAO {
 			this.insertToFrequencies.close();
 			this.connector.close();
 
-		} catch (Exception e) {
-			e.printStackTrace();
-			System.exit(0);
+		} catch (final Exception e) {
+			throw new TinyPDGException("データベースを閉じられませんでした。", e);
 		}
 	}
 }

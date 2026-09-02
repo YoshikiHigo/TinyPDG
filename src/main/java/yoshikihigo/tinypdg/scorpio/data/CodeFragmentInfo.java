@@ -1,6 +1,7 @@
 package yoshikihigo.tinypdg.scorpio.data;
 
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -14,12 +15,12 @@ public class CodeFragmentInfo implements Comparable<CodeFragmentInfo> {
 	final private SortedSet<ProgramElementInfo> elements;
 
 	public CodeFragmentInfo() {
-		this.elements = new TreeSet<ProgramElementInfo>();
+		this.elements = new TreeSet<>();
 	}
 
 	public CodeFragmentInfo(final PDGNode<?> node) {
 		this();
-		assert null != node : "\"node\" is null.";
+		Objects.requireNonNull(node, "\"node\" is null.");
 		if (node instanceof PDGMergedNode) {
 			for (final PDGNode<?> originalNode : ((PDGMergedNode) node)
 					.getOriginalNodes()) {
@@ -35,18 +36,22 @@ public class CodeFragmentInfo implements Comparable<CodeFragmentInfo> {
 		}
 	}
 
-	public void addElement(final ProgramElementInfo element) {
-		assert null != element : "\"element\" is null.";
+	/**
+	 * コンストラクタから呼ぶため final にしてある。上書きできると、
+	 * サブクラスのフィールドが初期化される前にその上書き版が動きうる。
+	 */
+	final public void addElement(final ProgramElementInfo element) {
+		Objects.requireNonNull(element, "\"element\" is null.");
 		this.elements.add(element);
 	}
 
 	public void merge(final CodeFragmentInfo codefragment) {
-		assert null != codefragment : "\"codefragment\" is null.";
+		Objects.requireNonNull(codefragment, "\"codefragment\" is null.");
 		this.elements.addAll(codefragment.elements);
 	}
 
 	public SortedSet<ProgramElementInfo> getElements() {
-		final SortedSet<ProgramElementInfo> e = new TreeSet<ProgramElementInfo>();
+		final SortedSet<ProgramElementInfo> e = new TreeSet<>();
 		e.addAll(this.elements);
 		return e;
 	}
@@ -56,7 +61,7 @@ public class CodeFragmentInfo implements Comparable<CodeFragmentInfo> {
 	}
 
 	public boolean conflict(final CodeFragmentInfo codefragment) {
-		assert null != codefragment : "\"codefragment\" is null.";
+		Objects.requireNonNull(codefragment, "\"codefragment\" is null.");
 		for (final ProgramElementInfo element : this.elements) {
 			if (codefragment.elements.contains(element)) {
 				return true;
@@ -67,7 +72,7 @@ public class CodeFragmentInfo implements Comparable<CodeFragmentInfo> {
 
 	@Override
 	public int compareTo(final CodeFragmentInfo o) {
-		assert null != o : "\"o\" is null.";
+		Objects.requireNonNull(o, "\"o\" is null.");
 		final Iterator<ProgramElementInfo> iterator1 = this.elements.iterator();
 		final Iterator<ProgramElementInfo> iterator2 = o.elements.iterator();
 
