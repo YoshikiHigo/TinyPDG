@@ -214,20 +214,8 @@ public class Scorpio {
 			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges = Collections
 					.synchronizedSortedMap(new TreeMap<>());
 			{
-				final Thread[] hashCalculationThreads = new Thread[NUMBER_OF_THREADS];
-				for (int i = 0; i < hashCalculationThreads.length; i++) {
-					hashCalculationThreads[i] = new Thread(
-							new HashCalculationThread(pdgArray,
-									mappingPDGToPDGNodes, mappingPDGToPDGEdges));
-					hashCalculationThreads[i].start();
-				}
-				for (final Thread thread : hashCalculationThreads) {
-					try {
-						thread.join();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
+				HashCalculationThread.calculate(pdgArray, mappingPDGToPDGNodes,
+						mappingPDGToPDGEdges, NUMBER_OF_THREADS);
 			}
 			System.out.print("done: ");
 			final long time3 = System.nanoTime();
@@ -245,20 +233,9 @@ public class Scorpio {
 				}
 				final PDGPairInfo[] pdgpairArray = pdgpairs
 						.toArray(new PDGPairInfo[0]);
-				final Thread[] slicingThreads = new Thread[NUMBER_OF_THREADS];
-				for (int i = 0; i < slicingThreads.length; i++) {
-					slicingThreads[i] = new Thread(new SlicingThread(
-							pdgpairArray, pdgArray, mappingPDGToPDGNodes,
-							mappingPDGToPDGEdges, clonepairs, SIZE_THRESHOLD));
-					slicingThreads[i].start();
-				}
-				for (final Thread thread : slicingThreads) {
-					try {
-						thread.join();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
+				SlicingThread.detect(pdgpairArray, pdgArray,
+						mappingPDGToPDGNodes, mappingPDGToPDGEdges, clonepairs,
+						SIZE_THRESHOLD, NUMBER_OF_THREADS);
 			}
 			System.out.print("done: ");
 			final long time4 = System.nanoTime();

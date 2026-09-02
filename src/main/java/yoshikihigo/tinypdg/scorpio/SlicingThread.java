@@ -9,6 +9,8 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import yoshikihigo.tinypdg.pdg.PDG;
@@ -21,8 +23,15 @@ import yoshikihigo.tinypdg.scorpio.data.PDGPairInfo;
 
 public class SlicingThread implements Runnable {
 
-	final static private AtomicInteger PAIRINDEX = new AtomicInteger(0);
-	final static private AtomicInteger SINGLEINDEX = new AtomicInteger(0);
+	/**
+	 * 取り出し位置。1 回の検出ごとに用意する。
+	 *
+	 * <p>以前はこれらが static だった。JVM 内の全ての検出で共有され
+	 * 巻き戻らないので、2 回目は数え終わった位置から始まり、クローンが
+	 * 1 件も見つからないまま正常終了していた。
+	 */
+	final private AtomicInteger nextPair;
+	final private AtomicInteger nextSingle;
 
 	final private PDGPairInfo[] pdgpairs;
 	final private PDG[] pdgs;
@@ -32,7 +41,32 @@ public class SlicingThread implements Runnable {
 	final private SortedSet<ClonePairInfo> clonepairs;
 	final private int SIZE_THRESHOLD;
 
-	SlicingThread(
+	/**
+	 * PDG の対と単体を走査してクローンペアを集める。
+	 */
+	static void detect(final PDGPairInfo[] pdgpairs, final PDG[] pdgs,
+			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mapPDGToPDGNodes,
+			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mapPDGToPDGEdges,
+			final SortedSet<ClonePairInfo> clonepairs,
+			final int SIZE_THRESHOLD, final int threads) {
+
+		// 比較回数は 1 回の検出についての数である。
+		Slicing.resetNumberOfComparison();
+
+		final AtomicInteger nextPair = new AtomicInteger(0);
+		final AtomicInteger nextSingle = new AtomicInteger(0);
+		try (final ExecutorService pool = Executors
+				.newFixedThreadPool(threads)) {
+			for (int i = 0; i < threads; i++) {
+				pool.execute(new SlicingThread(nextPair, nextSingle, pdgpairs,
+						pdgs, mapPDGToPDGNodes, mapPDGToPDGEdges, clonepairs,
+						SIZE_THRESHOLD));
+			}
+		}
+	}
+
+	private SlicingThread(final AtomicInteger nextPair,
+			final AtomicInteger nextSingle,
 			final PDGPairInfo[] pdgpairs,
 			final PDG[] pdgs,
 			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mapPDGToPDGNodes,
@@ -44,6 +78,8 @@ public class SlicingThread implements Runnable {
 		Objects.requireNonNull(mapPDGToPDGEdges, "\"mapPDGToPDGEdges\" is null.");
 		Objects.requireNonNull(clonepairs, "\"clonepairs\" is null.");
 		assert 0 < SIZE_THRESHOLD : "\"THRESHOLD\" must be greater than 0.";
+		this.nextPair = nextPair;
+		this.nextSingle = nextSingle;
 		this.pdgpairs = pdgpairs;
 		this.pdgs = pdgs;
 		this.mapPDGToPDGNodes = mapPDGToPDGNodes;
@@ -57,7 +93,7 @@ public class SlicingThread implements Runnable {
 
 		final SortedSet<ClonePairInfo> clonepairs = new TreeSet<>();
 
-		for (int index = PAIRINDEX.getAndIncrement(); index < this.pdgpairs.length; index = PAIRINDEX
+		for (int index = this.nextPair.getAndIncrement(); index < this.pdgpairs.length; index = this.nextPair
 				.getAndIncrement()) {
 
 			final PDG pdgA = this.pdgpairs[index].left;
@@ -170,7 +206,7 @@ public class SlicingThread implements Runnable {
 			}
 		}
 
-		for (int index = SINGLEINDEX.getAndIncrement(); index < this.pdgs.length; index = SINGLEINDEX
+		for (int index = this.nextSingle.getAndIncrement(); index < this.pdgs.length; index = this.nextSingle
 				.getAndIncrement()) {
 
 			final PDG pdg = this.pdgs[index];

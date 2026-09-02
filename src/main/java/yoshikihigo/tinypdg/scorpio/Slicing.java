@@ -23,6 +23,11 @@ public class Slicing {
 		return NUMBER_OF_COMPARISON.get();
 	}
 
+	/** 比較回数を数え直す。1 回の検出ごとに呼ぶ。 */
+	static void resetNumberOfComparison() {
+		NUMBER_OF_COMPARISON.set(0);
+	}
+
 	final private SortedSet<NodePairInfo> checkedNodepairs;
 	final private SortedMap<PDGNode<?>, PDGNode<?>[]> mappingPDGNodeToPDGNodes;
 	final private SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges;
