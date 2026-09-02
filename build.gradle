@@ -26,6 +26,22 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+tasks.named('jar') {
+    // ライセンス本文を成果物にも同梱する。MIT は再配布時に著作権表示と
+    // 許諾文を残すことを求めるので、jar 単体で配っても条件を満たせる。
+    metaInf {
+        from rootProject.file('LICENSE')
+    }
+
+    manifest {
+        attributes(
+                'Implementation-Title': 'TinyPDG',
+                'Implementation-Version': project.version,
+                'Implementation-Vendor': 'Yoshiki Higo',
+        )
+    }
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 
