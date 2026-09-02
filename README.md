@@ -153,3 +153,12 @@ Layout
 | `graphviz` | writing graphs in dot format |
 | `scorpio` | clone detection |
 | `prelement` | dependence frequencies and the SQLite database behind them |
+
+License
+-------
+
+MIT. See [LICENSE](LICENSE).
+
+The dependencies keep their own terms: Commons CLI and sqlite-jdbc are
+Apache-2.0, Eclipse JDT Core and JUnit are EPL-2.0. TinyPDG only links
+against them, so none of that constrains what you do with TinyPDG itself.
