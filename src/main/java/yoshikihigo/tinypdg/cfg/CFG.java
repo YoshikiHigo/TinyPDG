@@ -151,57 +151,72 @@ public class CFG {
 			// 種別で振り分けるが、渡すのはその文が実際に持っている状態を
 			// 表す型である。for に更新式があり try に catch 節があることが、
 			// 受け取る側のシグネチャに書いてある。
-			switch (coreStatement.getCategory()) {
-			case Catch:
+			// 中身を展開して部分グラフを作る文と、それ自体が 1 ノードに
+			// なる文とに分かれる。switch 式なので全ての種別に枝が要る。
+			// 種別を足すとここでビルドが止まり、どちらなのかを決めることに
+			// なる。文のままだと黙って「1 ノード」に倒れる。
+			//
+			// 渡すのはその文が実際に持っている状態を表す型である。for に
+			// 更新式があり try に catch 節があることが、受け取る側の
+			// シグネチャに書いてある。
+			final boolean expanded = switch (coreStatement.getCategory()) {
+			case Catch, Synchronized -> {
 				this.buildConditionalBlockCFG(
 						(ConditionalStatementInfo) coreStatement, false);
-				break;
-			case Do:
+				yield true;
+			}
+			case Do -> {
 				this.buildDoBlockCFG((ConditionalStatementInfo) coreStatement);
-				break;
-			case For:
+				yield true;
+			}
+			case For -> {
 				this.buildForBlockCFG((ForStatementInfo) coreStatement);
-				break;
-			case Foreach:
-				this.buildConditionalBlockCFG(
-						(ForStatementInfo) coreStatement, true);
-				break;
-			case If:
+				yield true;
+			}
+			case Foreach -> {
+				this.buildConditionalBlockCFG((ForStatementInfo) coreStatement,
+						true);
+				yield true;
+			}
+			case If -> {
 				this.buildIfBlockCFG((IfStatementInfo) coreStatement);
-				break;
-			case Switch:
+				yield true;
+			}
+			case Switch -> {
 				this.buildSwitchBlockCFG(
 						(ConditionalStatementInfo) coreStatement);
-				break;
-			case Synchronized:
-				this.buildConditionalBlockCFG(
-						(ConditionalStatementInfo) coreStatement, false);
-				break;
-			case TypeDeclaration:
-				break;
-			case Try:
+				yield true;
+			}
+			case Try -> {
 				this.buildTryBlockCFG((TryStatementInfo) coreStatement);
-				break;
-			case While:
+				yield true;
+			}
+			case While -> {
 				this.buildConditionalBlockCFG(
 						(ConditionalStatementInfo) coreStatement, true);
-				break;
-			default:
+				yield true;
+			}
+			// 型宣言は制御フローを持たない。ノードも作らない。
+			case TypeDeclaration -> true;
+			case Assert, Break, Case,
+					Continue, Empty, Expression,
+					Return, SimpleBlock, Throw,
+					VariableDeclaration, Yield, Unsupported -> false;
+			};
+
+			if (!expanded) {
 				final CFGNode<? extends ProgramElementInfo> node = this.nodeFactory
 						.makeNormalNode(coreStatement);
 				this.enterNode = node;
-				if (StatementInfo.CATEGORY.Break == coreStatement.getCategory()) {
-					this.unhandledBreakStatementNodes
-							.addFirst((CFGBreakStatementNode) node);
-				} else if (StatementInfo.CATEGORY.Continue == coreStatement
-						.getCategory()) {
+				if (node instanceof CFGBreakStatementNode breakNode) {
+					this.unhandledBreakStatementNodes.addFirst(breakNode);
+				} else if (node instanceof CFGContinueStatementNode continueNode) {
 					this.unhandledContinueStatementNodes
-							.addFirst((CFGContinueStatementNode) node);
+							.addFirst(continueNode);
 				} else {
 					this.exitNodes.add(node);
 				}
 				this.nodes.add(node);
-				break;
 			}
 		}
 
@@ -443,20 +458,28 @@ public class CFG {
 			this.unhandledContinueStatementNodes
 					.addAll(subCFG.unhandledContinueStatementNodes);
 
-			switch (substatement.getCategory()) {
-			case Case: {
+			final boolean exitsTheSwitch = switch (substatement.getCategory()) {
+			case Case -> {
+				// ラベルには条件から直接繋ぐ。
 				final CFGEdge edge = CFGEdge.makeEdge(conditionNode,
 						subCFG.enterNode, true);
 				conditionNode.addForwardEdge(edge);
 				subCFG.enterNode.addBackwardEdge(edge);
-				break;
+				yield false;
 			}
-			case Break:
-			case Continue: {
+			case Break, Continue -> true;
+			// 直前の文から順に繋がる。ここで足すことはない。
+			case Assert, Catch, Do,
+					Empty, Expression, If,
+					For, Foreach, Return,
+					SimpleBlock, Synchronized, Switch,
+					Throw, Try, TypeDeclaration,
+					VariableDeclaration, While, Yield,
+					Unsupported -> false;
+			};
+
+			if (exitsTheSwitch) {
 				this.exitNodes.addAll(subCFG.exitNodes);
-				break;
-			}
-			default:
 			}
 		}
 
@@ -465,12 +488,21 @@ public class CFG {
 			final CFG posteriorCFG = sequentialCFGs.get(index);
 
 			final ProgramElementInfo anteriorCore = anteriorCFG.core;
-			if (anteriorCore instanceof StatementInfo) {
-				switch (((StatementInfo) anteriorCore).getCategory()) {
-				case Break:
-				case Continue:
+			if (anteriorCore instanceof StatementInfo anteriorStatement) {
+				// break と continue は次の文へ流れない。
+				final boolean fallsThrough = switch (anteriorStatement
+						.getCategory()) {
+				case Break, Continue -> false;
+				case Assert, Case, Catch,
+						Do, Empty, Expression,
+						If, For, Foreach,
+						Return, SimpleBlock, Synchronized,
+						Switch, Throw, Try,
+						TypeDeclaration, VariableDeclaration, While,
+						Yield, Unsupported -> true;
+				};
+				if (!fallsThrough) {
 					continue CFG;
-				default:
 				}
 			}
 

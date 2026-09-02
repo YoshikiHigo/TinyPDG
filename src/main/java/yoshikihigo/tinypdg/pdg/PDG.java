@@ -387,22 +387,16 @@ public class PDG implements Comparable<PDG> {
 	private void buildControlDependence(final PDGControlNode fromPDGNode,
 			final StatementInfo statement, final boolean type) {
 
-		switch (statement.getCategory()) {
-		case Catch:
-		case Do:
-		case For:
-		case Foreach:
-		case If:
-		case SimpleBlock:
-		case Synchronized:
-		case Switch:
-		case Try:
-		case While: {
+		// 文を抱えられるものかどうかは型が答える。以前はこれを 10 個の case を
+		// 並べて表していた。
+		if (statement instanceof BlockStatementInfo block) {
+
 			// 条件式を持たない種別もある。SimpleBlock と try、それに
 			// foreach がそうである。
-			final ProgramElementInfo condition = statement instanceof ConditionalStatementInfo conditional
+			final ProgramElementInfo condition = block instanceof ConditionalStatementInfo conditional
 					? conditional.getCondition()
 					: null;
+
 			if (null != condition) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeControlNode(condition);
@@ -411,12 +405,10 @@ public class PDG implements Comparable<PDG> {
 				fromPDGNode.addForwardEdge(edge);
 				toPDGNode.addBackwardEdge(edge);
 			} else {
-				// この case が並べている種別は全て文を抱えられるものである。
-				this.buildControlDependence(fromPDGNode,
-						(BlockStatementInfo) statement);
+				this.buildControlDependence(fromPDGNode, block);
 			}
 
-			if (statement instanceof ForStatementInfo forStatement) {
+			if (block instanceof ForStatementInfo forStatement) {
 				for (final ProgramElementInfo initializer : forStatement
 						.getInitializers()) {
 					final PDGNode<?> toPDGNode = this.pdgNodeFactory
@@ -427,29 +419,44 @@ public class PDG implements Comparable<PDG> {
 					toPDGNode.addBackwardEdge(edge);
 				}
 			}
-			break;
-		}
-		case Assert:
-		case Break:
-		case Case:
-		case Continue:
-		case Expression:
-		case Return:
-		case Throw:
-		case VariableDeclaration: {
-			final CFGNode<?> cfgNode = this.cfgNodeFactory.getNode(statement);
-			if ((null != cfgNode) && (this.cfg.getAllNodes().contains(cfgNode))) {
 
-				final PDGNode<?> toPDGNode = this.pdgNodeFactory
-						.makeNormalNode(statement);
-				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
-						fromPDGNode, toPDGNode, type);
-				fromPDGNode.addForwardEdge(edge);
-				toPDGNode.addBackwardEdge(edge);
-			}
-			break;
+			return;
 		}
-		default:
+
+		// 抱えないものは、自分自身が制御依存の相手になる。
+		//
+		// switch 文ではなく式なのは網羅性を検査してもらうためである。種別を
+		// 足すとここでコンパイルが止まり、辺を張る側か張らない側かを決める
+		// ことになる。文のままだと黙って「張らない」に倒れる。
+		final boolean dependsOnItself = switch (statement.getCategory()) {
+
+		case Assert, Break, Case,
+				Continue, Expression, Return,
+				Throw, VariableDeclaration -> true;
+
+		// 空文と型宣言は制御フロー上の意味を持たない。yield と未対応の構文は
+		// 元からこの一覧に入っていない。
+		case Empty, TypeDeclaration, Yield, Unsupported -> false;
+
+		case Catch, Do, For,
+				Foreach, If, SimpleBlock,
+				Switch, Synchronized, Try,
+				While -> throw new IllegalStateException(
+						"文を抱える種別はここへ来ない: " + statement.getCategory());
+		};
+
+		if (!dependsOnItself) {
+			return;
+		}
+
+		final CFGNode<?> cfgNode = this.cfgNodeFactory.getNode(statement);
+		if ((null != cfgNode) && (this.cfg.getAllNodes().contains(cfgNode))) {
+			final PDGNode<?> toPDGNode = this.pdgNodeFactory
+					.makeNormalNode(statement);
+			final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
+					fromPDGNode, toPDGNode, type);
+			fromPDGNode.addForwardEdge(edge);
+			toPDGNode.addBackwardEdge(edge);
 		}
 	}
 }

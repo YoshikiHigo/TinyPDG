@@ -29,21 +29,23 @@ public class CFGNodeFactory {
 		CFGNormalNode<?> node = (CFGNormalNode<?>) this.elementToNodeMap
 				.get(element);
 		if (null == node) {
-			if (element instanceof StatementInfo) {
-				switch (((StatementInfo) element).getCategory()) {
-				case Break:
-					node = new CFGBreakStatementNode((StatementInfo) element);
-					break;
-				case Continue:
-					node = new CFGContinueStatementNode((StatementInfo) element);
-					break;
-				case Case:
-					node = new CFGSwitchCaseNode((StatementInfo) element);
-					break;
-				default:
-					node = new CFGStatementNode((StatementInfo) element);
-					break;
-				}
+			if (element instanceof StatementInfo statement) {
+				// switch 式なので全ての種別に枝が要る。種別を足すとここで
+				// ビルドが止まり、専用のノードが要るかどうかを決めることに
+				// なる。文のままだと黙って既定の枝に落ちる。
+				node = switch (statement.getCategory()) {
+				case Break -> new CFGBreakStatementNode(statement);
+				case Continue -> new CFGContinueStatementNode(statement);
+				case Case -> new CFGSwitchCaseNode(statement);
+				case Assert, Catch, Do,
+				Empty, Expression, If,
+				For, Foreach, Return,
+				SimpleBlock, Synchronized, Switch,
+				Throw, Try, TypeDeclaration,
+				VariableDeclaration, While, Yield,
+				Unsupported ->
+						new CFGStatementNode(statement);
+				};
 				this.elementToNodeMap.put(element, node);
 			}
 
