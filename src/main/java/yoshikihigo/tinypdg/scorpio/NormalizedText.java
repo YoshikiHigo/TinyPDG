@@ -560,16 +560,18 @@ public class NormalizedText {
 				text.append(nameText.getText());
 				text.append("(");
 
-				final List<ProgramElementInfo> expressions = coreExp
+				final List<ProgramElementInfo> arguments = coreExp
 						.getExpressions();
-				expressions.remove(0);
-				for (final ProgramElementInfo argument : expressions) {
+				arguments.remove(0);
+				for (final ProgramElementInfo argument : arguments) {
 					final NormalizedText argumentText = new NormalizedText(
 							argument);
 					text.append(argumentText.getText());
 					text.append(",");
 				}
-				if (0 < coreExp.getExpressions().size()) {
+				// 先頭の要素はメソッド名なので、式の数を見ると引数がなくても
+				// 1 以上になる。引数の数で判断しないと "(" を消してしまう。
+				if (!arguments.isEmpty()) {
 					text.deleteCharAt(text.length() - 1);
 				}
 

@@ -619,13 +619,19 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 
 		final StringBuilder text = new StringBuilder();
 		text.append("super.");
-		text.append(name);
+		text.append(name.getText());
+		text.append("(");
 		for (final Object argument : node.arguments()) {
 			((ASTNode) argument).accept(this);
 			final ProgramElementInfo argumentExpression = this.stack.pop();
 			superMethodInvocation.addExpression(argumentExpression);
 			text.append(argumentExpression.getText());
+			text.append(",");
 		}
+		if (0 < node.arguments().size()) {
+			text.deleteCharAt(text.length() - 1);
+		}
+		text.append(")");
 		superMethodInvocation.setText(text.toString());
 
 		return false;

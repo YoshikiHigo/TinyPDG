@@ -2,6 +2,7 @@ package yoshikihigo.tinypdg.scorpio;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -10,6 +11,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -67,5 +69,43 @@ class NormalizedTextTest {
 				assertNotNull(normalized);
 			}
 		}
+	}
+
+	/** サンプルの 1 メソッドについて、PDG の各ノードの正規化テキストを返す。 */
+	private static List<String> normalizedTexts(final String sample,
+			final String methodName) {
+
+		final List<MethodInfo> methods = JavaAstFactory.collectMethods(
+				SAMPLES.resolve(sample).toFile(),
+				JavaAstFactory.DEFAULT_JAVA_VERSION);
+		final MethodInfo method = methods.stream()
+				.filter(m -> methodName.equals(m.name)).findFirst()
+				.orElseThrow(() -> new AssertionError(
+						sample + " に " + methodName + " が見つからない"));
+
+		final PDG pdg = new PDG(method);
+		pdg.build();
+
+		final List<String> texts = new ArrayList<>();
+		for (final PDGNode<?> node : pdg.getAllNodes()) {
+			texts.add(NormalizedText.normalize(
+					new NormalizedText(node.core).getText()));
+		}
+		return texts;
+	}
+
+	private static void assertContains(final List<String> texts,
+			final String expected) {
+		assertTrue(texts.contains(expected),
+				() -> expected + " が見つからない: " + texts);
+	}
+
+	@Test
+	void keepsTheParenthesesOfASuperMethodInvocation() {
+		// 引数がないとき、末尾のカンマを消すつもりで "(" を消していた。
+		assertContains(normalizedTexts("lang13_super", "count"),
+				"return super.$1();");
+		assertContains(normalizedTexts("lang13_super", "append"),
+				"return super.$1($2 + $3);");
 	}
 }
