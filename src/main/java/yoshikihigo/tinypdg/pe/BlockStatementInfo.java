@@ -70,8 +70,11 @@ public sealed class BlockStatementInfo extends StatementInfo implements
 	 *
 	 * <p>ただし中身が空のブロックはそのまま抱える。取り出すと何も残らず、
 	 * 本体があったこと自体が消えてしまう。
+	 *
+	 * <p>visitor も、文の並びを受け取るところでこれを使う。複数の変数を
+	 * 宣言する文は変数ごとの文に分かれ、SimpleBlock に包まれて届く。
 	 */
-	static List<StatementInfo> flatten(final StatementInfo body) {
+	public static List<StatementInfo> flatten(final StatementInfo body) {
 		if (body instanceof BlockStatementInfo block
 				&& CATEGORY.SimpleBlock == body.getCategory()
 				&& !block.getStatements().isEmpty()) {

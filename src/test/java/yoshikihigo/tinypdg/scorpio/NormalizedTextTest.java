@@ -136,10 +136,12 @@ class NormalizedTextTest {
 	}
 
 	@Test
-	void writesEveryFragmentOfAVariableDeclarationExpression() {
-		// for の初期化式 int i = 0, j = n。以前は最初の断片しか書いていなかった。
-		assertContains(normalizedTexts("lang16_forinit", "sumPairs"),
-				"int $1 = $2,$3 = $4");
+	void splitsTheDeclarationsOfAForInitializer() {
+		// for (int i = 0, j = n; ...) の初期化式は int i = 0 と int j = n の
+		// 2 つの式に分かれる。正規化するとどちらも同じ形になる。
+		final List<String> texts = normalizedTexts("lang16_forinit", "sumPairs");
+		assertEquals(2, texts.stream().filter("int $1 = $2"::equals).count(),
+				() -> "初期化式が 2 つに分かれること: " + texts);
 	}
 
 	@Test
@@ -158,6 +160,17 @@ class NormalizedTextTest {
 		assertContains(cStyle, "int[] $1 = $2;");
 		assertEquals(normalizedTexts("lang20_cstylearray", "firstOfModern"),
 				cStyle);
+	}
+
+	@Test
+	void splitsADeclarationOfSeveralVariables() {
+		// int a = x, b = a + 1; は int a = x; int b = a + 1; と同じ 2 文になる。
+		final List<String> combined = normalizedTexts("lang21_multideclaration",
+				"chain");
+		assertContains(combined, "int $1 = $2;");
+		assertContains(combined, "int $1 = $2 + $3;");
+		assertEquals(normalizedTexts("lang21_multideclaration", "chainSeparately"),
+				combined);
 	}
 
 	@Test

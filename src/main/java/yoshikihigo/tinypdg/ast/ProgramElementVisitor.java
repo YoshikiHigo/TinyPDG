@@ -13,7 +13,6 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ConditionalExpression;
 import org.eclipse.jdt.core.dom.DoStatement;
 import org.eclipse.jdt.core.dom.EnhancedForStatement;
-import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.ForStatement;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.InfixExpression;
@@ -21,10 +20,6 @@ import org.eclipse.jdt.core.dom.LambdaExpression;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.SwitchExpression;
 import org.eclipse.jdt.core.dom.TryStatement;
-import org.eclipse.jdt.core.dom.VariableDeclaration;
-import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
-import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
-import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import yoshikihigo.tinypdg.pe.BlockInfo;
 import yoshikihigo.tinypdg.pe.MethodInfo;
@@ -111,43 +106,6 @@ abstract class ProgramElementVisitor extends ASTVisitor {
 			children.add(this.visitChild((ASTNode) node));
 		}
 		return children;
-	}
-
-	/**
-	 * 宣言の断片が名前の後ろに持つ次元の数。C 形式の {@code int a[]} の [] である。
-	 *
-	 * <p>{@code int a[]} と {@code int[] a} は同じ宣言なので、後者の形に寄せる。
-	 * 型は宣言の全ての断片で共有されるので、寄せられるのは全ての断片が同じ
-	 * 数の次元を持つときに限る。{@code int a[], b;} のように違うときは -1 を
-	 * 返し、呼ぶ側は断片に書いたとおり残す。
-	 */
-	static int foldableExtraDimensions(final List<?> fragments) {
-		int dimensions = -1;
-		for (final Object fragment : fragments) {
-			final int own = ((VariableDeclaration) fragment).extraDimensions()
-					.size();
-			if (dimensions < 0) {
-				dimensions = own;
-			} else if (dimensions != own) {
-				return -1;
-			}
-		}
-		return Math.max(dimensions, 0);
-	}
-
-	/** 断片が属する宣言の、全ての断片。 */
-	static List<?> siblingFragments(final VariableDeclarationFragment fragment) {
-		final ASTNode parent = fragment.getParent();
-		if (parent instanceof VariableDeclarationStatement statement) {
-			return statement.fragments();
-		}
-		if (parent instanceof VariableDeclarationExpression expression) {
-			return expression.fragments();
-		}
-		if (parent instanceof FieldDeclaration field) {
-			return field.fragments();
-		}
-		return List.of(fragment);
 	}
 
 	/** 要素のテキストを区切りで繋げる。 */

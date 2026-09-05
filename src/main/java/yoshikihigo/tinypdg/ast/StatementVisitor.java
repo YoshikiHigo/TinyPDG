@@ -28,6 +28,7 @@ import org.eclipse.jdt.core.dom.TryStatement;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclarationStatement;
 import org.eclipse.jdt.core.dom.VariableDeclaration;
+import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
@@ -213,44 +214,84 @@ abstract class StatementVisitor extends ExpressionVisitor {
 		return false;
 	}
 
+	/**
+	 * 変数宣言文。
+	 *
+	 * <p>{@code int a = x, b = a + 1;} のように 1 文で複数の変数を宣言して
+	 * いれば、変数ごとの文 {@code int a = x; int b = a + 1;} に分ける。意味は
+	 * 同じで、分けると b の初期化子が a を読むという依存が見えるようになる。
+	 * 複数の文は SimpleBlock に包んで積み、文の並びを受け取る側が中身を
+	 * 並べる。
+	 */
 	@Override
 	public boolean visit(final VariableDeclarationStatement node) {
 
 		if (this.inBlock()) {
 
-			final int startLine = this.getStartLineNumber(node);
-			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final SimpleStatementInfo vdStatement = new SimpleStatementInfo(ownerBlock,
-					StatementInfo.CATEGORY.VariableDeclaration, startLine,
-					endLine);
-			this.stack.push(vdStatement);
+			final List<?> fragments = node.fragments();
 
-			final StringBuilder text = new StringBuilder();
-			for (final Object modifier : node.modifiers()) {
-				text.append(modifier.toString());
-				text.append(" ");
+			if (1 == fragments.size()) {
+				this.stack.push(this.declaration(ownerBlock, node,
+						(VariableDeclarationFragment) fragments.get(0),
+						this.getStartLineNumber(node),
+						this.getEndLineNumber(node)));
+				return false;
 			}
 
-			// C 形式の int a[] は int[] a として扱う。断片ごとに次元が違えば
-			// 型には寄せられず、断片の側に残る。
-			final int dimensions = foldableExtraDimensions(node.fragments());
-			final ProgramElementInfo type = new TypeInfo(node.getType().toString()
-					+ "[]".repeat(Math.max(dimensions, 0)), startLine, endLine);
-			vdStatement.addExpression(type);
-
-			text.append(type.getText());
-			text.append(" ");
-
-			final List<ProgramElementInfo> fragments = this.visitChildren(node.fragments());
-			fragments.forEach(vdStatement::addExpression);
-			text.append(joinTexts(fragments, ","));
-
-			text.append(";");
-			vdStatement.setText(text.toString());
+			final BlockStatementInfo group = new BlockStatementInfo(ownerBlock,
+					StatementInfo.CATEGORY.SimpleBlock,
+					this.getStartLineNumber(node), this.getEndLineNumber(node));
+			final StringBuilder text = new StringBuilder();
+			for (final Object o : fragments) {
+				final VariableDeclarationFragment fragment = (VariableDeclarationFragment) o;
+				final SimpleStatementInfo declaration = this.declaration(
+						ownerBlock, node, fragment,
+						this.getStartLineNumber(fragment),
+						this.getEndLineNumber(fragment));
+				group.addStatement(declaration);
+				text.append(declaration.getText());
+				text.append(System.lineSeparator());
+			}
+			group.setText(text.toString());
+			this.stack.push(group);
 		}
 
 		return false;
+	}
+
+	/** 変数 1 つの宣言文。修飾子と型は元の文のものを使う。 */
+	private SimpleStatementInfo declaration(final ProgramElementInfo ownerBlock,
+			final VariableDeclarationStatement node,
+			final VariableDeclarationFragment fragment, final int startLine,
+			final int endLine) {
+
+		final SimpleStatementInfo statement = new SimpleStatementInfo(ownerBlock,
+				StatementInfo.CATEGORY.VariableDeclaration, startLine, endLine);
+		this.stack.push(statement);
+
+		final StringBuilder text = new StringBuilder();
+		for (final Object modifier : node.modifiers()) {
+			text.append(modifier.toString());
+			text.append(" ");
+		}
+
+		// C 形式の int a[] は int[] a として扱う。
+		final ProgramElementInfo type = new TypeInfo(node.getType().toString()
+				+ "[]".repeat(fragment.extraDimensions().size()), startLine,
+				endLine);
+		statement.addExpression(type);
+		text.append(type.getText());
+		text.append(" ");
+
+		final ProgramElementInfo declarator = this.visitChild(fragment);
+		statement.addExpression(declarator);
+		text.append(declarator.getText());
+		text.append(";");
+		statement.setText(text.toString());
+
+		this.stack.pop();
+		return statement;
 	}
 
 	@Override
@@ -341,7 +382,15 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			final StringBuilder text = new StringBuilder();
 			text.append("for (");
 
-			final List<ProgramElementInfo> initializers = this.visitChildren(node.initializers());
+			// for (int i = 0, j = n; ...) の初期化式は変数ごとに分ける。
+			final List<ProgramElementInfo> initializers = new ArrayList<>();
+			for (final Object o : node.initializers()) {
+				if (o instanceof VariableDeclarationExpression declaration) {
+					initializers.addAll(this.declarationExpressions(declaration));
+				} else {
+					initializers.add(this.visitChild((ASTNode) o));
+				}
+			}
 			initializers.forEach(forBlock::addInitializer);
 			text.append(joinTexts(initializers, ","));
 
@@ -434,9 +483,14 @@ abstract class StatementVisitor extends ExpressionVisitor {
 
 			for (final Object o : node.statements()) {
 				final StatementInfo statement = (StatementInfo) this.visitChild((ASTNode) o);
-				switchBlock.addStatement(statement);
-				text.append(statement.getText());
-				text.append(System.lineSeparator());
+				// 複数の変数を宣言する文は変数ごとの文に分かれ、SimpleBlock に
+				// 包まれて届く。中身を並べる。
+				for (final StatementInfo inner : BlockStatementInfo.flatten(statement)) {
+					inner.setOwnerBlock(switchBlock);
+					switchBlock.addStatement(inner);
+					text.append(inner.getText());
+					text.append(System.lineSeparator());
+				}
 			}
 
 			switchBlock.setText(text.toString());
@@ -753,9 +807,17 @@ abstract class StatementVisitor extends ExpressionVisitor {
 					text.append(System.lineSeparator());
 				}
 
-				simpleBlock.addStatement((StatementInfo) statement);
-				text.append(statement.getText());
-				text.append(System.lineSeparator());
+				// 複数の変数を宣言する文は変数ごとの文に分かれ、SimpleBlock に
+				// 包まれて届く。裸のブロック { ... } も同じ形である。どちらも
+				// 中身を並べる。入れ子のままだと CFG が中身を展開せず、1 個の
+				// 不透明なノードにしてしまう。
+				for (final StatementInfo inner : BlockStatementInfo
+						.flatten((StatementInfo) statement)) {
+					inner.setOwnerBlock(simpleBlock);
+					simpleBlock.addStatement(inner);
+					text.append(inner.getText());
+					text.append(System.lineSeparator());
+				}
 			}
 
 			text.append("}");

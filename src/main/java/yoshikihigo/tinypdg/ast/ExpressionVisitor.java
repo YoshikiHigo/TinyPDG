@@ -1,5 +1,6 @@
 package yoshikihigo.tinypdg.ast;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
@@ -1105,35 +1106,70 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		return false;
 	}
 
+	/**
+	 * 宣言式。for の初期化式と try のリソースに現れる。
+	 *
+	 * <p>断片が複数ある {@code int i = 0, j = n} は for の初期化式にしか
+	 * 現れず、そこでは ForStatement の visit が {@link #declarationExpressions}
+	 * で変数ごとに分ける。ここへ来るのは断片が 1 つのものである。
+	 */
 	@Override
 	public boolean visit(final VariableDeclarationExpression node) {
 
-		final int startLine = this.getStartLineNumber(node);
-		final int endLine = this.getEndLineNumber(node);
-		final ExpressionInfo vdExpression = new ExpressionInfo(
+		final List<ExpressionInfo> declarations = this.declarationExpressions(node);
+		if (1 == declarations.size()) {
+			this.stack.push(declarations.get(0));
+			return false;
+		}
+
+		// 文法上ここには来ないが、来ても取りこぼさない。変数は子から集まる。
+		final ExpressionInfo group = new ExpressionInfo(
+				ExpressionInfo.CATEGORY.Unsupported,
+				this.getStartLineNumber(node), this.getEndLineNumber(node));
+		declarations.forEach(group::addExpression);
+		group.setText(flatten(node));
+		this.stack.push(group);
+		return false;
+	}
+
+	/**
+	 * 宣言式を変数ごとの式にする。{@code int i = 0, j = n} は
+	 * {@code int i = 0} と {@code int j = n} の 2 つになる。
+	 */
+	List<ExpressionInfo> declarationExpressions(
+			final VariableDeclarationExpression node) {
+		final List<ExpressionInfo> declarations = new ArrayList<>();
+		for (final Object o : node.fragments()) {
+			declarations.add(this.declarationExpression(node,
+					(VariableDeclarationFragment) o));
+		}
+		return declarations;
+	}
+
+	/** 変数 1 つの宣言式。型は元の宣言のものを使う。 */
+	private ExpressionInfo declarationExpression(
+			final VariableDeclarationExpression node,
+			final VariableDeclarationFragment fragment) {
+
+		final int startLine = this.getStartLineNumber(fragment);
+		final int endLine = this.getEndLineNumber(fragment);
+		final ExpressionInfo declaration = new ExpressionInfo(
 				ExpressionInfo.CATEGORY.VariableDeclarationExpression,
 				startLine, endLine);
-		this.stack.push(vdExpression);
+		this.stack.push(declaration);
 
-		// C 形式の int a[] は int[] a として扱う。断片ごとに次元が違えば
-		// 型には寄せられず、断片の側に残る。
-		final int dimensions = foldableExtraDimensions(node.fragments());
+		// C 形式の int a[] は int[] a として扱う。
 		final TypeInfo type = new TypeInfo(node.getType().toString()
-				+ "[]".repeat(Math.max(dimensions, 0)), startLine, endLine);
-		vdExpression.addExpression(type);
+				+ "[]".repeat(fragment.extraDimensions().size()), startLine,
+				endLine);
+		declaration.addExpression(type);
 
-		final StringBuilder text = new StringBuilder();
-		text.append(type.getText());
-		text.append(" ");
+		final ProgramElementInfo declarator = this.visitChild(fragment);
+		declaration.addExpression(declarator);
+		declaration.setText(type.getText() + " " + declarator.getText());
 
-		// int i = 0, j = n のように断片は複数ありうる。
-		final List<ProgramElementInfo> fragments = this.visitChildren(node.fragments());
-		fragments.forEach(vdExpression::addExpression);
-		text.append(joinTexts(fragments, ","));
-
-		vdExpression.setText(text.toString());
-
-		return false;
+		this.stack.pop();
+		return declaration;
 	}
 
 	@Override
@@ -1151,12 +1187,8 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 
 		final StringBuilder text = new StringBuilder();
 		text.append(name.getText());
-		// C 形式の int a[] = ... では [] が断片の側に付いている。同じ宣言の
-		// 断片が全て同じ次元なら宣言の側が型に寄せて int[] a にするので、
-		// ここでは書かない。int a[], b; のように違うときだけ書いたとおり残す。
-		if (foldableExtraDimensions(siblingFragments(node)) < 0) {
-			text.append("[]".repeat(node.extraDimensions().size()));
-		}
+		// C 形式の int a[] = ... の [] は断片に付いているが、宣言の側が型に
+		// 寄せて int[] a にするので、ここでは書かない。
 
 		if (null != node.getInitializer()) {
 			final ProgramElementInfo expression = this.visitChild(node.getInitializer());
