@@ -109,7 +109,7 @@ public class Scorpio {
 			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges = Collections
 					.synchronizedSortedMap(new TreeMap<>());
 			{
-				HashCalculationThread.calculate(pdgArray, mappingPDGToPDGNodes,
+				HashCalculation.calculate(pdgArray, mappingPDGToPDGNodes,
 						mappingPDGToPDGEdges, NUMBER_OF_THREADS);
 			}
 			final long time3 = System.nanoTime();
@@ -127,7 +127,7 @@ public class Scorpio {
 				}
 				final PDGPairInfo[] pdgpairArray = pdgpairs
 						.toArray(new PDGPairInfo[0]);
-				SlicingThread.detect(pdgpairArray, pdgArray,
+				CloneDetection.detect(pdgpairArray, pdgArray,
 						mappingPDGToPDGNodes, mappingPDGToPDGEdges, clonepairs,
 						SIZE_THRESHOLD, NUMBER_OF_THREADS);
 			}

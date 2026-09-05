@@ -9,11 +9,9 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntFunction;
 
+import yoshikihigo.tinypdg.Parallel;
 import yoshikihigo.tinypdg.pdg.PDG;
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
@@ -21,28 +19,28 @@ import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
 import yoshikihigo.tinypdg.scorpio.data.NodePairInfo;
 import yoshikihigo.tinypdg.scorpio.data.PDGPairInfo;
 
-public class SlicingThread implements Runnable {
-
-	/**
-	 * 取り出し位置。1 回の検出ごとに用意する。
-	 *
-	 * <p>以前はこれらが static だった。JVM 内の全ての検出で共有され
-	 * 巻き戻らないので、2 回目は数え終わった位置から始まり、クローンが
-	 * 1 件も見つからないまま正常終了していた。
-	 */
-	final private AtomicInteger nextPair;
-	final private AtomicInteger nextSingle;
+/**
+ * PDG の対と単体を走査してクローンペアを集める。
+ *
+ * <p>以前は SlicingThread という名前の Runnable だった。スレッドの骨組みは
+ * Parallel に移り、ここに残るのは検出だけである。
+ */
+public final class CloneDetection {
 
 	final private PDGPairInfo[] pdgpairs;
 	final private PDG[] pdgs;
 
 	final private SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mapPDGToPDGNodes;
 	final private SortedMap<PDG, SortedMap<PDGEdge, Integer>> mapPDGToPDGEdges;
-	final private SortedSet<ClonePairInfo> clonepairs;
 	final private int SIZE_THRESHOLD;
 
 	/**
 	 * PDG の対と単体を走査してクローンペアを集める。
+	 *
+	 * <p>スレッドごとに見つけたペアを手元に集め、担当分が尽きたところで
+	 * 重複を落としてから合流させる。重複の判定はスレッドの手元にあるペア
+	 * 同士で行うので、どのペアが同じスレッドに渡るかで結果が変わりうる。
+	 * 以前からそうである。
 	 */
 	static void detect(final PDGPairInfo[] pdgpairs, final PDG[] pdgs,
 			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mapPDGToPDGNodes,
@@ -50,57 +48,52 @@ public class SlicingThread implements Runnable {
 			final SortedSet<ClonePairInfo> clonepairs,
 			final int SIZE_THRESHOLD, final int threads) {
 
+		Objects.requireNonNull(clonepairs, "\"clonepairs\" is null.");
+
 		// 比較回数は 1 回の検出についての数である。
 		Slicing.resetNumberOfComparison();
 
-		final AtomicInteger nextPair = new AtomicInteger(0);
-		final AtomicInteger nextSingle = new AtomicInteger(0);
-		try (final ExecutorService pool = Executors
-				.newFixedThreadPool(threads)) {
-			for (int i = 0; i < threads; i++) {
-				pool.execute(new SlicingThread(nextPair, nextSingle, pdgpairs,
-						pdgs, mapPDGToPDGNodes, mapPDGToPDGEdges, clonepairs,
-						SIZE_THRESHOLD));
-			}
-		}
+		final CloneDetection detection = new CloneDetection(pdgpairs, pdgs,
+				mapPDGToPDGNodes, mapPDGToPDGEdges, SIZE_THRESHOLD);
+
+		// 添字は対を先に、単体を後に並べる。
+		Parallel.forEach(pdgpairs.length + pdgs.length, threads,
+				() -> new TreeSet<ClonePairInfo>(),
+				(found, index) -> detection.detect(index, found),
+				found -> {
+					detection.removeDuplicates(found);
+					clonepairs.addAll(found);
+				});
 	}
 
-	private SlicingThread(final AtomicInteger nextPair,
-			final AtomicInteger nextSingle,
-			final PDGPairInfo[] pdgpairs,
-			final PDG[] pdgs,
+	private CloneDetection(final PDGPairInfo[] pdgpairs, final PDG[] pdgs,
 			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mapPDGToPDGNodes,
 			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mapPDGToPDGEdges,
-			final SortedSet<ClonePairInfo> clonepairs, final int SIZE_THRESHOLD) {
+			final int SIZE_THRESHOLD) {
 		Objects.requireNonNull(pdgpairs, "\"pdgpairs\" is null.");
 		Objects.requireNonNull(pdgs, "\"pdgs\" is null.");
 		Objects.requireNonNull(mapPDGToPDGNodes, "\"mapPDGToPDGNodes\"");
 		Objects.requireNonNull(mapPDGToPDGEdges, "\"mapPDGToPDGEdges\" is null.");
-		Objects.requireNonNull(clonepairs, "\"clonepairs\" is null.");
 		assert 0 < SIZE_THRESHOLD : "\"THRESHOLD\" must be greater than 0.";
-		this.nextPair = nextPair;
-		this.nextSingle = nextSingle;
 		this.pdgpairs = pdgpairs;
 		this.pdgs = pdgs;
 		this.mapPDGToPDGNodes = mapPDGToPDGNodes;
 		this.mapPDGToPDGEdges = mapPDGToPDGEdges;
-		this.clonepairs = clonepairs;
 		this.SIZE_THRESHOLD = SIZE_THRESHOLD;
 	}
 
-	@Override
-	public void run() {
+	/**
+	 * 添字が対の数より小さければその対の間で、そうでなければ残りの添字が
+	 * 指す PDG の中でクローンペアを探す。
+	 */
+	private void detect(final int index,
+			final SortedSet<ClonePairInfo> found) {
 
-		final SortedSet<ClonePairInfo> clonepairs = new TreeSet<>();
-
-		for (int index = this.nextPair.getAndIncrement(); index < this.pdgpairs.length; index = this.nextPair
-				.getAndIncrement()) {
-
+		if (index < this.pdgpairs.length) {
 			final PDG pdgA = this.pdgpairs[index].left;
 			final PDG pdgB = this.pdgpairs[index].right;
-
 			try {
-				this.detect(pdgA, pdgB, clonepairs);
+				this.detect(pdgA, pdgB, found);
 			} catch (Exception e) {
 				e.printStackTrace();
 				System.err
@@ -109,15 +102,11 @@ public class SlicingThread implements Runnable {
 								+ " and the method " + pdgB.unit.name + " in "
 								+ pdgB.unit.path);
 			}
-		}
 
-		for (int index = this.nextSingle.getAndIncrement(); index < this.pdgs.length; index = this.nextSingle
-				.getAndIncrement()) {
-
-			final PDG pdg = this.pdgs[index];
-
+		} else {
+			final PDG pdg = this.pdgs[index - this.pdgpairs.length];
 			try {
-				this.detect(pdg, pdg, clonepairs);
+				this.detect(pdg, pdg, found);
 			} catch (Exception e) {
 				e.printStackTrace();
 				System.err
@@ -125,22 +114,6 @@ public class SlicingThread implements Runnable {
 								+ pdg.unit.name + " in " + pdg.unit.path);
 			}
 		}
-
-		{
-			final ClonePairInfo[] pairs = clonepairs
-					.toArray(new ClonePairInfo[0]);
-			for (int i = 0; i < pairs.length; i++) {
-				for (int j = i + 1; j < pairs.length; j++) {
-					if (this.sameOnOkValue(pairs[i], pairs[j], 0.7f)) {
-						if (pairs[i].size() <= pairs[j].size()) {
-							clonepairs.remove(pairs[i]);
-						}
-					}
-				}
-			}
-		}
-
-		this.clonepairs.addAll(clonepairs);
 	}
 
 	/**
@@ -267,32 +240,20 @@ public class SlicingThread implements Runnable {
 		return index;
 	}
 
-	private boolean sameOnGoodValue(final ClonePairInfo pair1,
-			final ClonePairInfo pair2, final float threshold) {
-
-		final SortedSet<PDGNode<?>> nodes1A = pair1.getLeftNodes();
-		final SortedSet<PDGNode<?>> nodes2A = pair2.getLeftNodes();
-		final SortedSet<PDGNode<?>> intersectionA = new TreeSet<>();
-		intersectionA.addAll(nodes1A);
-		intersectionA.retainAll(nodes2A);
-		final SortedSet<PDGNode<?>> unionA = new TreeSet<>();
-		unionA.addAll(nodes1A);
-		unionA.addAll(nodes2A);
-
-		final SortedSet<PDGNode<?>> nodes1B = pair1.getRightNodes();
-		final SortedSet<PDGNode<?>> nodes2B = pair2.getRightNodes();
-		final SortedSet<PDGNode<?>> intersectionB = new TreeSet<>();
-		intersectionB.addAll(nodes1B);
-		intersectionB.retainAll(nodes2B);
-		final SortedSet<PDGNode<?>> unionB = new TreeSet<>();
-		unionB.addAll(nodes1B);
-		unionB.addAll(nodes2B);
-
-		final float good = Math.min((float) intersectionA.size()
-				/ (float) unionA.size(), (float) intersectionB.size()
-				/ (float) unionB.size());
-
-		return threshold <= good;
+	/**
+	 * 片方がもう片方の大部分を含むペアがあれば、小さい方を落とす。
+	 */
+	private void removeDuplicates(final SortedSet<ClonePairInfo> clonepairs) {
+		final ClonePairInfo[] pairs = clonepairs.toArray(new ClonePairInfo[0]);
+		for (int i = 0; i < pairs.length; i++) {
+			for (int j = i + 1; j < pairs.length; j++) {
+				if (this.sameOnOkValue(pairs[i], pairs[j], 0.7f)) {
+					if (pairs[i].size() <= pairs[j].size()) {
+						clonepairs.remove(pairs[i]);
+					}
+				}
+			}
+		}
 	}
 
 	private boolean sameOnOkValue(final ClonePairInfo pair1,
@@ -319,19 +280,17 @@ public class SlicingThread implements Runnable {
 		return threshold <= ok;
 	}
 
-	class PDGEdgesComparator implements Comparator<PDGEdge[]> {
+	/** 相手の多いまとまりから見る。同じ大きさなら先頭の辺の順。 */
+	private static final class PDGEdgesComparator implements
+			Comparator<PDGEdge[]> {
 
 		@Override
 		public int compare(final PDGEdge[] o1, final PDGEdge[] o2) {
-
-			if (o1.length < o2.length) {
-				return -1;
-			} else if (o1.length > o2.length) {
-				return 1;
-			} else {
-				return o1[0].compareTo(o2[0]);
+			final int lengthOrder = Integer.compare(o1.length, o2.length);
+			if (0 != lengthOrder) {
+				return lengthOrder;
 			}
+			return o1[0].compareTo(o2[0]);
 		}
-
 	}
 }

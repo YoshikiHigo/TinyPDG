@@ -5,11 +5,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
+import yoshikihigo.tinypdg.Parallel;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
 import yoshikihigo.tinypdg.pe.MethodInfo;
@@ -67,54 +65,34 @@ public final class PDGGeneration {
 		final CFGNodeFactory cfgNodeFactory = new CFGNodeFactory();
 		final PDGNodeFactory pdgNodeFactory = new PDGNodeFactory();
 
-		// 取り出し位置は 1 回の生成ごとに用意する。以前はこれが static で、
-		// 全ての生成で共有され、しかも巻き戻らなかった。同じ JVM で 2 回目を
-		// 走らせると、1 回目が数え終わった位置から始まるので 1 つも作られず、
-		// それでも正常終了しているように見えていた。
-		final AtomicInteger next = new AtomicInteger(0);
-
-		// close() が全タスクの終了を待つ。以前は Thread を並べて join し、
-		// InterruptedException はスタックトレースを出すだけで割り込み状態を
-		// 戻していなかった。
-		try (final ExecutorService pool = Executors
-				.newFixedThreadPool(options.threads())) {
-			for (int i = 0; i < options.threads(); i++) {
-				pool.execute(() -> buildFrom(methods, next, pdgs,
-						cfgNodeFactory, pdgNodeFactory, options, afterBuild));
-			}
-		}
+		Parallel.forEach(methods.size(), options.threads(),
+				index -> build(methods.get(index), cfgNodeFactory,
+						pdgNodeFactory, options, afterBuild, pdgs));
 
 		return pdgs;
 	}
 
-	private static void buildFrom(final List<MethodInfo> methods,
-			final AtomicInteger next, final SortedSet<PDG> pdgs,
+	private static void build(final MethodInfo method,
 			final CFGNodeFactory cfgNodeFactory,
 			final PDGNodeFactory pdgNodeFactory, final Options options,
-			final Consumer<PDG> afterBuild) {
+			final Consumer<PDG> afterBuild, final SortedSet<PDG> pdgs) {
 
-		for (int index = next.getAndIncrement(); index < methods.size(); index = next
-				.getAndIncrement()) {
+		try {
+			final PDG pdg = new PDG(method, pdgNodeFactory, cfgNodeFactory,
+					options.dependences());
+			pdg.build();
 
-			final MethodInfo method = methods.get(index);
-
-			try {
-				final PDG pdg = new PDG(method, pdgNodeFactory, cfgNodeFactory,
-						options.dependences());
-				pdg.build();
-
-				if (pdg.getAllNodes().size() < options.minimumSize()) {
-					continue;
-				}
-
-				afterBuild.accept(pdg);
-				pdgs.add(pdg);
-
-			} catch (final Exception e) {
-				e.printStackTrace();
-				System.err.println("ERROR: failed to process the method "
-						+ method.name + " in " + method.path);
+			if (pdg.getAllNodes().size() < options.minimumSize()) {
+				return;
 			}
+
+			afterBuild.accept(pdg);
+			pdgs.add(pdg);
+
+		} catch (final Exception e) {
+			e.printStackTrace();
+			System.err.println("ERROR: failed to process the method "
+					+ method.name + " in " + method.path);
 		}
 	}
 }
