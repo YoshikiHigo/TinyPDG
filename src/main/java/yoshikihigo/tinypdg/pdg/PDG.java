@@ -219,10 +219,7 @@ public class PDG implements Comparable<PDG> {
 		if (this.dependences.control()) {
 			this.buildControlDependence(this.enterNode, unit);
 			for (final PDGParameterNode parameterNode : this.parameterNodes) {
-				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
-						this.enterNode, parameterNode, true);
-				this.enterNode.addForwardEdge(edge);
-				parameterNode.addBackwardEdge(edge);
+				new PDGControlDependenceEdge(this.enterNode, parameterNode, true).connect();
 			}
 		}
 
@@ -230,10 +227,7 @@ public class PDG implements Comparable<PDG> {
 			if (!this.cfg.isEmpty()) {
 				final PDGNode<?> node = this.pdgNodeFactory.makeNode(this.cfg
 						.getEnterNode());
-				final PDGExecutionDependenceEdge edge = new PDGExecutionDependenceEdge(
-						this.enterNode, node);
-				this.enterNode.addForwardEdge(edge);
-				node.addBackwardEdge(edge);
+				new PDGExecutionDependenceEdge(this.enterNode, node).connect();
 			}
 		}
 
@@ -306,10 +300,7 @@ public class PDG implements Comparable<PDG> {
 				final int distance = Math.abs(toPDGNode.core.startLine
 						- pdgNode.core.startLine) + 1;
 				if (distance <= this.dependences.executionDistance()) {
-					final PDGExecutionDependenceEdge edge = new PDGExecutionDependenceEdge(
-							pdgNode, toPDGNode);
-					pdgNode.addForwardEdge(edge);
-					toPDGNode.addBackwardEdge(edge);
+					new PDGExecutionDependenceEdge(pdgNode, toPDGNode).connect();
 				}
 
 			}
@@ -341,10 +332,7 @@ public class PDG implements Comparable<PDG> {
 			final int distance = Math.abs(toPDGNode.core.startLine
 					- fromPDGNode.core.startLine) + 1;
 			if (distance <= this.dependences.dataDistance()) {
-				final PDGDataDependenceEdge edge = new PDGDataDependenceEdge(
-						fromPDGNode, toPDGNode, variable);
-				fromPDGNode.addForwardEdge(edge);
-				toPDGNode.addBackwardEdge(edge);
+				new PDGDataDependenceEdge(fromPDGNode, toPDGNode, variable).connect();
 			}
 		}
 
@@ -376,10 +364,7 @@ public class PDG implements Comparable<PDG> {
 			for (final ProgramElementInfo updater : forStatement.getUpdaters()) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNormalNode(updater);
-				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
-						fromPDGNode, toPDGNode, true);
-				fromPDGNode.addForwardEdge(edge);
-				toPDGNode.addBackwardEdge(edge);
+				new PDGControlDependenceEdge(fromPDGNode, toPDGNode, true).connect();
 			}
 		}
 	}
@@ -400,10 +385,7 @@ public class PDG implements Comparable<PDG> {
 			if (null != condition) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeControlNode(condition);
-				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
-						fromPDGNode, toPDGNode, type);
-				fromPDGNode.addForwardEdge(edge);
-				toPDGNode.addBackwardEdge(edge);
+				new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
 			} else {
 				this.buildControlDependence(fromPDGNode, block);
 			}
@@ -413,10 +395,7 @@ public class PDG implements Comparable<PDG> {
 						.getInitializers()) {
 					final PDGNode<?> toPDGNode = this.pdgNodeFactory
 							.makeNormalNode(initializer);
-					final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
-							fromPDGNode, toPDGNode, type);
-					fromPDGNode.addForwardEdge(edge);
-					toPDGNode.addBackwardEdge(edge);
+					new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
 				}
 			}
 
@@ -453,10 +432,7 @@ public class PDG implements Comparable<PDG> {
 		if ((null != cfgNode) && (this.cfg.getAllNodes().contains(cfgNode))) {
 			final PDGNode<?> toPDGNode = this.pdgNodeFactory
 					.makeNormalNode(statement);
-			final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
-					fromPDGNode, toPDGNode, type);
-			fromPDGNode.addForwardEdge(edge);
-			toPDGNode.addBackwardEdge(edge);
+			new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
 		}
 	}
 }

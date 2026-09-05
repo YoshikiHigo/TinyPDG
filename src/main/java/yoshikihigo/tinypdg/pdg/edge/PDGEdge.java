@@ -84,6 +84,12 @@ public abstract class PDGEdge implements Comparable<PDGEdge> {
 				|| (0 == this.toNode.compareTo(edge.toNode));
 	}
 
+	/** この辺を両端のノードに登録する。remove の逆である。 */
+	public void connect() {
+		this.fromNode.addForwardEdge(this);
+		this.toNode.addBackwardEdge(this);
+	}
+
 	public void remove() {
 		final boolean f = this.fromNode.removeForwardEdge(this);
 		final boolean b = this.toNode.removeBackwardEdge(this);

@@ -84,10 +84,7 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 			assert b1 : "invalid status.";
 			assert b2 : "invalid status.";
 
-			final PDGEdge newBackwardEdge = backwardEdge
-					.replaceToNode(replacingNode);
-			backwardEdge.fromNode.addForwardEdge(newBackwardEdge);
-			replacingNode.addBackwardEdge(newBackwardEdge);
+			backwardEdge.replaceToNode(replacingNode).connect();
 		}
 
 		final SortedSet<PDGEdge> forwardEdges = replacedNode.getForwardEdges();
@@ -99,10 +96,7 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 			assert b1 : "invalid status.";
 			assert b2 : "invalid status.";
 
-			final PDGEdge newForwardEdge = forwardEdge
-					.replaceFromNode(replacingNode);
-			forwardEdge.toNode.addBackwardEdge(newForwardEdge);
-			replacingNode.addForwardEdge(newForwardEdge);
+			forwardEdge.replaceFromNode(replacingNode).connect();
 		}
 	}
 

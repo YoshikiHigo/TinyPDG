@@ -67,6 +67,17 @@ public abstract class CFGEdge implements Comparable<CFGEdge> {
 		this.toNode = toNode;
 	}
 
+	/**
+	 * この辺を両端のノードに登録する。
+	 *
+	 * <p>辺は作っただけでは繋がらない。始点の順方向、終点の逆方向の両方に
+	 * 入れて初めてグラフの一部になる。CFG はこれを 20 か所近くで書いていた。
+	 */
+	public void connect() {
+		this.fromNode.addForwardEdge(this);
+		this.toNode.addBackwardEdge(this);
+	}
+
 	public abstract String getDependenceTypeString();
 
 	public abstract String getDependenceString();
