@@ -292,9 +292,10 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			final StringBuilder text = new StringBuilder();
 			text.append("do ");
 			text.append(body.getText());
-			text.append("while (");
+			text.append(" while (");
 			text.append(condition.getText());
 			text.append(");");
+			doBlock.setText(text.toString());
 		}
 
 		return false;
@@ -854,7 +855,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			text.append("catch (");
 			text.append(exception.getText());
 			text.append(") ");
-			text.append(catchBlock.getText());
+			text.append(body.getText());
 			catchBlock.setText(text.toString());
 		}
 
