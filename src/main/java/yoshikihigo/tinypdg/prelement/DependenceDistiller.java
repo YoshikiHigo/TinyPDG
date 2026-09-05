@@ -155,11 +155,6 @@ public class DependenceDistiller {
 			System.out.println("total elapsed time: "
 					+ CommandLineTools.formatElapsed(time5 - time1));
 
-			// printFrequencies("control", texts, frequenciesForControlDependence);
-			// printFrequencies("data", texts, frequenciesForDataDependence);
-			// printFrequencies("execution", texts,
-			// frequenciesForExecutionDependence);
-
 		} catch (final Exception e) {
 			// 異常終了なので終了コードは非 0 にする。0 のままでは、
 			// シェルや CI から呼んだときに成功と区別が付かない。
@@ -238,29 +233,6 @@ public class DependenceDistiller {
 			for (final Frequency frequency : entry.getValue()) {
 				dao.addToFrequencies(type, fromhash, frequency);
 			}
-		}
-	}
-
-	private static void printFrequencies(final String type,
-			final ConcurrentMap<Integer, String> texts,
-			final ConcurrentMap<Integer, List<Frequency>> allFrequencies) {
-
-		for (final Entry<Integer, List<Frequency>> entry : allFrequencies
-				.entrySet()) {
-			final int fromNodeHash = entry.getKey();
-			final String fromNodeText = texts.get(fromNodeHash);
-			for (final Frequency frequency : entry.getValue()) {
-				System.out.print(type);
-				System.out.print(" ");
-				System.out.print(Integer.toString(frequency.support));
-				System.out.print(" ");
-				System.out.print(Float.toString(frequency.probablity));
-				System.out.print(" ");
-				System.out.print(fromNodeText);
-				System.out.print(" -> ");
-				System.out.println(frequency.text);
-			}
-			System.out.println("-------------------------------------------");
 		}
 	}
 

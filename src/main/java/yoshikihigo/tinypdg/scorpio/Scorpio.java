@@ -154,11 +154,6 @@ public class Scorpio {
 		}
 	}
 
-	private static void printNumberOfRemoval(final long number) {
-		System.out.print("number of removed edges: ");
-		System.out.println(String.format("%1$,3d", number));
-	}
-
 	private static void printNumberOfComparison(final long number) {
 		System.out.println(String.format("%1$,3d", number));
 	}

@@ -40,7 +40,6 @@ public class NormalizedText {
 
 	public static String normalize(final String text) {
 
-//		StringBuilder normalizedText = new StringBuilder(text);
 		StringBuilder normalizedText = new StringBuilder(resolveDuplicatedMarkingTokens(text));
 		final Map<String, String> mapper = new HashMap<>();
 

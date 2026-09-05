@@ -1,6 +1,5 @@
 package yoshikihigo.tinypdg.cfg.node;
 
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.SortedSet;
@@ -54,27 +53,9 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 		return this.forwardEdges.remove(forwardEdge);
 	}
 
-	public boolean removeForwardEdges(final Collection<CFGEdge> forwardEdges) {
-
-		if (null == forwardEdges) {
-			throw new IllegalArgumentException();
-		}
-
-		return this.forwardEdges.removeAll(forwardEdges);
-	}
-
 	public boolean removeBackwardEdge(final CFGEdge backwardEdge) {
 		Objects.requireNonNull(backwardEdge, "\"backwardEdge\" is null.");
 		return this.backwardEdges.remove(backwardEdge);
-	}
-
-	public boolean removeBackwardEdges(final Collection<CFGEdge> backwardEdges) {
-
-		if (null == backwardEdges) {
-			throw new IllegalArgumentException();
-		}
-
-		return this.backwardEdges.removeAll(backwardEdges);
 	}
 
 	public boolean removeForwardNode(
