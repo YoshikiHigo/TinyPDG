@@ -108,4 +108,14 @@ class NormalizedTextTest {
 		assertContains(normalizedTexts("lang13_super", "append"),
 				"return super.$1($2 + $3);");
 	}
+
+	@Test
+	void writesAnArrayCreationWithItsInitializer() {
+		// 型の名前に [] が含まれているのに、さらに [] を足していた。
+		assertContains(normalizedTexts("lang14_arraycreation", "withInitializer"),
+				"int[] $1 = new int[]{$2,$3};");
+		// 空の初期化子では、消すカンマがないのに "{" を消していた。
+		assertContains(normalizedTexts("lang14_arraycreation", "emptyInitializer"),
+				"int[] $1 = new int[]{};");
+	}
 }

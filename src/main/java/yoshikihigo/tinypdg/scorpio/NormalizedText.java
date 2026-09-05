@@ -257,9 +257,9 @@ public class NormalizedText {
 
 			case ArrayCreation -> {
 				text.append("new ");
+				// 型の名前に次元の [] まで入っている。
 				final ProgramElementInfo type = coreExp.getExpressions().get(0);
 				text.append(type.getText());
-				text.append("[]");
 				if (1 < coreExp.getExpressions().size()) {
 					final ProgramElementInfo initializer = coreExp
 							.getExpressions().get(1);
@@ -272,14 +272,18 @@ public class NormalizedText {
 
 			case ArrayInitializer -> {
 				text.append("{");
-				for (final ProgramElementInfo expression : coreExp
-						.getExpressions()) {
-					final NormalizedText expressionText = new NormalizedText(
-							expression);
-					text.append(expressionText.getText());
+				final List<ProgramElementInfo> elements = coreExp
+						.getExpressions();
+				for (final ProgramElementInfo element : elements) {
+					final NormalizedText elementText = new NormalizedText(
+							element);
+					text.append(elementText.getText());
 					text.append(",");
 				}
-				text.deleteCharAt(text.length() - 1);
+				// 空の {} では消すカンマがない。無条件に消すと "{" が消える。
+				if (!elements.isEmpty()) {
+					text.deleteCharAt(text.length() - 1);
+				}
 				text.append("}");
 				yield text.toString();
 			}

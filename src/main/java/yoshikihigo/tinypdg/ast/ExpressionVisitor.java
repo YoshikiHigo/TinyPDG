@@ -786,16 +786,16 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		final ProgramElementInfo type = this.stack.pop();
 		arrayCreation.addExpression(type);
 
+		// 型は ArrayType なので、その visit が作る名前に次元の [] まで入っている。
 		final StringBuilder text = new StringBuilder();
 		text.append("new ");
 		text.append(type.getText());
-		text.append("[]");
 
 		if (null != node.getInitializer()) {
 			node.getInitializer().accept(this);
 			final ProgramElementInfo initializer = this.stack.pop();
 			arrayCreation.addExpression(initializer);
-			text.append(arrayCreation);
+			text.append(initializer.getText());
 		}
 		arrayCreation.setText(text.toString());
 

@@ -1,0 +1,58 @@
+# sample: lang14_arraycreation
+
+## CFG emptyInitializer <10...13>
+nodes:
+  0: [enter,normal] final int[] a = new int[]{}; <11>
+  1: [exit,normal] return a; <12>
+edges:
+  0 -> 1 []
+
+## PDG emptyInitializer <10...13>
+nodes:
+  0: [normal] final int[] a = new int[]{}; <11>
+  1: [exit] return a; <12>
+  2: [enter,control] Enter <10...13>
+edges:
+  0 -> 1 [data: a]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]
+
+## CFG nested <15...18>
+nodes:
+  0: [enter,normal] final int[][] m = new int[][]{{1},{2,3}}; <16>
+  1: [exit,normal] return m; <17>
+edges:
+  0 -> 1 []
+
+## PDG nested <15...18>
+nodes:
+  0: [normal] final int[][] m = new int[][]{{1},{2,3}}; <16>
+  1: [exit] return m; <17>
+  2: [enter,control] Enter <15...18>
+edges:
+  0 -> 1 [data: m]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]
+
+## CFG withInitializer <5...8>
+nodes:
+  0: [enter,normal] final int[] a = new int[]{1,2}; <6>
+  1: [exit,normal] return a; <7>
+edges:
+  0 -> 1 []
+
+## PDG withInitializer <5...8>
+nodes:
+  0: [normal] final int[] a = new int[]{1,2}; <6>
+  1: [exit] return a; <7>
+  2: [enter,control] Enter <5...8>
+edges:
+  0 -> 1 [data: a]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]
