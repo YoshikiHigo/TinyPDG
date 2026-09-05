@@ -477,7 +477,10 @@ public class CFG {
 			final CFG catchCFG = new CFG(catchStatement, this.nodeFactory);
 			catchCFG.build();
 
-			this.nodes.addAll(catchCFG.nodes);
+			// catch 節の中の break と continue も、外側のループが行き先を
+			// 決める。以前はノードだけを引き取り、ジャンプは捨てていたので、
+			// catch 節の中の break はどこにも繋がらなかった。
+			this.absorb(catchCFG);
 			for (final CFGNode<? extends ProgramElementInfo> catchExitNode : catchCFG.exitNodes) {
 				connect(catchExitNode, finallyCFG.enterNode);
 			}
