@@ -133,7 +133,7 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 		final StringBuilder text = new StringBuilder();
 		for (final PDGNode<?> node : this.originalNodes) {
 			text.append(node.getText());
-			text.append(System.getProperty("line.separator"));
+			text.append(System.lineSeparator());
 		}
 		return text.toString();
 	}

@@ -32,7 +32,6 @@ import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import org.eclipse.jdt.core.dom.YieldStatement;
-import yoshikihigo.tinypdg.pe.BlockInfo;
 import yoshikihigo.tinypdg.pe.BlockStatementInfo;
 import yoshikihigo.tinypdg.pe.ConditionalStatementInfo;
 import yoshikihigo.tinypdg.pe.ExpressionInfo;
@@ -58,7 +57,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final TypeDeclarationStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -67,8 +66,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 					StatementInfo.CATEGORY.TypeDeclaration, startLine, endLine);
 			this.stack.push(statement);
 
-			node.getDeclaration().accept(this);
-			final ProgramElementInfo typeDeclaration = this.stack.pop();
+			final ProgramElementInfo typeDeclaration = this.visitChild(node.getDeclaration());
 			statement.addExpression(typeDeclaration);
 
 			statement.setText(typeDeclaration.getText());
@@ -81,7 +79,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final YieldStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -92,8 +90,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 
 			final StringBuilder text = new StringBuilder();
 			if (null != node.getExpression()) {
-				node.getExpression().accept(this);
-				final ProgramElementInfo expression = this.stack.pop();
+				final ProgramElementInfo expression = this.visitChild(node.getExpression());
 
 				if (this.yieldTargets.isEmpty()) {
 					yieldStatement.addExpression(expression);
@@ -132,7 +129,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final AssertStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -141,8 +138,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 					StatementInfo.CATEGORY.Assert, startLine, endLine);
 			this.stack.push(statement);
 
-			node.getExpression().accept(this);
-			final ProgramElementInfo expression = this.stack.pop();
+			final ProgramElementInfo expression = this.visitChild(node.getExpression());
 			statement.addExpression(expression);
 
 			final StringBuilder text = new StringBuilder();
@@ -151,8 +147,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 
 			// メッセージは省略できる。省略されていれば getMessage() は null を返す。
 			if (null != node.getMessage()) {
-				node.getMessage().accept(this);
-				final ProgramElementInfo message = this.stack.pop();
+				final ProgramElementInfo message = this.visitChild(node.getMessage());
 				statement.addExpression(message);
 				text.append(" : ");
 				text.append(message.getText());
@@ -168,7 +163,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final ExpressionStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -177,9 +172,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 					StatementInfo.CATEGORY.Expression, startLine, endLine);
 			this.stack.push(statement);
 
-			node.getExpression().accept(this);
-			final ProgramElementInfo expression = this.stack
-					.pop();
+			final ProgramElementInfo expression = this.visitChild(node.getExpression());
 			statement.addExpression(expression);
 
 			final StringBuilder text = new StringBuilder();
@@ -194,7 +187,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final ReturnStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -207,8 +200,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			text.append("return");
 
 			if (null != node.getExpression()) {
-				node.getExpression().accept(this);
-				final ProgramElementInfo expression = this.stack.pop();
+				final ProgramElementInfo expression = this.visitChild(node.getExpression());
 				returnStatement.addExpression(expression);
 				text.append(" ");
 				text.append(expression.getText());
@@ -224,7 +216,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final VariableDeclarationStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -247,19 +239,10 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			text.append(node.getType().toString());
 			text.append(" ");
 
-			boolean anyExpression = false;
-			for (final Object fragment : node.fragments()) {
-				anyExpression = true;
-				((ASTNode) fragment).accept(this);
-				final ProgramElementInfo fragmentExpression = this.stack.pop();
-				vdStatement
-						.addExpression(fragmentExpression);
-				text.append(fragmentExpression.getText() + ",");
-			}
-			if (anyExpression) {
-				text.deleteCharAt(text.length() - 1);
-			}
-			
+			final List<ProgramElementInfo> fragments = this.visitChildren(node.fragments());
+			fragments.forEach(vdStatement::addExpression);
+			text.append(joinTexts(fragments, ","));
+
 			text.append(";");
 			vdStatement.setText(text.toString());
 		}
@@ -270,7 +253,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final DoStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -279,13 +262,10 @@ abstract class StatementVisitor extends ExpressionVisitor {
 					StatementInfo.CATEGORY.Do, startLine, endLine);
 			this.stack.push(doBlock);
 
-			node.getBody().accept(this);
-			final StatementInfo body = (StatementInfo) this.stack.pop();
+			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
 			doBlock.setStatement(body);
 
-			node.getExpression().accept(this);
-			final ProgramElementInfo condition = this.stack
-					.pop();
+			final ProgramElementInfo condition = this.visitChild(node.getExpression());
 			doBlock.setCondition(condition);
 			condition.setOwnerConditinalBlock(doBlock);
 
@@ -304,13 +284,11 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final EnhancedForStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
-			node.getParameter().accept(this);
-			final ProgramElementInfo parameter = this.stack.pop();
+			final ProgramElementInfo parameter = this.visitChild(node.getParameter());
 
-			node.getExpression().accept(this);
-			final ProgramElementInfo expression = this.stack.pop();
+			final ProgramElementInfo expression = this.visitChild(node.getExpression());
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -321,8 +299,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			foreachBlock.addInitializer(expression);
 			this.stack.push(foreachBlock);
 
-			node.getBody().accept(this);
-			final StatementInfo body = (StatementInfo) this.stack.pop();
+			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
 			foreachBlock.setStatement(body);
 
 			final StringBuilder text = new StringBuilder();
@@ -341,7 +318,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final ForStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -353,24 +330,14 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			final StringBuilder text = new StringBuilder();
 			text.append("for (");
 
-			for (final Object o : node.initializers()) {
-				((ASTNode) o).accept(this);
-				final ExpressionInfo initializer = (ExpressionInfo) this.stack
-						.pop();
-				forBlock.addInitializer(initializer);
-				text.append(initializer.getText());
-				text.append(",");
-			}
-			if (0 < node.initializers().size()) {
-				text.deleteCharAt(text.length() - 1);
-			}
+			final List<ProgramElementInfo> initializers = this.visitChildren(node.initializers());
+			initializers.forEach(forBlock::addInitializer);
+			text.append(joinTexts(initializers, ","));
 
 			text.append("; ");
 
 			if (null != node.getExpression()) {
-				node.getExpression().accept(this);
-				final ProgramElementInfo condition = this.stack
-						.pop();
+				final ProgramElementInfo condition = this.visitChild(node.getExpression());
 				forBlock.setCondition(condition);
 				condition.setOwnerConditinalBlock(forBlock);
 				text.append(condition.getText());
@@ -378,22 +345,13 @@ abstract class StatementVisitor extends ExpressionVisitor {
 
 			text.append("; ");
 
-			for (final Object o : node.updaters()) {
-				((ASTNode) o).accept(this);
-				final ExpressionInfo updater = (ExpressionInfo) this.stack
-						.pop();
-				forBlock.addUpdater(updater);
-				text.append(updater.getText());
-				text.append(",");
-			}
-			if (0 < node.updaters().size()) {
-				text.deleteCharAt(text.length() - 1);
-			}
+			final List<ProgramElementInfo> updaters = this.visitChildren(node.updaters());
+			updaters.forEach(forBlock::addUpdater);
+			text.append(joinTexts(updaters, ","));
 
 			text.append(")");
 
-			node.getBody().accept(this);
-			final StatementInfo body = (StatementInfo) this.stack.pop();
+			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
 			forBlock.setStatement(body);
 			text.append(body.getText());
 			forBlock.setText(text.toString());
@@ -405,7 +363,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final IfStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -414,9 +372,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 					StatementInfo.CATEGORY.If, startLine, endLine);
 			this.stack.push(ifBlock);
 
-			node.getExpression().accept(this);
-			final ProgramElementInfo condition = this.stack
-					.pop();
+			final ProgramElementInfo condition = this.visitChild(node.getExpression());
 			ifBlock.setCondition(condition);
 			condition.setOwnerConditinalBlock(ifBlock);
 
@@ -426,15 +382,13 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			text.append(") ");
 
 			if (null != node.getThenStatement()) {
-				node.getThenStatement().accept(this);
-				final StatementInfo thenBody = (StatementInfo) this.stack.pop();
+				final StatementInfo thenBody = (StatementInfo) this.visitChild(node.getThenStatement());
 				ifBlock.setStatement(thenBody);
 				text.append(thenBody.getText());
 			}
 
 			if (null != node.getElseStatement()) {
-				node.getElseStatement().accept(this);
-				final StatementInfo elseBody = (StatementInfo) this.stack.pop();
+				final StatementInfo elseBody = (StatementInfo) this.visitChild(node.getElseStatement());
 				ifBlock.setElseStatement(elseBody);
 				text.append(elseBody.getText());
 			}
@@ -448,7 +402,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final SwitchStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -457,9 +411,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 					StatementInfo.CATEGORY.Switch, startLine, endLine);
 			this.stack.push(switchBlock);
 
-			node.getExpression().accept(this);
-			final ProgramElementInfo condition = this.stack
-					.pop();
+			final ProgramElementInfo condition = this.visitChild(node.getExpression());
 			switchBlock.setCondition(condition);
 			condition.setOwnerConditinalBlock(switchBlock);
 
@@ -467,15 +419,13 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			text.append("switch (");
 			text.append(condition.getText());
 			text.append(") {");
-			text.append(System.getProperty("line.separator"));
+			text.append(System.lineSeparator());
 
 			for (final Object o : node.statements()) {
-				((ASTNode) o).accept(this);
-				final StatementInfo statement = (StatementInfo) this.stack
-						.pop();
+				final StatementInfo statement = (StatementInfo) this.visitChild((ASTNode) o);
 				switchBlock.addStatement(statement);
 				text.append(statement.getText());
-				text.append(System.getProperty("line.separator"));
+				text.append(System.lineSeparator());
 			}
 
 			switchBlock.setText(text.toString());
@@ -487,7 +437,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final SynchronizedStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -497,14 +447,11 @@ abstract class StatementVisitor extends ExpressionVisitor {
 					endLine);
 			this.stack.push(synchronizedBlock);
 
-			node.getExpression().accept(this);
-			final ProgramElementInfo condition = this.stack
-					.pop();
+			final ProgramElementInfo condition = this.visitChild(node.getExpression());
 			synchronizedBlock.setCondition(condition);
 			condition.setOwnerConditinalBlock(synchronizedBlock);
 
-			node.getBody().accept(this);
-			final StatementInfo body = (StatementInfo) this.stack.pop();
+			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
 			synchronizedBlock.setStatement(body);
 
 			final StringBuilder text = new StringBuilder();
@@ -521,7 +468,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final ThrowStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
@@ -529,9 +476,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 					StatementInfo.CATEGORY.Throw, startLine, endLine);
 			this.stack.push(throwStatement);
 
-			node.getExpression().accept(this);
-			final ProgramElementInfo expression = this.stack
-					.pop();
+			final ProgramElementInfo expression = this.visitChild(node.getExpression());
 			throwStatement.addExpression(expression);
 
 			final StringBuilder text = new StringBuilder();
@@ -547,7 +492,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final TryStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -567,8 +512,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			final List<StatementInfo> resources = new ArrayList<>();
 			final StringBuilder resourceText = new StringBuilder();
 			for (final Object o : node.resources()) {
-				((ASTNode) o).accept(this);
-				final ProgramElementInfo resource = this.stack.pop();
+				final ProgramElementInfo resource = this.visitChild((ASTNode) o);
 
 				final SimpleStatementInfo declaration = new SimpleStatementInfo(resourceBlock,
 						StatementInfo.CATEGORY.VariableDeclaration,
@@ -584,9 +528,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 				resourceText.append(") ");
 			}
 
-			node.getBody().accept(this);
-			final BlockStatementInfo body = (BlockStatementInfo) this.stack
-					.pop();
+			final BlockStatementInfo body = (BlockStatementInfo) this.visitChild(node.getBody());
 
 			final StatementInfo effectiveBody;
 			if (null == resourceBlock) {
@@ -619,17 +561,13 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			text.append(effectiveBody.getText());
 
 			for (final Object o : node.catchClauses()) {
-				((ASTNode) o).accept(this);
-				final StatementInfo catchBlock = (StatementInfo) this.stack
-						.pop();
+				final StatementInfo catchBlock = (StatementInfo) this.visitChild((ASTNode) o);
 				tryBlock.addCatchStatement(catchBlock);
 				text.append(catchBlock.getText());
 			}
 
 			if (null != node.getFinally()) {
-				node.getFinally().accept(this);
-				final StatementInfo finallyBlock = (StatementInfo) this.stack
-						.pop();
+				final StatementInfo finallyBlock = (StatementInfo) this.visitChild(node.getFinally());
 				tryBlock.setFinallyStatement(finallyBlock);
 				text.append(finallyBlock.getText());
 			}
@@ -643,7 +581,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final WhileStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -652,14 +590,11 @@ abstract class StatementVisitor extends ExpressionVisitor {
 					StatementInfo.CATEGORY.While, startLine, endLine);
 			this.stack.push(whileBlock);
 
-			node.getExpression().accept(this);
-			final ProgramElementInfo condition = this.stack
-					.pop();
+			final ProgramElementInfo condition = this.visitChild(node.getExpression());
 			whileBlock.setCondition(condition);
 			condition.setOwnerConditinalBlock(whileBlock);
 
-			node.getBody().accept(this);
-			StatementInfo body = (StatementInfo) this.stack.pop();
+			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
 			whileBlock.setStatement(body);
 
 			final StringBuilder text = new StringBuilder();
@@ -676,7 +611,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final SwitchCase node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
@@ -694,17 +629,9 @@ abstract class StatementVisitor extends ExpressionVisitor {
 				text.append("default");
 			} else {
 				text.append("case ");
-				boolean first = true;
-				for (final Object o : expressions) {
-					if (!first) {
-						text.append(", ");
-					}
-					((ASTNode) o).accept(this);
-					final ProgramElementInfo expression = this.stack.pop();
-					switchCase.addExpression(expression);
-					text.append(expression.getText());
-					first = false;
-				}
+				final List<ProgramElementInfo> labels = this.visitChildren(expressions);
+				labels.forEach(switchCase::addExpression);
+				text.append(joinTexts(labels, ", "));
 			}
 
 			// case X -> ... の矢印形式か、従来の case X: 形式か。
@@ -718,7 +645,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final BreakStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -731,8 +658,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			text.append("break");
 
 			if (null != node.getLabel()) {
-				node.getLabel().accept(this);
-				final ProgramElementInfo label = this.stack.pop();
+				final ProgramElementInfo label = this.visitChild(node.getLabel());
 				breakStatement.addExpression(label);
 
 				text.append(" ");
@@ -749,7 +675,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final ContinueStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -763,8 +689,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			text.append("continue");
 
 			if (null != node.getLabel()) {
-				node.getLabel().accept(this);
-				final ProgramElementInfo label = this.stack.pop();
+				final ProgramElementInfo label = this.visitChild(node.getLabel());
 				continuekStatement.addExpression(label);
 
 				text.append(" ");
@@ -793,7 +718,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final Block node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -804,11 +729,10 @@ abstract class StatementVisitor extends ExpressionVisitor {
 
 			final StringBuilder text = new StringBuilder();
 			text.append("{");
-			text.append(System.getProperty("line.separator"));
+			text.append(System.lineSeparator());
 
 			for (final Object o : node.statements()) {
-				((ASTNode) o).accept(this);
-				final ProgramElementInfo statement = this.stack.pop();
+				final ProgramElementInfo statement = this.visitChild((ASTNode) o);
 
 				// switch 式の脱糖で生じた文を、元の文の前に置く。
 				for (final StatementInfo pending : this.drainPendingStatements()) {
@@ -820,7 +744,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 
 				simpleBlock.addStatement((StatementInfo) statement);
 				text.append(statement.getText());
-				text.append(System.getProperty("line.separator"));
+				text.append(System.lineSeparator());
 			}
 
 			text.append("}");
@@ -833,7 +757,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final CatchClause node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
@@ -842,13 +766,11 @@ abstract class StatementVisitor extends ExpressionVisitor {
 					StatementInfo.CATEGORY.Catch, startLine, endLine);
 			this.stack.push(catchBlock);
 
-			node.getException().accept(this);
-			final ProgramElementInfo exception = this.stack.pop();
+			final ProgramElementInfo exception = this.visitChild(node.getException());
 			exception.setOwnerConditinalBlock(catchBlock);
 			catchBlock.setCondition(exception);
 
-			node.getBody().accept(this);
-			final StatementInfo body = (StatementInfo) this.stack.pop();
+			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
 			catchBlock.setStatement(body);
 
 			final StringBuilder text = new StringBuilder();
@@ -865,7 +787,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 	@Override
 	public boolean visit(final EmptyStatement node) {
 
-		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+		if (this.inBlock()) {
 
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);

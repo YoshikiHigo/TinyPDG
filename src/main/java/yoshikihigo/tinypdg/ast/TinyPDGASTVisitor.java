@@ -169,8 +169,7 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 		for (final Object o : node.bodyDeclarations()) {
 
 			if (o instanceof MethodDeclaration) {
-				((ASTNode) o).accept(this);
-				final ProgramElementInfo method = this.stack.pop();
+				final ProgramElementInfo method = this.visitChild((ASTNode) o);
 				this.methods.add((MethodInfo) method);
 				typeDeclaration.addMethod((MethodInfo) method);
 				text.append(method.getText());
@@ -179,8 +178,7 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 			} else if (o instanceof AbstractTypeDeclaration) {
 				// ネストした型。その中のメソッドは、ネスト側の
 				// visitTypeDeclaration が this.methods に積む。
-				((ASTNode) o).accept(this);
-				final ProgramElementInfo nested = this.stack.pop();
+				final ProgramElementInfo nested = this.visitChild((ASTNode) o);
 				text.append(nested.getText());
 				text.append(System.lineSeparator());
 			}
@@ -210,7 +208,7 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 
 		final StringBuilder text = new StringBuilder();
 		text.append("{");
-		text.append(System.getProperty("line.separator"));
+		text.append(System.lineSeparator());
 
 		final int startLine = this.getStartLineNumber(node);
 		final int endLine = this.getEndLineNumber(node);
@@ -220,8 +218,7 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 
 		for (final Object o : node.bodyDeclarations()) {
 			if (o instanceof MethodDeclaration) {
-				((ASTNode) o).accept(this);
-				final ProgramElementInfo method = this.stack.pop();
+				final ProgramElementInfo method = this.visitChild((ASTNode) o);
 				// 匿名クラスのメソッドも 1 つの独立した解析単位として扱う。
 				// ここで this.methods に入れ忘れていたため、これまで
 				// 匿名クラスの中身は誰からも見えていなかった。
@@ -260,22 +257,17 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 		text.append(name);
 		text.append("(");
 
-		for (final Object o : node.parameters()) {
-			((ASTNode) o).accept(this);
-			final VariableInfo parameter = (VariableInfo) this.stack.pop();
+		final List<ProgramElementInfo> parameters = this.visitChildren(node.parameters());
+		for (final ProgramElementInfo o : parameters) {
+			final VariableInfo parameter = (VariableInfo) o;
 			parameter.setCategory(VariableInfo.CATEGORY.PARAMETER);
 			method.addParameter(parameter);
-			text.append(parameter.getText());
-			text.append(",");
 		}
-		if (0 < node.parameters().size()) {
-			text.deleteCharAt(text.length() - 1);
-		}
+		text.append(joinTexts(parameters, ","));
 		text.append(")");
 
 		if (null != node.getBody()) {
-			node.getBody().accept(this);
-			final ProgramElementInfo body = this.stack.pop();
+			final ProgramElementInfo body = this.visitChild(node.getBody());
 			method.setStatement((StatementInfo) body);
 			text.append(body.getText());
 		}
