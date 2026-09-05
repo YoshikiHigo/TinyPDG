@@ -1,6 +1,7 @@
 package yoshikihigo.tinypdg.scorpio;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -22,7 +23,10 @@ import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.pdg.PDG;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
 import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
+import yoshikihigo.tinypdg.pe.ExpressionInfo;
 import yoshikihigo.tinypdg.pe.MethodInfo;
+import yoshikihigo.tinypdg.pe.SimpleStatementInfo;
+import yoshikihigo.tinypdg.pe.StatementInfo;
 
 /**
  * NormalizedText が、解析器が作りうる全ての要素を扱えることを確かめる。
@@ -136,5 +140,23 @@ class NormalizedTextTest {
 		// for の初期化式 int i = 0, j = n。以前は最初の断片しか書いていなかった。
 		assertContains(normalizedTexts("lang16_forinit", "sumPairs"),
 				"int $1 = $2,$3 = $4");
+	}
+
+	/**
+	 * case 文は CFG から取り除かれて PDG に現れないので、グラフ経由では
+	 * この経路に届かない。文を直接組み立てて確かめる。
+	 */
+	@Test
+	void normalizesEveryLabelOfACase() {
+		final SimpleStatementInfo statement = new SimpleStatementInfo(null,
+				StatementInfo.CATEGORY.Case, 1, 1);
+		for (final String name : List.of("A", "B")) {
+			final ExpressionInfo label = new ExpressionInfo(
+					ExpressionInfo.CATEGORY.SimpleName, 1, 1);
+			label.setText(name);
+			statement.addExpression(label);
+		}
+		// 以前は最初のラベルしか書いていなかった。
+		assertEquals("case $1,$2:", NormalizedText.normalize(statement));
 	}
 }

@@ -168,8 +168,9 @@ public class NormalizedText {
 
 		case Break -> "break;";
 
+		// case 1, 2 -> のようにラベルは複数ありうる。
 		case Case -> expressions.isEmpty() ? "default:"
-				: "case " + normalized(expressions.get(0)) + ":";
+				: "case " + join(expressions, ",") + ":";
 
 		case Continue -> "continue;";
 
