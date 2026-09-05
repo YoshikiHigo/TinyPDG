@@ -582,7 +582,7 @@ public class CFG {
 	}
 
 	private void connectCFGContinueStatementNode(final StatementInfo statement,
-			final CFGNode<? extends ProgramElementInfo> distinationNode) {
+			final CFGNode<? extends ProgramElementInfo> destinationNode) {
 
 		final Iterator<CFGContinueStatementNode> iterator = this.unhandledContinueStatementNodes
 				.iterator();
@@ -592,14 +592,14 @@ public class CFG {
 			final String label = continueStatement.getJumpToLabel();
 
 			if (null == label) {
-				connect(node, distinationNode);
+				connect(node, destinationNode);
 				iterator.remove();
 			}
 
 			else {
 
 				if (label.equals(statement.getLabel())) {
-					connect(node, distinationNode);
+					connect(node, destinationNode);
 					iterator.remove();
 				}
 			}
@@ -623,30 +623,30 @@ public class CFG {
 			assert !this.built : "this CFG has already built.";
 			this.built = true;
 
-			final LinkedList<CFG> sequencialCFGs = new LinkedList<>();
+			final LinkedList<CFG> sequentialCFGs = new LinkedList<>();
 			for (final ProgramElementInfo element : this.elements) {
 				final CFG blockCFG = new CFG(element, CFG.this.nodeFactory);
 				blockCFG.build();
 				if (!blockCFG.isEmpty()) {
-					sequencialCFGs.add(blockCFG);
+					sequentialCFGs.add(blockCFG);
 				}
 			}
-			for (int index = 1; index < sequencialCFGs.size(); index++) {
-				final CFG anteriorCFG = sequencialCFGs.get(index - 1);
-				final CFG posteriorCFG = sequencialCFGs.get(index);
+			for (int index = 1; index < sequentialCFGs.size(); index++) {
+				final CFG anteriorCFG = sequentialCFGs.get(index - 1);
+				final CFG posteriorCFG = sequentialCFGs.get(index);
 				for (final CFGNode<?> exitNode : anteriorCFG.exitNodes) {
 					connect(exitNode, posteriorCFG.enterNode);
 				}
 			}
-			if (0 == sequencialCFGs.size()) {
+			if (0 == sequentialCFGs.size()) {
 				final CFG pseudoCFG = new CFG(null, CFG.this.nodeFactory);
 				pseudoCFG.build();
-				sequencialCFGs.add(pseudoCFG);
+				sequentialCFGs.add(pseudoCFG);
 			}
 
-			this.enterNode = sequencialCFGs.getFirst().enterNode;
-			this.exitNodes.addAll(sequencialCFGs.getLast().exitNodes);
-			for (final CFG cfg : sequencialCFGs) {
+			this.enterNode = sequentialCFGs.getFirst().enterNode;
+			this.exitNodes.addAll(sequentialCFGs.getLast().exitNodes);
+			for (final CFG cfg : sequentialCFGs) {
 				this.absorb(cfg);
 			}
 		}

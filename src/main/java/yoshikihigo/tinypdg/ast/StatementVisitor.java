@@ -394,7 +394,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 
 			final ProgramElementInfo condition = this.visitChild(node.getExpression());
 			doBlock.setCondition(condition);
-			condition.setOwnerConditinalBlock(doBlock);
+			condition.setOwnerConditionalBlock(doBlock);
 
 			final StringBuilder text = new StringBuilder();
 			text.append("do ");
@@ -434,7 +434,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			header.addExpression(expression);
 			header.setText(parameter.getText() + " : " + expression.getText());
 			foreachBlock.setCondition(header);
-			header.setOwnerConditinalBlock(foreachBlock);
+			header.setOwnerConditionalBlock(foreachBlock);
 
 			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
 			foreachBlock.setStatement(body);
@@ -482,7 +482,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			if (null != node.getExpression()) {
 				final ProgramElementInfo condition = this.visitChild(node.getExpression());
 				forBlock.setCondition(condition);
-				condition.setOwnerConditinalBlock(forBlock);
+				condition.setOwnerConditionalBlock(forBlock);
 				text.append(condition.getText());
 			}
 
@@ -517,7 +517,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 
 			final ProgramElementInfo condition = this.visitChild(node.getExpression());
 			ifBlock.setCondition(condition);
-			condition.setOwnerConditinalBlock(ifBlock);
+			condition.setOwnerConditionalBlock(ifBlock);
 
 			final StringBuilder text = new StringBuilder();
 			text.append("if (");
@@ -556,7 +556,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 
 			final ProgramElementInfo condition = this.visitChild(node.getExpression());
 			switchBlock.setCondition(condition);
-			condition.setOwnerConditinalBlock(switchBlock);
+			condition.setOwnerConditionalBlock(switchBlock);
 
 			final StringBuilder text = new StringBuilder();
 			text.append("switch (");
@@ -597,7 +597,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 
 			final ProgramElementInfo condition = this.visitChild(node.getExpression());
 			synchronizedBlock.setCondition(condition);
-			condition.setOwnerConditinalBlock(synchronizedBlock);
+			condition.setOwnerConditionalBlock(synchronizedBlock);
 
 			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
 			synchronizedBlock.setStatement(body);
@@ -740,7 +740,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 
 			final ProgramElementInfo condition = this.visitChild(node.getExpression());
 			whileBlock.setCondition(condition);
-			condition.setOwnerConditinalBlock(whileBlock);
+			condition.setOwnerConditionalBlock(whileBlock);
 
 			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
 			whileBlock.setStatement(body);
@@ -923,7 +923,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			this.stack.push(catchBlock);
 
 			final ProgramElementInfo exception = this.visitChild(node.getException());
-			exception.setOwnerConditinalBlock(catchBlock);
+			exception.setOwnerConditionalBlock(catchBlock);
 			catchBlock.setCondition(exception);
 
 			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());

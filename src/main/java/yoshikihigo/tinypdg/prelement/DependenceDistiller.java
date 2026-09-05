@@ -207,7 +207,7 @@ public class DependenceDistiller {
 			}
 			// 確率の高いものから。
 			frequencies.sort(Comparator
-					.comparingDouble((Frequency f) -> f.probablity).reversed());
+					.comparingDouble((Frequency f) -> f.probability).reversed());
 			allFrequencies.put(fromNodeHash, frequencies);
 		}
 	}

@@ -49,7 +49,7 @@ class DAOTest {
 			final Frequency frequency = found.get(0);
 			assertEquals(200, frequency.hash);
 			assertEquals(3, frequency.support);
-			assertEquals(0.75f, frequency.probablity, 0.0001f);
+			assertEquals(0.75f, frequency.probability, 0.0001f);
 			assertEquals("int b = 20;", frequency.text,
 					"texts テーブルとの結合が効いていること");
 

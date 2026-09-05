@@ -177,11 +177,11 @@ public class ElementPredictor {
 			System.out.print("), probability: ");
 			System.out.print(frequency.getTotalProbability());
 			System.out.print(" (control: ");
-			System.out.print(frequency.control.probablity);
+			System.out.print(frequency.control.probability);
 			System.out.print(", data: ");
-			System.out.print(frequency.data.probablity);
+			System.out.print(frequency.data.probability);
 			System.out.print(", execution: ");
-			System.out.print(frequency.execution.probablity);
+			System.out.print(frequency.execution.probability);
 			System.out.print("), predicted element: ");
 			System.out.println(frequency.text);
 		}

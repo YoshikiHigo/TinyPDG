@@ -63,7 +63,7 @@ public class PDGNodeFactory {
 		}
 
 		else if (element instanceof MethodInfo) {
-			node = PDGMethodEnterNode.getInstance((MethodInfo) element);
+			node = PDGMethodEnterNode.create((MethodInfo) element);
 		}
 
 		else {

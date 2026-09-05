@@ -114,7 +114,7 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 
 		final ProgramElementInfo condition = this.visitChild(node.getExpression());
 		switchBlock.setCondition(condition);
-		condition.setOwnerConditinalBlock(switchBlock);
+		condition.setOwnerConditionalBlock(switchBlock);
 
 		final StringBuilder text = new StringBuilder();
 		text.append("switch (");

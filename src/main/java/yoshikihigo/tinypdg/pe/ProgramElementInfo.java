@@ -93,7 +93,7 @@ abstract public class ProgramElementInfo implements
 		return new TreeSet<>();
 	}
 
-	public void setOwnerConditinalBlock(final BlockInfo ownerConditionalBlock) {
+	public void setOwnerConditionalBlock(final BlockInfo ownerConditionalBlock) {
 		Objects.requireNonNull(ownerConditionalBlock, "\"ownerConditionalBlock\" is null.");
 		this.ownerConditionalBlock = ownerConditionalBlock;
 	}

@@ -61,13 +61,13 @@ public class Bellon {
 		final int numberOfOKCandidates = okCandidates.size();
 		final int numberOfGOODCandidates = goodCandidates.size();
 
-		System.out.print("\"detected configuous references with OK\"");
+		System.out.print("\"detected contiguous references with OK\"");
 		System.out.print(", ");
-		System.out.print("\"detected non-configuous references with OK\"");
+		System.out.print("\"detected non-contiguous references with OK\"");
 		System.out.print(", ");
-		System.out.print("\"detected configuous references with GOOD\"");
+		System.out.print("\"detected contiguous references with GOOD\"");
 		System.out.print(", ");
-		System.out.print("\"detected non-configuous references with GOOD\"");
+		System.out.print("\"detected non-contiguous references with GOOD\"");
 		System.out.print(", ");
 		System.out.print("\"ok recall\"");
 		System.out.print(", ");

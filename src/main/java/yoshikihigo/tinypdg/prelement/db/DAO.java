@@ -144,7 +144,7 @@ public class DAO implements AutoCloseable {
 			insert.setInt(2, fromhash);
 			insert.setInt(3, frequency.hash);
 			insert.setInt(4, frequency.support);
-			insert.setFloat(5, frequency.probablity);
+			insert.setFloat(5, frequency.probability);
 			this.insertToFrequencies.addBatch();
 
 		} catch (final SQLException e) {
