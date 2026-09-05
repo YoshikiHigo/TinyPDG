@@ -105,10 +105,9 @@ public class ExpressionInfo extends ProgramElementInfo {
 		this.expressions.add(expression);
 	}
 
+	/** 子の式。変更できない写しで、StatementInfo の getExpressions と同じ。 */
 	public List<ProgramElementInfo> getExpressions() {
-		final List<ProgramElementInfo> expressions = new ArrayList<>();
-		expressions.addAll(this.expressions);
-		return expressions;
+		return List.copyOf(this.expressions);
 	}
 
 	public void setAnonymousClassDeclaration(

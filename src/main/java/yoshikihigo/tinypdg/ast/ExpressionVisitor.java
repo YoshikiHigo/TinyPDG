@@ -16,7 +16,6 @@ import org.eclipse.jdt.core.dom.CharacterLiteral;
 import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ConditionalExpression;
-import org.eclipse.jdt.core.dom.ConstructorInvocation;
 import org.eclipse.jdt.core.dom.CreationReference;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionMethodReference;
@@ -37,7 +36,6 @@ import org.eclipse.jdt.core.dom.RecordPattern;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.StringLiteral;
-import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
 import org.eclipse.jdt.core.dom.SuperFieldAccess;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.SuperMethodReference;
@@ -945,37 +943,6 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 	}
 
 	@Override
-	public boolean visit(final ConstructorInvocation node) {
-
-		final int startLine = this.getStartLineNumber(node);
-		final int endLine = this.getEndLineNumber(node);
-		final ExpressionInfo invocation = new ExpressionInfo(
-				ExpressionInfo.CATEGORY.ConstructorInvocation, startLine,
-				endLine);
-		this.stack.push(invocation);
-
-		final StringBuilder text = new StringBuilder();
-		text.append("this(");
-		final List<ProgramElementInfo> arguments = this.visitChildren(node.arguments());
-		arguments.forEach(invocation::addExpression);
-		text.append(joinTexts(arguments, ","));
-		text.append(")");
-		invocation.setText(text.toString());
-
-		this.stack.pop();
-		final ProgramElementInfo ownerBlock = this.stack.peek();
-		final SimpleStatementInfo statement = new SimpleStatementInfo(ownerBlock,
-				StatementInfo.CATEGORY.Expression, startLine, endLine);
-		this.stack.push(statement);
-
-		statement.addExpression(invocation);
-		text.append(";");
-		statement.setText(text.toString());
-
-		return false;
-	}
-
-	@Override
 	public boolean visit(final InstanceofExpression node) {
 
 		final int startLine = this.getStartLineNumber(node);
@@ -1049,46 +1016,6 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		text.append(expression.getText());
 		text.append(")");
 		parenthesizedExpression.setText(text.toString());
-
-		return false;
-	}
-
-	@Override
-	public boolean visit(final SuperConstructorInvocation node) {
-
-		final int startLine = this.getStartLineNumber(node);
-		final int endLine = this.getEndLineNumber(node);
-		final ExpressionInfo superConstructorInvocation = new ExpressionInfo(
-				ExpressionInfo.CATEGORY.SuperConstructorInvocation, startLine,
-				endLine);
-		this.stack.push(superConstructorInvocation);
-
-		final StringBuilder text = new StringBuilder();
-
-		if (null != node.getExpression()) {
-			final ProgramElementInfo qualifier = this.visitChild(node.getExpression());
-			superConstructorInvocation.setQualifier(qualifier);
-			text.append(qualifier.getText());
-			text.append(".super(");
-		} else {
-			text.append("super(");
-		}
-
-		final List<ProgramElementInfo> arguments = this.visitChildren(node.arguments());
-		arguments.forEach(superConstructorInvocation::addExpression);
-		text.append(joinTexts(arguments, ","));
-		text.append(")");
-		superConstructorInvocation.setText(text.toString());
-
-		this.stack.pop();
-		final ProgramElementInfo ownerBlock = this.stack.peek();
-		final SimpleStatementInfo statement = new SimpleStatementInfo(ownerBlock,
-				StatementInfo.CATEGORY.Expression, startLine, endLine);
-		this.stack.push(statement);
-
-		statement.addExpression(superConstructorInvocation);
-		text.append(";");
-		statement.setText(text.toString());
 
 		return false;
 	}

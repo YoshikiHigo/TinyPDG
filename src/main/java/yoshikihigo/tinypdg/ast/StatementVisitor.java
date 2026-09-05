@@ -9,6 +9,7 @@ import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BreakStatement;
 import org.eclipse.jdt.core.dom.CatchClause;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.ConstructorInvocation;
 import org.eclipse.jdt.core.dom.ContinueStatement;
 import org.eclipse.jdt.core.dom.DoStatement;
 import org.eclipse.jdt.core.dom.EmptyStatement;
@@ -20,6 +21,7 @@ import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.LabeledStatement;
 import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
+import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
 import org.eclipse.jdt.core.dom.SwitchCase;
 import org.eclipse.jdt.core.dom.SwitchStatement;
 import org.eclipse.jdt.core.dom.SynchronizedStatement;
@@ -125,6 +127,87 @@ abstract class StatementVisitor extends ExpressionVisitor {
 		}
 
 		return false;
+	}
+
+	/**
+	 * {@code this(...)}。JDT ではこれは文で、コンストラクタ本体の先頭にしか
+	 * 現れない。呼び出しの式を作り、それを 1 つ持つ式文に包む。
+	 *
+	 * <p>以前は式の段にあり、式の visit の中で文を作っていた。
+	 */
+	@Override
+	public boolean visit(final ConstructorInvocation node) {
+
+		if (this.inBlock()) {
+
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final ExpressionInfo invocation = new ExpressionInfo(
+					ExpressionInfo.CATEGORY.ConstructorInvocation, startLine,
+					endLine);
+			this.stack.push(invocation);
+
+			final StringBuilder text = new StringBuilder();
+			text.append("this(");
+			final List<ProgramElementInfo> arguments = this.visitChildren(node.arguments());
+			arguments.forEach(invocation::addExpression);
+			text.append(joinTexts(arguments, ","));
+			text.append(")");
+			invocation.setText(text.toString());
+
+			this.stack.pop();
+			this.pushInvocationStatement(invocation, startLine, endLine);
+		}
+
+		return false;
+	}
+
+	/** {@code super(...)}。{@code this(...)} と同じ扱い。 */
+	@Override
+	public boolean visit(final SuperConstructorInvocation node) {
+
+		if (this.inBlock()) {
+
+			final int startLine = this.getStartLineNumber(node);
+			final int endLine = this.getEndLineNumber(node);
+			final ExpressionInfo invocation = new ExpressionInfo(
+					ExpressionInfo.CATEGORY.SuperConstructorInvocation, startLine,
+					endLine);
+			this.stack.push(invocation);
+
+			final StringBuilder text = new StringBuilder();
+
+			if (null != node.getExpression()) {
+				final ProgramElementInfo qualifier = this.visitChild(node.getExpression());
+				invocation.setQualifier(qualifier);
+				text.append(qualifier.getText());
+				text.append(".super(");
+			} else {
+				text.append("super(");
+			}
+
+			final List<ProgramElementInfo> arguments = this.visitChildren(node.arguments());
+			arguments.forEach(invocation::addExpression);
+			text.append(joinTexts(arguments, ","));
+			text.append(")");
+			invocation.setText(text.toString());
+
+			this.stack.pop();
+			this.pushInvocationStatement(invocation, startLine, endLine);
+		}
+
+		return false;
+	}
+
+	/** コンストラクタ呼び出しの式を、それ 1 つを持つ式文に包んで積む。 */
+	private void pushInvocationStatement(final ExpressionInfo invocation,
+			final int startLine, final int endLine) {
+		final ProgramElementInfo ownerBlock = this.stack.peek();
+		final SimpleStatementInfo statement = new SimpleStatementInfo(ownerBlock,
+				StatementInfo.CATEGORY.Expression, startLine, endLine);
+		statement.addExpression(invocation);
+		statement.setText(invocation.getText() + ";");
+		this.stack.push(statement);
 	}
 
 	@Override
