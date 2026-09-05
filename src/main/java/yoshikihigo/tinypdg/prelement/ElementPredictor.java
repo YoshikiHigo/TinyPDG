@@ -149,11 +149,13 @@ public class ElementPredictor {
 			final CombinationalFrequency frequency = new CombinationalFrequency(
 					frequencyForExecution.hash, frequencyForExecution.text,
 					null, null, frequencyForExecution);
-			frequencies.sort(Comparator
-					.comparingInt(CombinationalFrequency::getTotalSupport)
-					.reversed());
 			frequencies.add(frequency);
 		}
+
+		// 支持度の合計が大きいものから。全部そろってから 1 回だけ並べる。
+		frequencies.sort(Comparator
+				.comparingInt(CombinationalFrequency::getTotalSupport)
+				.reversed());
 
 		return frequencies;
 	}
