@@ -232,11 +232,14 @@ abstract class StatementVisitor extends ExpressionVisitor {
 				text.append(" ");
 			}
 
-			final ProgramElementInfo type = new TypeInfo(node.getType()
-					.toString(), startLine, endLine);
+			// C 形式の int a[] は int[] a として扱う。断片ごとに次元が違えば
+			// 型には寄せられず、断片の側に残る。
+			final int dimensions = foldableExtraDimensions(node.fragments());
+			final ProgramElementInfo type = new TypeInfo(node.getType().toString()
+					+ "[]".repeat(Math.max(dimensions, 0)), startLine, endLine);
 			vdStatement.addExpression(type);
 
-			text.append(node.getType().toString());
+			text.append(type.getText());
 			text.append(" ");
 
 			final List<ProgramElementInfo> fragments = this.visitChildren(node.fragments());

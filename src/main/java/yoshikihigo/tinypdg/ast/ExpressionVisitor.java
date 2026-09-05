@@ -1115,8 +1115,11 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				startLine, endLine);
 		this.stack.push(vdExpression);
 
-		final TypeInfo type = new TypeInfo(node.getType().toString(),
-				startLine, endLine);
+		// C 形式の int a[] は int[] a として扱う。断片ごとに次元が違えば
+		// 型には寄せられず、断片の側に残る。
+		final int dimensions = foldableExtraDimensions(node.fragments());
+		final TypeInfo type = new TypeInfo(node.getType().toString()
+				+ "[]".repeat(Math.max(dimensions, 0)), startLine, endLine);
 		vdExpression.addExpression(type);
 
 		final StringBuilder text = new StringBuilder();
@@ -1148,9 +1151,12 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 
 		final StringBuilder text = new StringBuilder();
 		text.append(name.getText());
-		// C 形式の int a[] = ... では [] が断片の側に付いている。型は文の
-		// 全ての断片で共有されるので、型には寄せられない。テキストに残す。
-		text.append("[]".repeat(node.extraDimensions().size()));
+		// C 形式の int a[] = ... では [] が断片の側に付いている。同じ宣言の
+		// 断片が全て同じ次元なら宣言の側が型に寄せて int[] a にするので、
+		// ここでは書かない。int a[], b; のように違うときだけ書いたとおり残す。
+		if (foldableExtraDimensions(siblingFragments(node)) < 0) {
+			text.append("[]".repeat(node.extraDimensions().size()));
+		}
 
 		if (null != node.getInitializer()) {
 			final ProgramElementInfo expression = this.visitChild(node.getInitializer());

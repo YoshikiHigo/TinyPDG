@@ -149,10 +149,15 @@ class NormalizedTextTest {
 	}
 
 	@Test
-	void foldsCStyleArrayDimensionsIntoTheParameterType() {
-		// final int values[]。以前は型が int になり [] が落ちていた。
-		assertContains(normalizedTexts("lang20_cstylearray", "first"),
-				"int[] $1");
+	void treatsCStyleArrayDeclarationsAsTheirModernForm() {
+		// int copy[] = values; は int[] copy = values; と同じ宣言である。
+		// 引数の final int values[] も同様。両方の書き方のメソッドが
+		// 同じ正規化テキストになること。
+		final List<String> cStyle = normalizedTexts("lang20_cstylearray", "first");
+		assertContains(cStyle, "int[] $1");
+		assertContains(cStyle, "int[] $1 = $2;");
+		assertEquals(normalizedTexts("lang20_cstylearray", "firstOfModern"),
+				cStyle);
 	}
 
 	@Test

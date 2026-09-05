@@ -2,7 +2,7 @@
 
 ## CFG first <5...8>
 nodes:
-  0: [enter,normal] int copy[] = values; <6>
+  0: [enter,normal] int[] copy = values; <6>
   1: [exit,normal] return copy[0]; <7>
 edges:
   0 -> 1 []
@@ -10,12 +10,57 @@ edges:
 ## PDG first <5...8>
 nodes:
   0: [parameter] final int[] values <5>
-  1: [normal] int copy[] = values; <6>
+  1: [normal] int[] copy = values; <6>
   2: [exit] return copy[0]; <7>
   3: [enter,control] Enter <5...8>
 edges:
   0 -> 1 [data: values]
   1 -> 2 [data: copy]
+  1 -> 2 [execution: ]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 1 [execution: ]
+  3 -> 2 [control: true]
+
+## CFG firstOfModern <10...13>
+nodes:
+  0: [enter,normal] int[] copy = values; <11>
+  1: [exit,normal] return copy[0]; <12>
+edges:
+  0 -> 1 []
+
+## PDG firstOfModern <10...13>
+nodes:
+  0: [parameter] final int[] values <10>
+  1: [normal] int[] copy = values; <11>
+  2: [exit] return copy[0]; <12>
+  3: [enter,control] Enter <10...13>
+edges:
+  0 -> 1 [data: values]
+  1 -> 2 [data: copy]
+  1 -> 2 [execution: ]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 1 [execution: ]
+  3 -> 2 [control: true]
+
+## CFG mixed <15...18>
+nodes:
+  0: [enter,normal] int copy[] = values,count = 0; <16>
+  1: [exit,normal] return copy[count]; <17>
+edges:
+  0 -> 1 []
+
+## PDG mixed <15...18>
+nodes:
+  0: [parameter] final int[] values <15>
+  1: [normal] int copy[] = values,count = 0; <16>
+  2: [exit] return copy[count]; <17>
+  3: [enter,control] Enter <15...18>
+edges:
+  0 -> 1 [data: values]
+  1 -> 2 [data: copy]
+  1 -> 2 [data: count]
   1 -> 2 [execution: ]
   3 -> 0 [control: true]
   3 -> 1 [control: true]
