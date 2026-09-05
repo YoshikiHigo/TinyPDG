@@ -103,10 +103,11 @@ class NormalizedTextTest {
 	@Test
 	void keepsTheParenthesesOfASuperMethodInvocation() {
 		// 引数がないとき、末尾のカンマを消すつもりで "(" を消していた。
+		// メソッド名は、通常のメソッド呼び出しと同じく字面のまま残る。
 		assertContains(normalizedTexts("lang13_super", "count"),
-				"return super.$1();");
+				"return super.size();");
 		assertContains(normalizedTexts("lang13_super", "append"),
-				"return super.$1($2 + $3);");
+				"return super.add($1 + $2);");
 	}
 
 	@Test

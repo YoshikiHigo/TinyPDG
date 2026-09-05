@@ -591,9 +591,10 @@ public class NormalizedText {
 
 			case SuperMethodInvocation -> {
 				text.append("super.");
+				// メソッド名は正規化せず字面のまま残す。MethodInvocation と同じ。
+				// 以前はここだけ変数名と同じように $n へ置き換えていた。
 				final ProgramElementInfo name = coreExp.getExpressions().get(0);
-				final NormalizedText nameText = new NormalizedText(name);
-				text.append(nameText.getText());
+				text.append(name.getText());
 				text.append("(");
 
 				final List<ProgramElementInfo> arguments = coreExp
