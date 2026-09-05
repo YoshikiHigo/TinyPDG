@@ -88,8 +88,7 @@ class NormalizedTextTest {
 
 		final List<String> texts = new ArrayList<>();
 		for (final PDGNode<?> node : pdg.getAllNodes()) {
-			texts.add(NormalizedText.normalize(
-					new NormalizedText(node.core).getText()));
+			texts.add(NormalizedText.normalize(node.core));
 		}
 		return texts;
 	}

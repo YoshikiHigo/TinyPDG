@@ -36,12 +36,8 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 					continue;
 				}
 
-				final NormalizedText fromNodeText = new NormalizedText(
-						fromNode.core);
-				final NormalizedText toNodeText = new NormalizedText(
-						toNode.core);
-				if (NormalizedText.normalize(fromNodeText.getText()).equals(
-						NormalizedText.normalize(toNodeText.getText()))) {
+				if (NormalizedText.normalize(fromNode.core).equals(
+						NormalizedText.normalize(toNode.core))) {
 
 					final PDGMergedNode mergedNode = new PDGMergedNode(
 							(PDGNormalNode<?>) fromNode,

@@ -131,7 +131,8 @@ public class DependenceDistiller {
 				for (final PDGNode<?> fromNode : nodes) {
 
 					// generate a hash value from fromNode
-					final String fromNodeNormalizedText = getNormalizedText(fromNode);
+					final String fromNodeNormalizedText = NormalizedText
+							.normalize(fromNode.core);
 					final int fromNodeHash = fromNodeNormalizedText.hashCode();
 
 					// make mapping between hash value and normalized text
@@ -149,7 +150,8 @@ public class DependenceDistiller {
 
 					final SortedSet<PDGEdge> edges = fromNode.getForwardEdges();
 					for (final PDGEdge edge : edges) {
-						final String toNodeNormalizedText = getNormalizedText(edge.toNode);
+						final String toNodeNormalizedText = NormalizedText
+								.normalize(edge.toNode.core);
 						final int toNodeHash = toNodeNormalizedText.hashCode();
 						if (edge instanceof PDGControlDependenceEdge) {
 							addToNodeHash(fromNodeHash, toNodeHash,
@@ -230,14 +232,6 @@ public class DependenceDistiller {
 			toNodeHashes.put(toNodeHash, frequency);
 		}
 		frequency.incrementAndGet();
-	}
-
-	private static String getNormalizedText(final PDGNode<?> node) {
-		final NormalizedText fromNodeNormalizedText1 = new NormalizedText(
-				node.core);
-		final String fromNodeNormalizedText2 = NormalizedText
-				.normalize(fromNodeNormalizedText1.getText());
-		return fromNodeNormalizedText2;
 	}
 
 	private static void calculateFrequencies(

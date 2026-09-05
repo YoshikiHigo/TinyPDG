@@ -73,10 +73,8 @@ public class HashCalculationThread implements Runnable {
 				final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHash = new TreeMap<>();
 				for (final PDGNode<?> node : pdg.getAllNodes()) {
 
-					final NormalizedText t1 = new NormalizedText(node.core);
-					final String t2 = NormalizedText.normalize(t1.getText());
-					final int hash = t2.hashCode();
-
+					final int hash = NormalizedText.normalize(node.core)
+							.hashCode();
 					mappingPDGNodeToHash.put(node, hash);
 				}
 				this.mappingPDGToPDGNodes.put(pdg, mappingPDGNodeToHash);
@@ -84,14 +82,10 @@ public class HashCalculationThread implements Runnable {
 				final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash = new TreeMap<>();
 				for (final PDGEdge edge : pdg.getAllEdges()) {
 
-					final NormalizedText t1 = new NormalizedText(
-							edge.fromNode.core);
-					final String fromNodeText = NormalizedText.normalize(t1
-							.getText());
-					final NormalizedText t2 = new NormalizedText(
-							edge.toNode.core);
-					final String toNodeText = NormalizedText.normalize(t2
-							.getText());
+					final String fromNodeText = NormalizedText
+							.normalize(edge.fromNode.core);
+					final String toNodeText = NormalizedText
+							.normalize(edge.toNode.core);
 					final StringBuilder edgeText = new StringBuilder();
 					edgeText.append(fromNodeText);
 					edgeText.append("-");
