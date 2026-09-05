@@ -95,15 +95,18 @@ public class NormalizedText {
 
 			case Assert -> {
 				text.append("assert ");
-				final ProgramElementInfo expression = core.getExpressions()
-						.get(0);
+				final List<ProgramElementInfo> expressions = core
+						.getExpressions();
 				final NormalizedText expressionText = new NormalizedText(
-						expression);
+						expressions.get(0));
 				text.append(expressionText.getText());
-				text.append(" : ");
-				final ProgramElementInfo message = core.getExpressions().get(1);
-				final NormalizedText messageText = new NormalizedText(message);
-				text.append(messageText.getText());
+				// メッセージは省略できる。あれば 2 つ目の式として入っている。
+				if (1 < expressions.size()) {
+					text.append(" : ");
+					final NormalizedText messageText = new NormalizedText(
+							expressions.get(1));
+					text.append(messageText.getText());
+				}
 				text.append(";");
 				yield text.toString();
 			}

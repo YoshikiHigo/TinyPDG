@@ -134,22 +134,32 @@ abstract class StatementVisitor extends ExpressionVisitor {
 
 		if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
 
-			node.getExpression().accept(this);
-			final ProgramElementInfo expression = this.stack
-					.pop();
-
-			node.getMessage().accept(this);
-			final ProgramElementInfo message = this.stack
-					.pop();
-
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
 			final SimpleStatementInfo statement = new SimpleStatementInfo(ownerBlock,
 					StatementInfo.CATEGORY.Assert, startLine, endLine);
-			statement.addExpression(expression);
-			statement.addExpression(message);
 			this.stack.push(statement);
+
+			node.getExpression().accept(this);
+			final ProgramElementInfo expression = this.stack.pop();
+			statement.addExpression(expression);
+
+			final StringBuilder text = new StringBuilder();
+			text.append("assert ");
+			text.append(expression.getText());
+
+			// メッセージは省略できる。省略されていれば getMessage() は null を返す。
+			if (null != node.getMessage()) {
+				node.getMessage().accept(this);
+				final ProgramElementInfo message = this.stack.pop();
+				statement.addExpression(message);
+				text.append(" : ");
+				text.append(message.getText());
+			}
+
+			text.append(";");
+			statement.setText(text.toString());
 		}
 
 		return false;

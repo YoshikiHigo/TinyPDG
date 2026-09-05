@@ -41,7 +41,8 @@ class NormalizedTextTest {
 	static Stream<Path> modernSamples() {
 		// ラムダ・パターン・switch 式・テキストブロックを含むもの。
 		return Stream.of("lang07_lambda", "lang08_patterns", "lang10_switchexpr",
-				"lang01_enum", "lang04_trywithresources").map(SAMPLES::resolve);
+				"lang01_enum", "lang04_trywithresources", "lang11_assert")
+				.map(SAMPLES::resolve);
 	}
 
 	@ParameterizedTest(name = "{0}")
