@@ -149,6 +149,13 @@ class NormalizedTextTest {
 	}
 
 	@Test
+	void foldsCStyleArrayDimensionsIntoTheParameterType() {
+		// final int values[]。以前は型が int になり [] が落ちていた。
+		assertContains(normalizedTexts("lang20_cstylearray", "first"),
+				"int[] $1");
+	}
+
+	@Test
 	void writesAForeachHeaderAsItsVariableAndIterable() {
 		// for (final int value : values) のヘッダ。以前はヘッダがなく、
 		// 変数と反復対象が別々の孤立したノードになっていた。

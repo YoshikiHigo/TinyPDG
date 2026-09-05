@@ -1,0 +1,23 @@
+# sample: lang20_cstylearray
+
+## CFG first <5...8>
+nodes:
+  0: [enter,normal] int copy[] = values; <6>
+  1: [exit,normal] return copy[0]; <7>
+edges:
+  0 -> 1 []
+
+## PDG first <5...8>
+nodes:
+  0: [parameter] final int[] values <5>
+  1: [normal] int copy[] = values; <6>
+  2: [exit] return copy[0]; <7>
+  3: [enter,control] Enter <5...8>
+edges:
+  0 -> 1 [data: values]
+  1 -> 2 [data: copy]
+  1 -> 2 [execution: ]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 1 [execution: ]
+  3 -> 2 [control: true]

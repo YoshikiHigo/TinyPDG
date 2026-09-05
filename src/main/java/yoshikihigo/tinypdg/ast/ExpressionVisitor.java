@@ -1148,6 +1148,9 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 
 		final StringBuilder text = new StringBuilder();
 		text.append(name.getText());
+		// C 形式の int a[] = ... では [] が断片の側に付いている。型は文の
+		// 全ての断片で共有されるので、型には寄せられない。テキストに残す。
+		text.append("[]".repeat(node.extraDimensions().size()));
 
 		if (null != node.getInitializer()) {
 			final ProgramElementInfo expression = this.visitChild(node.getInitializer());
@@ -1168,8 +1171,10 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		final int startLine = this.getStartLineNumber(node);
 		final int endLine = this.getEndLineNumber(node);
 		// 可変長引数 int... は、JDT では型 int に isVarargs の印が付いた形で
-		// 来る。書いたとおりの名前にするには ... を足し戻す必要がある。
+		// 来る。C 形式の int a[] も、型 int と名前の後ろの次元とに分かれて
+		// 来る。どちらも型の名前に足し戻す。int a[] は int[] a として扱う。
 		final TypeInfo type = new TypeInfo(node.getType().toString()
+				+ "[]".repeat(node.extraDimensions().size())
 				+ (node.isVarargs() ? "..." : ""), startLine, endLine);
 		final String name = node.getName().toString();
 		final VariableInfo variable = new VariableInfo(
