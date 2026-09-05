@@ -1167,8 +1167,10 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 
 		final int startLine = this.getStartLineNumber(node);
 		final int endLine = this.getEndLineNumber(node);
-		final TypeInfo type = new TypeInfo(node.getType().toString(),
-				startLine, endLine);
+		// 可変長引数 int... は、JDT では型 int に isVarargs の印が付いた形で
+		// 来る。書いたとおりの名前にするには ... を足し戻す必要がある。
+		final TypeInfo type = new TypeInfo(node.getType().toString()
+				+ (node.isVarargs() ? "..." : ""), startLine, endLine);
 		final String name = node.getName().toString();
 		final VariableInfo variable = new VariableInfo(
 				VariableInfo.CATEGORY.LOCAL, type, name, startLine, endLine);

@@ -143,6 +143,12 @@ class NormalizedTextTest {
 	}
 
 	@Test
+	void keepsTheEllipsisOfAVarargsParameter() {
+		// final int... numbers。以前は型が int になり ... が落ちていた。
+		assertContains(normalizedTexts("lang03_generics", "sum"), "int... $1");
+	}
+
+	@Test
 	void writesAForeachHeaderAsItsVariableAndIterable() {
 		// for (final int value : values) のヘッダ。以前はヘッダがなく、
 		// 変数と反復対象が別々の孤立したノードになっていた。

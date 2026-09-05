@@ -85,7 +85,7 @@ edges:
 
 ## PDG sum <20...26>
 nodes:
-  0: [parameter] final int numbers <20>
+  0: [parameter] final int... numbers <20>
   1: [normal] int total = 0; <21>
   2: [control] final int n : numbers <22>
   3: [normal] total += n; <23>
