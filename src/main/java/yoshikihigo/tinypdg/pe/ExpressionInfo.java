@@ -121,6 +121,12 @@ public class ExpressionInfo extends ProgramElementInfo {
 		return this.anonymousClassDeclaration;
 	}
 
+	/** 前置式の演算子が ++ か -- か。演算子は先頭の子である。 */
+	private boolean isIncrementOrDecrement() {
+		final String operator = this.expressions.get(0).getText();
+		return "++".equals(operator) || "--".equals(operator);
+	}
+
 	/** 名前 1 つだけを含む集合を作る。 */
 	private static SortedSet<String> only(final String name) {
 		final SortedSet<String> variables = new TreeSet<>();
@@ -196,9 +202,17 @@ public class ExpressionInfo extends ProgramElementInfo {
 			yield variables;
 		}
 
-		case Postfix, Prefix ->
-			// i++ は i を読み、かつ書く。
+		case Postfix ->
+			// i++ は i を読み、かつ書く。被演算子は先頭の子。
 			new TreeSet<>(this.expressions.get(0).getReferencedVariables());
+
+		case Prefix ->
+			// ++i は i を読み、かつ書く。-x や !flag は読むだけである。
+			// 前置式は演算子が先頭の子で、被演算子はその次にある。
+			this.isIncrementOrDecrement()
+					? new TreeSet<>(this.expressions.get(1)
+							.getReferencedVariables())
+					: this.expressions.get(1).getAssignedVariables();
 
 		case ArrayAccess, ArrayCreation, ArrayInitializer,
 				Boolean, Cast, Character,
@@ -242,8 +256,13 @@ public class ExpressionInfo extends ProgramElementInfo {
 			// 反復対象の式を読む。取り出す変数は定義であって参照ではない。
 			new TreeSet<>(this.expressions.get(1).getReferencedVariables());
 
-		case Postfix, Prefix ->
+		case Postfix ->
 			new TreeSet<>(this.expressions.get(0).getReferencedVariables());
+
+		case Prefix ->
+			// 被演算子は 2 つ目の子。以前は先頭の子、つまり演算子を見ていたので、
+			// 前置式は何も参照も定義もしていなかった。
+			new TreeSet<>(this.expressions.get(1).getReferencedVariables());
 
 		case SimpleName ->
 			only(this.getText());
