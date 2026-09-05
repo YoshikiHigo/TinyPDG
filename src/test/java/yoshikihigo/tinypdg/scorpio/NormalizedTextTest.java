@@ -130,4 +130,11 @@ class NormalizedTextTest {
 		assertContains(normalizedTexts("lang14_arraycreation", "twoDimensions"),
 				"String[][] $1 = new String[$2][$3];");
 	}
+
+	@Test
+	void writesEveryFragmentOfAVariableDeclarationExpression() {
+		// for の初期化式 int i = 0, j = n。以前は最初の断片しか書いていなかった。
+		assertContains(normalizedTexts("lang16_forinit", "sumPairs"),
+				"int $1 = $2,$3 = $4");
+	}
 }

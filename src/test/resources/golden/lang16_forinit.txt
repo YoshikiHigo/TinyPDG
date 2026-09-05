@@ -1,0 +1,65 @@
+# sample: lang16_forinit
+
+## CFG sumPairs <5...11>
+nodes:
+  0: [enter,normal] int sum = 0; <6>
+  1: [normal] int i = 0,j = n <7>
+  2: [control] i < j <7>
+  3: [normal] i++ <7>
+  4: [normal] j-- <7>
+  5: [normal] sum = sum + i * j; <8>
+  6: [exit,normal] return sum; <10>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 5 [true]
+  2 -> 6 [false]
+  3 -> 4 []
+  4 -> 2 []
+  5 -> 3 []
+
+## PDG sumPairs <5...11>
+nodes:
+  0: [parameter] final int n <5>
+  1: [normal] int sum = 0; <6>
+  2: [normal] int i = 0,j = n <7>
+  3: [control] i < j <7>
+  4: [normal] i++ <7>
+  5: [normal] j-- <7>
+  6: [normal] sum = sum + i * j; <8>
+  7: [exit] return sum; <10>
+  8: [enter,control] Enter <5...11>
+edges:
+  0 -> 2 [data: n]
+  1 -> 2 [execution: ]
+  1 -> 6 [data: sum]
+  1 -> 7 [data: sum]
+  2 -> 3 [data: i]
+  2 -> 3 [data: j]
+  2 -> 3 [execution: ]
+  2 -> 4 [data: i]
+  2 -> 5 [data: j]
+  2 -> 6 [data: i]
+  2 -> 6 [data: j]
+  3 -> 4 [control: true]
+  3 -> 5 [control: true]
+  3 -> 6 [control: true]
+  3 -> 6 [execution: ]
+  3 -> 7 [execution: ]
+  4 -> 3 [data: i]
+  4 -> 4 [data: i]
+  4 -> 5 [execution: ]
+  4 -> 6 [data: i]
+  5 -> 3 [data: j]
+  5 -> 3 [execution: ]
+  5 -> 5 [data: j]
+  5 -> 6 [data: j]
+  6 -> 4 [execution: ]
+  6 -> 6 [data: sum]
+  6 -> 7 [data: sum]
+  8 -> 0 [control: true]
+  8 -> 1 [control: true]
+  8 -> 1 [execution: ]
+  8 -> 2 [control: true]
+  8 -> 3 [control: true]
+  8 -> 7 [control: true]

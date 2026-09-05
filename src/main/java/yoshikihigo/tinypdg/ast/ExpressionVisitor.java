@@ -1123,11 +1123,10 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		text.append(type.getText());
 		text.append(" ");
 
-		for (final Object fragment : node.fragments()) {
-			final ProgramElementInfo fragmentExpression = this.visitChild((ASTNode) fragment);
-			vdExpression.addExpression(fragmentExpression);
-			text.append(fragmentExpression.getText());
-		}
+		// int i = 0, j = n のように断片は複数ありうる。
+		final List<ProgramElementInfo> fragments = this.visitChildren(node.fragments());
+		fragments.forEach(vdExpression::addExpression);
+		text.append(joinTexts(fragments, ","));
 
 		vdExpression.setText(text.toString());
 

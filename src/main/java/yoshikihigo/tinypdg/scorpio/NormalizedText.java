@@ -282,8 +282,9 @@ public class NormalizedText {
 				+ normalized(children.get(1)) + ": "
 				+ normalized(children.get(2));
 
+		// 型の後に、宣言の断片をカンマで並べる。文の VariableDeclaration と同じ。
 		case VariableDeclarationExpression -> children.get(0).getText() + " "
-				+ normalized(children.get(1));
+				+ join(rest(children), ",");
 
 		case VariableDeclarationFragment -> normalized(children.get(0))
 				+ (1 < children.size()
