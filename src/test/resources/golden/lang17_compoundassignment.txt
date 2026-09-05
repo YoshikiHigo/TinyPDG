@@ -1,0 +1,35 @@
+# sample: lang17_compoundassignment
+
+## CFG accumulate <5...10>
+nodes:
+  0: [enter,normal] int total = 0; <6>
+  1: [normal] total += n; <7>
+  2: [normal] total *= 2; <8>
+  3: [exit,normal] return total; <9>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 3 []
+
+## PDG accumulate <5...10>
+nodes:
+  0: [parameter] final int n <5>
+  1: [normal] int total = 0; <6>
+  2: [normal] total += n; <7>
+  3: [normal] total *= 2; <8>
+  4: [exit] return total; <9>
+  5: [enter,control] Enter <5...10>
+edges:
+  0 -> 2 [data: n]
+  1 -> 2 [data: total]
+  1 -> 2 [execution: ]
+  2 -> 3 [data: total]
+  2 -> 3 [execution: ]
+  3 -> 4 [data: total]
+  3 -> 4 [execution: ]
+  5 -> 0 [control: true]
+  5 -> 1 [control: true]
+  5 -> 1 [execution: ]
+  5 -> 2 [control: true]
+  5 -> 3 [control: true]
+  5 -> 4 [control: true]

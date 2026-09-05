@@ -220,9 +220,16 @@ public class ExpressionInfo extends ProgramElementInfo {
 
 		return switch (this.category) {
 
-		case Assignment ->
-			// 左辺は書き込み先であって読み出しではない。
-			new TreeSet<>(this.expressions.get(2).getReferencedVariables());
+		case Assignment -> {
+			// 左辺は書き込み先であって読み出しではない。ただし += のような
+			// 複合代入は左辺の値を読んでから書くので、左辺も参照に数える。
+			final SortedSet<String> variables = new TreeSet<>(
+					this.expressions.get(2).getReferencedVariables());
+			if (!"=".equals(this.expressions.get(1).getText())) {
+				variables.addAll(this.expressions.get(0).getReferencedVariables());
+			}
+			yield variables;
+		}
 
 		case VariableDeclarationFragment ->
 			// 初期化子を持たない宣言では、読み出している変数はない。
