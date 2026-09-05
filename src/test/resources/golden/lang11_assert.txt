@@ -1,0 +1,48 @@
+# sample: lang11_assert
+
+## CFG withMessage <10...13>
+nodes:
+  0: [enter,normal] assert 0 < x : "x must be positive: " + label; <11>
+  1: [exit,normal] return x * 2; <12>
+edges:
+  0 -> 1 []
+
+## PDG withMessage <10...13>
+nodes:
+  0: [parameter] final int x <10>
+  1: [parameter] final String label <10>
+  2: [normal] assert 0 < x : "x must be positive: " + label; <11>
+  3: [exit] return x * 2; <12>
+  4: [enter,control] Enter <10...13>
+edges:
+  0 -> 2 [data: x]
+  0 -> 3 [data: x]
+  1 -> 2 [data: label]
+  2 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 1 [control: true]
+  4 -> 2 [control: true]
+  4 -> 2 [execution: ]
+  4 -> 3 [control: true]
+
+## CFG withoutMessage <5...8>
+nodes:
+  0: [enter,normal] assert 0 < x; <6>
+  1: [exit,normal] return x; <7>
+edges:
+  0 -> 1 []
+
+## PDG withoutMessage <5...8>
+nodes:
+  0: [parameter] final int x <5>
+  1: [normal] assert 0 < x; <6>
+  2: [exit] return x; <7>
+  3: [enter,control] Enter <5...8>
+edges:
+  0 -> 1 [data: x]
+  0 -> 2 [data: x]
+  1 -> 2 [execution: ]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 1 [execution: ]
+  3 -> 2 [control: true]

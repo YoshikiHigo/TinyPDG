@@ -1,0 +1,33 @@
+# sample: lang13_super
+
+## CFG append <11...13>
+nodes:
+  0: [enter,exit,normal] return super.add(s + n); <12>
+edges:
+
+## PDG append <11...13>
+nodes:
+  0: [parameter] final String s <11>
+  1: [parameter] final int n <11>
+  2: [exit] return super.add(s + n); <12>
+  3: [enter,control] Enter <11...13>
+edges:
+  0 -> 2 [data: s]
+  1 -> 2 [data: n]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 2 [control: true]
+  3 -> 2 [execution: ]
+
+## CFG count <7...9>
+nodes:
+  0: [enter,exit,normal] return super.size(); <8>
+edges:
+
+## PDG count <7...9>
+nodes:
+  0: [exit] return super.size(); <8>
+  1: [enter,control] Enter <7...9>
+edges:
+  1 -> 0 [control: true]
+  1 -> 0 [execution: ]

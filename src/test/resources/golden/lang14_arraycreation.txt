@@ -1,0 +1,127 @@
+# sample: lang14_arraycreation
+
+## CFG emptyInitializer <10...13>
+nodes:
+  0: [enter,normal] final int[] a = new int[]{}; <11>
+  1: [exit,normal] return a; <12>
+edges:
+  0 -> 1 []
+
+## PDG emptyInitializer <10...13>
+nodes:
+  0: [normal] final int[] a = new int[]{}; <11>
+  1: [exit] return a; <12>
+  2: [enter,control] Enter <10...13>
+edges:
+  0 -> 1 [data: a]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]
+
+## CFG nested <15...18>
+nodes:
+  0: [enter,normal] final int[][] m = new int[][]{{1},{2,3}}; <16>
+  1: [exit,normal] return m; <17>
+edges:
+  0 -> 1 []
+
+## PDG nested <15...18>
+nodes:
+  0: [normal] final int[][] m = new int[][]{{1},{2,3}}; <16>
+  1: [exit] return m; <17>
+  2: [enter,control] Enter <15...18>
+edges:
+  0 -> 1 [data: m]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]
+
+## CFG partialDimensions <25...28>
+nodes:
+  0: [enter,normal] final int[][] m = new int[n][]; <26>
+  1: [exit,normal] return m; <27>
+edges:
+  0 -> 1 []
+
+## PDG partialDimensions <25...28>
+nodes:
+  0: [parameter] final int n <25>
+  1: [normal] final int[][] m = new int[n][]; <26>
+  2: [exit] return m; <27>
+  3: [enter,control] Enter <25...28>
+edges:
+  0 -> 1 [data: n]
+  1 -> 2 [data: m]
+  1 -> 2 [execution: ]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 1 [execution: ]
+  3 -> 2 [control: true]
+
+## CFG twoDimensions <30...33>
+nodes:
+  0: [enter,normal] final String[][] grid = new String[rows][columns]; <31>
+  1: [exit,normal] return grid; <32>
+edges:
+  0 -> 1 []
+
+## PDG twoDimensions <30...33>
+nodes:
+  0: [parameter] final int rows <30>
+  1: [parameter] final int columns <30>
+  2: [normal] final String[][] grid = new String[rows][columns]; <31>
+  3: [exit] return grid; <32>
+  4: [enter,control] Enter <30...33>
+edges:
+  0 -> 2 [data: rows]
+  1 -> 2 [data: columns]
+  2 -> 3 [data: grid]
+  2 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 1 [control: true]
+  4 -> 2 [control: true]
+  4 -> 2 [execution: ]
+  4 -> 3 [control: true]
+
+## CFG withDimension <20...23>
+nodes:
+  0: [enter,normal] final int[] a = new int[n]; <21>
+  1: [exit,normal] return a; <22>
+edges:
+  0 -> 1 []
+
+## PDG withDimension <20...23>
+nodes:
+  0: [parameter] final int n <20>
+  1: [normal] final int[] a = new int[n]; <21>
+  2: [exit] return a; <22>
+  3: [enter,control] Enter <20...23>
+edges:
+  0 -> 1 [data: n]
+  1 -> 2 [data: a]
+  1 -> 2 [execution: ]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 1 [execution: ]
+  3 -> 2 [control: true]
+
+## CFG withInitializer <5...8>
+nodes:
+  0: [enter,normal] final int[] a = new int[]{1,2}; <6>
+  1: [exit,normal] return a; <7>
+edges:
+  0 -> 1 []
+
+## PDG withInitializer <5...8>
+nodes:
+  0: [normal] final int[] a = new int[]{1,2}; <6>
+  1: [exit] return a; <7>
+  2: [enter,control] Enter <5...8>
+edges:
+  0 -> 1 [data: a]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]

@@ -60,6 +60,7 @@ nodes:
   4: [exit] return inner.get(); <25>
   5: [enter,control] Enter <14...26>
 edges:
+  0 -> 1 [data: inner]
   0 -> 1 [execution: ]
   1 -> 2 [data: inner]
   1 -> 2 [data: value]

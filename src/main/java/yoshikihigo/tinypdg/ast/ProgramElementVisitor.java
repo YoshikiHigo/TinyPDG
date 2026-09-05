@@ -4,6 +4,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.StringJoiner;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.Block;
@@ -74,6 +75,47 @@ abstract class ProgramElementVisitor extends ASTVisitor {
 	/** ノードのソース表現を 1 行に潰して返す。 */
 	static String flatten(final ASTNode node) {
 		return node.toString().trim().replaceAll("\\s+", " ");
+	}
+
+	/**
+	 * スタックの先頭が、文を足せるブロックかどうか。
+	 *
+	 * <p>文の visit はすべてこれを見てから動く。ブロックの外にある文は
+	 * 扱わない、という約束をここに置く。
+	 */
+	boolean inBlock() {
+		return !this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo;
+	}
+
+	/**
+	 * 子ノードを訪問し、その visit が積んだ要素を取り出して返す。
+	 *
+	 * <p>このクラスの visit は、子を辿ったら要素をちょうど 1 個積む約束で
+	 * 書かれている。accept と pop を対にして書くのはその約束の裏返しで、
+	 * 全ての visit に現れる。
+	 */
+	ProgramElementInfo visitChild(final ASTNode node) {
+		node.accept(this);
+		return this.stack.pop();
+	}
+
+	/** 子ノードの並びを順に訪問し、積まれた要素を同じ順で返す。 */
+	List<ProgramElementInfo> visitChildren(final List<?> nodes) {
+		final List<ProgramElementInfo> children = new ArrayList<>();
+		for (final Object node : nodes) {
+			children.add(this.visitChild((ASTNode) node));
+		}
+		return children;
+	}
+
+	/** 要素のテキストを区切りで繋げる。 */
+	static String joinTexts(final List<? extends ProgramElementInfo> elements,
+			final String separator) {
+		final StringJoiner joiner = new StringJoiner(separator);
+		for (final ProgramElementInfo element : elements) {
+			joiner.add(element.getText());
+		}
+		return joiner.toString();
 	}
 
 	/** 挿入待ちの文を取り出し、待ち行列を空にする。 */

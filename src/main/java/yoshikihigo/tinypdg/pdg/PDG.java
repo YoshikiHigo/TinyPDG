@@ -47,6 +47,15 @@ public class PDG implements Comparable<PDG> {
 	private CFG cfg;
 
 	/**
+	 * CFG のノードの集合。build で CFG を作り終えたときに 1 回だけ写す。
+	 *
+	 * <p>CFG.getAllNodes() は呼ぶたびに TreeSet を作り直す。制御依存の
+	 * 構築は文ごとに「この文のノードは CFG にあるか」を問うので、以前は
+	 * その写しが文の数だけ作られていた。
+	 */
+	private SortedSet<CFGNode<?>> cfgNodes;
+
+	/**
 	 * PDG に何を含めるか。
 	 *
 	 * <p>以前はコンストラクタの引数として並んでいた。真偽値が 3 つ続くので、
@@ -169,8 +178,8 @@ public class PDG implements Comparable<PDG> {
 		}
 
 		// build する前は CFG がまだない。
-		if (null != this.cfg) {
-			for (final CFGNode<?> cfgNode : this.cfg.getAllNodes()) {
+		if (null != this.cfgNodes) {
+			for (final CFGNode<?> cfgNode : this.cfgNodes) {
 				this.collectFrom(this.pdgNodeFactory.makeNode(cfgNode), nodes);
 			}
 		}
@@ -215,14 +224,13 @@ public class PDG implements Comparable<PDG> {
 		this.cfg.build();
 		this.cfg.removeSwitchCases();
 		this.cfg.removeJumpStatements();
+		// 以後 CFG は変わらない。
+		this.cfgNodes = this.cfg.getAllNodes();
 
 		if (this.dependences.control()) {
 			this.buildControlDependence(this.enterNode, unit);
 			for (final PDGParameterNode parameterNode : this.parameterNodes) {
-				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
-						this.enterNode, parameterNode, true);
-				this.enterNode.addForwardEdge(edge);
-				parameterNode.addBackwardEdge(edge);
+				new PDGControlDependenceEdge(this.enterNode, parameterNode, true).connect();
 			}
 		}
 
@@ -230,10 +238,7 @@ public class PDG implements Comparable<PDG> {
 			if (!this.cfg.isEmpty()) {
 				final PDGNode<?> node = this.pdgNodeFactory.makeNode(this.cfg
 						.getEnterNode());
-				final PDGExecutionDependenceEdge edge = new PDGExecutionDependenceEdge(
-						this.enterNode, node);
-				this.enterNode.addForwardEdge(edge);
-				node.addBackwardEdge(edge);
+				new PDGExecutionDependenceEdge(this.enterNode, node).connect();
 			}
 		}
 
@@ -260,7 +265,7 @@ public class PDG implements Comparable<PDG> {
 
 		if (!this.cfg.isEmpty()) {
 			final Set<CFGNode<?>> unreachableNodes = new HashSet<>();
-			unreachableNodes.addAll(this.cfg.getAllNodes());
+			unreachableNodes.addAll(this.cfgNodes);
 			unreachableNodes.removeAll(this.cfg.getReachableNodes(this.cfg
 					.getEnterNode()));
 			for (final CFGNode<?> unreachableNode : unreachableNodes) {
@@ -306,10 +311,7 @@ public class PDG implements Comparable<PDG> {
 				final int distance = Math.abs(toPDGNode.core.startLine
 						- pdgNode.core.startLine) + 1;
 				if (distance <= this.dependences.executionDistance()) {
-					final PDGExecutionDependenceEdge edge = new PDGExecutionDependenceEdge(
-							pdgNode, toPDGNode);
-					pdgNode.addForwardEdge(edge);
-					toPDGNode.addBackwardEdge(edge);
+					new PDGExecutionDependenceEdge(pdgNode, toPDGNode).connect();
 				}
 
 			}
@@ -341,10 +343,7 @@ public class PDG implements Comparable<PDG> {
 			final int distance = Math.abs(toPDGNode.core.startLine
 					- fromPDGNode.core.startLine) + 1;
 			if (distance <= this.dependences.dataDistance()) {
-				final PDGDataDependenceEdge edge = new PDGDataDependenceEdge(
-						fromPDGNode, toPDGNode, variable);
-				fromPDGNode.addForwardEdge(edge);
-				toPDGNode.addBackwardEdge(edge);
+				new PDGDataDependenceEdge(fromPDGNode, toPDGNode, variable).connect();
 			}
 		}
 
@@ -376,10 +375,7 @@ public class PDG implements Comparable<PDG> {
 			for (final ProgramElementInfo updater : forStatement.getUpdaters()) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNormalNode(updater);
-				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
-						fromPDGNode, toPDGNode, true);
-				fromPDGNode.addForwardEdge(edge);
-				toPDGNode.addBackwardEdge(edge);
+				new PDGControlDependenceEdge(fromPDGNode, toPDGNode, true).connect();
 			}
 		}
 	}
@@ -392,7 +388,7 @@ public class PDG implements Comparable<PDG> {
 		if (statement instanceof BlockStatementInfo block) {
 
 			// 条件式を持たない種別もある。SimpleBlock と try、それに
-			// foreach がそうである。
+			// for (;;) がそうである。
 			final ProgramElementInfo condition = block instanceof ConditionalStatementInfo conditional
 					? conditional.getCondition()
 					: null;
@@ -400,10 +396,7 @@ public class PDG implements Comparable<PDG> {
 			if (null != condition) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeControlNode(condition);
-				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
-						fromPDGNode, toPDGNode, type);
-				fromPDGNode.addForwardEdge(edge);
-				toPDGNode.addBackwardEdge(edge);
+				new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
 			} else {
 				this.buildControlDependence(fromPDGNode, block);
 			}
@@ -413,10 +406,7 @@ public class PDG implements Comparable<PDG> {
 						.getInitializers()) {
 					final PDGNode<?> toPDGNode = this.pdgNodeFactory
 							.makeNormalNode(initializer);
-					final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
-							fromPDGNode, toPDGNode, type);
-					fromPDGNode.addForwardEdge(edge);
-					toPDGNode.addBackwardEdge(edge);
+					new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
 				}
 			}
 
@@ -450,13 +440,10 @@ public class PDG implements Comparable<PDG> {
 		}
 
 		final CFGNode<?> cfgNode = this.cfgNodeFactory.getNode(statement);
-		if ((null != cfgNode) && (this.cfg.getAllNodes().contains(cfgNode))) {
+		if ((null != cfgNode) && (this.cfgNodes.contains(cfgNode))) {
 			final PDGNode<?> toPDGNode = this.pdgNodeFactory
 					.makeNormalNode(statement);
-			final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
-					fromPDGNode, toPDGNode, type);
-			fromPDGNode.addForwardEdge(edge);
-			toPDGNode.addBackwardEdge(edge);
+			new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
 		}
 	}
 }

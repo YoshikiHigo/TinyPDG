@@ -1,7 +1,9 @@
 package yoshikihigo.tinypdg.scorpio;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -10,6 +12,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -20,7 +23,10 @@ import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.pdg.PDG;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
 import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
+import yoshikihigo.tinypdg.pe.ExpressionInfo;
 import yoshikihigo.tinypdg.pe.MethodInfo;
+import yoshikihigo.tinypdg.pe.SimpleStatementInfo;
+import yoshikihigo.tinypdg.pe.StatementInfo;
 
 /**
  * NormalizedText が、解析器が作りうる全ての要素を扱えることを確かめる。
@@ -41,7 +47,8 @@ class NormalizedTextTest {
 	static Stream<Path> modernSamples() {
 		// ラムダ・パターン・switch 式・テキストブロックを含むもの。
 		return Stream.of("lang07_lambda", "lang08_patterns", "lang10_switchexpr",
-				"lang01_enum", "lang04_trywithresources").map(SAMPLES::resolve);
+				"lang01_enum", "lang04_trywithresources", "lang11_assert")
+				.map(SAMPLES::resolve);
 	}
 
 	@ParameterizedTest(name = "{0}")
@@ -66,5 +73,129 @@ class NormalizedTextTest {
 				assertNotNull(normalized);
 			}
 		}
+	}
+
+	/** サンプルの 1 メソッドについて、PDG の各ノードの正規化テキストを返す。 */
+	private static List<String> normalizedTexts(final String sample,
+			final String methodName) {
+
+		final List<MethodInfo> methods = JavaAstFactory.collectMethods(
+				SAMPLES.resolve(sample).toFile(),
+				JavaAstFactory.DEFAULT_JAVA_VERSION);
+		final MethodInfo method = methods.stream()
+				.filter(m -> methodName.equals(m.name)).findFirst()
+				.orElseThrow(() -> new AssertionError(
+						sample + " に " + methodName + " が見つからない"));
+
+		final PDG pdg = new PDG(method);
+		pdg.build();
+
+		final List<String> texts = new ArrayList<>();
+		for (final PDGNode<?> node : pdg.getAllNodes()) {
+			texts.add(NormalizedText.normalize(node.core));
+		}
+		return texts;
+	}
+
+	private static void assertContains(final List<String> texts,
+			final String expected) {
+		assertTrue(texts.contains(expected),
+				() -> expected + " が見つからない: " + texts);
+	}
+
+	@Test
+	void keepsTheParenthesesOfASuperMethodInvocation() {
+		// 引数がないとき、末尾のカンマを消すつもりで "(" を消していた。
+		// メソッド名は、通常のメソッド呼び出しと同じく字面のまま残る。
+		assertContains(normalizedTexts("lang13_super", "count"),
+				"return super.size();");
+		assertContains(normalizedTexts("lang13_super", "append"),
+				"return super.add($1 + $2);");
+	}
+
+	@Test
+	void writesAnArrayCreationWithItsInitializer() {
+		// 型の名前に [] が含まれているのに、さらに [] を足していた。
+		assertContains(normalizedTexts("lang14_arraycreation", "withInitializer"),
+				"int[] $1 = new int[]{$2,$3};");
+		// 空の初期化子では、消すカンマがないのに "{" を消していた。
+		assertContains(normalizedTexts("lang14_arraycreation", "emptyInitializer"),
+				"int[] $1 = new int[]{};");
+	}
+
+	@Test
+	void writesTheDimensionExpressionsOfAnArrayCreation() {
+		// 次元式を訪問していなかったので、new int[n] が new int[] になっていた。
+		assertContains(normalizedTexts("lang14_arraycreation", "withDimension"),
+				"int[] $1 = new int[$2];");
+		// 次元式は型の次元より少ないことがある。残りは空のまま書く。
+		assertContains(normalizedTexts("lang14_arraycreation", "partialDimensions"),
+				"int[][] $1 = new int[$2][];");
+		assertContains(normalizedTexts("lang14_arraycreation", "twoDimensions"),
+				"String[][] $1 = new String[$2][$3];");
+	}
+
+	@Test
+	void splitsTheDeclarationsOfAForInitializer() {
+		// for (int i = 0, j = n; ...) の初期化式は int i = 0 と int j = n の
+		// 2 つの式に分かれる。正規化するとどちらも同じ形になる。
+		final List<String> texts = normalizedTexts("lang16_forinit", "sumPairs");
+		assertEquals(2, texts.stream().filter("int $1 = $2"::equals).count(),
+				() -> "初期化式が 2 つに分かれること: " + texts);
+	}
+
+	@Test
+	void keepsTheEllipsisOfAVarargsParameter() {
+		// final int... numbers。以前は型が int になり ... が落ちていた。
+		assertContains(normalizedTexts("lang03_generics", "sum"), "int... $1");
+	}
+
+	@Test
+	void treatsCStyleArrayDeclarationsAsTheirModernForm() {
+		// int copy[] = values; は int[] copy = values; と同じ宣言である。
+		// 引数の final int values[] も同様。両方の書き方のメソッドが
+		// 同じ正規化テキストになること。
+		final List<String> cStyle = normalizedTexts("lang20_cstylearray", "first");
+		assertContains(cStyle, "int[] $1");
+		assertContains(cStyle, "int[] $1 = $2;");
+		assertEquals(normalizedTexts("lang20_cstylearray", "firstOfModern"),
+				cStyle);
+	}
+
+	@Test
+	void splitsADeclarationOfSeveralVariables() {
+		// int a = x, b = a + 1; は int a = x; int b = a + 1; と同じ 2 文になる。
+		final List<String> combined = normalizedTexts("lang21_multideclaration",
+				"chain");
+		assertContains(combined, "int $1 = $2;");
+		assertContains(combined, "int $1 = $2 + $3;");
+		assertEquals(normalizedTexts("lang21_multideclaration", "chainSeparately"),
+				combined);
+	}
+
+	@Test
+	void writesAForeachHeaderAsItsVariableAndIterable() {
+		// for (final int value : values) のヘッダ。以前はヘッダがなく、
+		// 変数と反復対象が別々の孤立したノードになっていた。
+		assertContains(normalizedTexts("lang15_jumpincatch", "breakInCatch"),
+				"int $1 : $2");
+	}
+
+	/**
+	 * case 文は CFG から取り除かれて PDG に現れないので、グラフ経由では
+	 * この経路に届かない。文を直接組み立てて確かめる。
+	 */
+	@Test
+	void normalizesEveryLabelOfACase() {
+		final SimpleStatementInfo statement = new SimpleStatementInfo(null,
+				StatementInfo.CATEGORY.Case, 1, 1);
+		for (final String name : List.of("A", "B")) {
+			final ExpressionInfo label = new ExpressionInfo(
+					ExpressionInfo.CATEGORY.SimpleName, 1, 1);
+			label.setText(name);
+			statement.addExpression(label);
+		}
+		// 以前は最初のラベルしか書いていなかった。
+		assertEquals("case $1,$2:", NormalizedText.normalize(statement));
 	}
 }

@@ -4,8 +4,6 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Comparator;
-import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -29,9 +27,9 @@ public class BellonWriter extends ClonePairWriter {
 			for (final ClonePairInfo clonepair : this.clonepairs) {
 
 				final SortedSet<ProgramElementInfo> elementsA = new TreeSet<>(
-						new LocationalComparator());
+						ProgramElementInfo.BY_LOCATION);
 				final SortedSet<ProgramElementInfo> elementsB = new TreeSet<>(
-						new LocationalComparator());
+						ProgramElementInfo.BY_LOCATION);
 				elementsA.addAll(clonepair.getLeftCodeFragment().getElements());
 				elementsB
 						.addAll(clonepair.getRightCodeFragment().getElements());
@@ -84,29 +82,5 @@ public class BellonWriter extends ClonePairWriter {
 		}
 
 		return text.toString();
-	}
-
-	class LocationalComparator implements Comparator<ProgramElementInfo> {
-
-		@Override
-		public int compare(final ProgramElementInfo o1,
-				final ProgramElementInfo o2) {
-
-			Objects.requireNonNull(o1, "\"o1\" is null.");
-			Objects.requireNonNull(o2, "\"o2\" is null.");
-
-			if (o1.startLine < o2.startLine) {
-				return -1;
-			} else if (o1.startLine > o2.startLine) {
-				return 1;
-			} else if (o1.endLine < o2.endLine) {
-				return -1;
-			} else if (o1.endLine > o2.endLine) {
-				return 1;
-			} else {
-				return 0;
-			}
-		}
-
 	}
 }

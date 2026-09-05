@@ -1,0 +1,33 @@
+# sample: lang12_annotation
+
+## CFG increment <18...21>
+nodes:
+  0: [enter,exit,normal] return a + 1; <20>
+edges:
+
+## PDG increment <18...21>
+nodes:
+  0: [parameter] final int a <19>
+  1: [exit] return a + 1; <20>
+  2: [enter,control] Enter <18...21>
+edges:
+  0 -> 1 [data: a]
+  2 -> 0 [control: true]
+  2 -> 1 [control: true]
+  2 -> 1 [execution: ]
+
+## CFG twice <12...14>
+nodes:
+  0: [enter,exit,normal] return n * 2; <13>
+edges:
+
+## PDG twice <12...14>
+nodes:
+  0: [parameter] final int n <12>
+  1: [exit] return n * 2; <13>
+  2: [enter,control] Enter <12...14>
+edges:
+  0 -> 1 [data: n]
+  2 -> 0 [control: true]
+  2 -> 1 [control: true]
+  2 -> 1 [execution: ]

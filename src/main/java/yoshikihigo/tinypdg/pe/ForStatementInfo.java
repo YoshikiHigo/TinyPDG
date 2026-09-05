@@ -8,15 +8,14 @@ import java.util.Set;
 import java.util.SortedSet;
 
 /**
- * 初期化式を持つ繰り返し文。for と foreach である。
+ * 初期化式と更新式を持つ繰り返し文。for である。
  *
- * <p>for は条件式と更新式も持つ。foreach は初期化式に「取り出す変数」と
- * 「対象の式」の 2 つを入れ、条件式と更新式は持たない。
+ * <p>foreach はここではなく ConditionalStatementInfo である。ヘッダを
+ * 条件式として持つ while と同じ形をしている。
  */
 public final class ForStatementInfo extends ConditionalStatementInfo {
 
-	static final Set<CATEGORY> CATEGORIES = EnumSet.of(CATEGORY.For,
-			CATEGORY.Foreach);
+	static final Set<CATEGORY> CATEGORIES = EnumSet.of(CATEGORY.For);
 
 	final private List<ProgramElementInfo> initializers;
 	final private List<ProgramElementInfo> updaters;

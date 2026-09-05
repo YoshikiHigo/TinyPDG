@@ -25,8 +25,8 @@ import java.util.TreeSet;
  *   StatementInfo                  所有ブロック・種別・式・ラベル
  *   ├─ SimpleStatementInfo         これ以上持たない (break, return, ...)
  *   └─ BlockStatementInfo          + 文の並び (ブロック)
- *       ├─ ConditionalStatementInfo    + 条件式 (while, do, switch, ...)
- *       │   ├─ ForStatementInfo            + 初期化式・更新式 (for, foreach)
+ *       ├─ ConditionalStatementInfo    + 条件式 (while, do, foreach, switch, ...)
+ *       │   ├─ ForStatementInfo            + 初期化式・更新式 (for)
  *       │   └─ IfStatementInfo             + else 節
  *       └─ TryStatementInfo            + catch 節・finally 節
  * </pre>

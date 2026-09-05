@@ -29,14 +29,6 @@ public abstract class PDGNode<T extends ProgramElementInfo> implements
 		return this.core.getReferencedVariables();
 	}
 
-	public boolean isDefined(final String variable) {
-		return this.getDefinedVariables().contains(variable);
-	}
-
-	public boolean isReferenaced(final String variable) {
-		return this.getReferencedVariables().contains(variable);
-	}
-
 	public boolean addForwardEdge(final PDGEdge edge) {
 		Objects.requireNonNull(edge, "\"edge\" is null.");
 		assert 0 == this.compareTo(edge.fromNode) : "\"edge.fromNode\" must be the same as this object.";

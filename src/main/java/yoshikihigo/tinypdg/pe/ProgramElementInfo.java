@@ -1,6 +1,7 @@
 package yoshikihigo.tinypdg.pe;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.SortedSet;
@@ -11,6 +12,16 @@ abstract public class ProgramElementInfo implements
 		Comparable<ProgramElementInfo> {
 
 	final static private AtomicInteger ID_GENERATOR = new AtomicInteger(0);
+
+	/**
+	 * ソース上の位置順。開始行、次に終了行で比べる。
+	 *
+	 * <p>要素の自然順序は id、つまり作られた順である。出力を行の順に並べたい
+	 * ところが 2 か所あり、それぞれが同じ Comparator を手書きしていた。
+	 */
+	public static final Comparator<ProgramElementInfo> BY_LOCATION = Comparator
+			.comparingInt((ProgramElementInfo e) -> e.startLine)
+			.thenComparingInt(e -> e.endLine);
 
 	final public int startLine;
 	final public int endLine;
@@ -60,13 +71,7 @@ abstract public class ProgramElementInfo implements
 	@Override
 	final public int compareTo(final ProgramElementInfo element) {
 		Objects.requireNonNull(element, "\"element\" is null.");
-		if (this.id < element.id) {
-			return -1;
-		} else if (this.id > element.id) {
-			return 1;
-		} else {
-			return 0;
-		}
+		return Integer.compare(this.id, element.id);
 	}
 
 	final public void addModifier(final String modifier) {
@@ -88,7 +93,7 @@ abstract public class ProgramElementInfo implements
 		return new TreeSet<>();
 	}
 
-	public void setOwnerConditinalBlock(final BlockInfo ownerConditionalBlock) {
+	public void setOwnerConditionalBlock(final BlockInfo ownerConditionalBlock) {
 		Objects.requireNonNull(ownerConditionalBlock, "\"ownerConditionalBlock\" is null.");
 		this.ownerConditionalBlock = ownerConditionalBlock;
 	}

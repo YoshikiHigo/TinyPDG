@@ -25,41 +25,45 @@ edges:
 nodes:
   0: [enter,normal] final Function<String,Integer> length = s -> s.length(); <9>
   1: [normal] int total = 0; <10>
-  2: [normal] total = total + length.apply(v); <12>
-  3: [exit,normal] return total; <14>
+  2: [control] final String v : values <11>
+  3: [normal] total = total + length.apply(v); <12>
+  4: [exit,normal] return total; <14>
 edges:
   0 -> 1 []
   1 -> 2 []
-  2 -> 2 []
-  2 -> 3 []
+  2 -> 3 [true]
+  2 -> 4 [false]
+  3 -> 2 []
 
 ## PDG expressionBody <8...15>
 nodes:
   0: [parameter] final List<String> values <8>
   1: [normal] final Function<String,Integer> length = s -> s.length(); <9>
   2: [normal] int total = 0; <10>
-  3: [parameter] final String v <11>
-  4: [normal] values <11>
-  5: [normal] total = total + length.apply(v); <12>
-  6: [exit] return total; <14>
-  7: [enter,control] Enter <8...15>
+  3: [control] final String v : values <11>
+  4: [normal] total = total + length.apply(v); <12>
+  5: [exit] return total; <14>
+  6: [enter,control] Enter <8...15>
 edges:
+  0 -> 3 [data: values]
   1 -> 2 [execution: ]
-  1 -> 5 [data: length]
+  1 -> 4 [data: length]
+  2 -> 3 [execution: ]
+  2 -> 4 [data: total]
   2 -> 5 [data: total]
-  2 -> 5 [execution: ]
-  5 -> 5 [data: total]
-  5 -> 5 [execution: ]
-  5 -> 6 [data: total]
-  5 -> 6 [execution: ]
-  7 -> 0 [control: true]
-  7 -> 1 [control: true]
-  7 -> 1 [execution: ]
-  7 -> 2 [control: true]
-  7 -> 3 [control: true]
-  7 -> 4 [control: true]
-  7 -> 5 [control: true]
-  7 -> 6 [control: true]
+  3 -> 4 [control: true]
+  3 -> 4 [data: v]
+  3 -> 4 [execution: ]
+  3 -> 5 [execution: ]
+  4 -> 3 [execution: ]
+  4 -> 4 [data: total]
+  4 -> 5 [data: total]
+  6 -> 0 [control: true]
+  6 -> 1 [control: true]
+  6 -> 1 [execution: ]
+  6 -> 2 [control: true]
+  6 -> 3 [control: true]
+  6 -> 5 [control: true]
 
 ## CFG lambda$18 <18...21>
 nodes:
@@ -82,15 +86,16 @@ edges:
 
 ## CFG lambda$31 <31...31>
 nodes:
-  0: [enter,exit,normal] return new int[][]; <31>
+  0: [enter,exit,normal] return new int[n]; <31>
 edges:
 
 ## PDG lambda$31 <31...31>
 nodes:
   0: [parameter] Integer n <31>
-  1: [exit] return new int[][]; <31>
+  1: [exit] return new int[n]; <31>
   2: [enter,control] Enter <31>
 edges:
+  0 -> 1 [data: n]
   2 -> 0 [control: true]
   2 -> 1 [control: true]
   2 -> 1 [execution: ]

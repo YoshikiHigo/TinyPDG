@@ -1,5 +1,6 @@
 package yoshikihigo.tinypdg.ast;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
@@ -15,7 +16,6 @@ import org.eclipse.jdt.core.dom.CharacterLiteral;
 import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ConditionalExpression;
-import org.eclipse.jdt.core.dom.ConstructorInvocation;
 import org.eclipse.jdt.core.dom.CreationReference;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionMethodReference;
@@ -36,7 +36,6 @@ import org.eclipse.jdt.core.dom.RecordPattern;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.StringLiteral;
-import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
 import org.eclipse.jdt.core.dom.SuperFieldAccess;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.SuperMethodReference;
@@ -113,10 +112,9 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				StatementInfo.CATEGORY.Switch, startLine, endLine);
 		this.stack.push(switchBlock);
 
-		node.getExpression().accept(this);
-		final ProgramElementInfo condition = this.stack.pop();
+		final ProgramElementInfo condition = this.visitChild(node.getExpression());
 		switchBlock.setCondition(condition);
-		condition.setOwnerConditinalBlock(switchBlock);
+		condition.setOwnerConditionalBlock(switchBlock);
 
 		final StringBuilder text = new StringBuilder();
 		text.append("switch (");
@@ -127,8 +125,7 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		this.yieldTargets.push(target);
 		for (final Object o : node.statements()) {
 			this.yieldConverted = false;
-			((ASTNode) o).accept(this);
-			final StatementInfo statement = (StatementInfo) this.stack.pop();
+			final StatementInfo statement = (StatementInfo) this.visitChild((ASTNode) o);
 
 			if (statement instanceof BlockStatementInfo arm
 					&& StatementInfo.CATEGORY.SimpleBlock == statement
@@ -190,8 +187,7 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				ExpressionInfo.CATEGORY.SwitchExpression, startLine, endLine);
 		this.stack.push(switchExpression);
 
-		node.getExpression().accept(this);
-		final ProgramElementInfo condition = this.stack.pop();
+		final ProgramElementInfo condition = this.visitChild(node.getExpression());
 		switchExpression.addExpression(condition);
 
 		// アームの中身は文なので、文の visit が動くようブロックを一枚かませる。
@@ -200,8 +196,7 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				StatementInfo.CATEGORY.SimpleBlock, startLine, endLine);
 		this.stack.push(scratch);
 		for (final Object o : node.statements()) {
-			((ASTNode) o).accept(this);
-			final ProgramElementInfo statement = this.stack.pop();
+			final ProgramElementInfo statement = this.visitChild((ASTNode) o);
 			switchExpression.addExpression(statement);
 		}
 		this.stack.pop();
@@ -262,17 +257,9 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		final StringBuilder text = new StringBuilder();
 		text.append(node.getPatternType().toString());
 		text.append("(");
-		boolean first = true;
-		for (final Object o : node.patterns()) {
-			if (!first) {
-				text.append(", ");
-			}
-			((ASTNode) o).accept(this);
-			final ProgramElementInfo nested = this.stack.pop();
-			pattern.addExpression(nested);
-			text.append(nested.getText());
-			first = false;
-		}
+		final List<ProgramElementInfo> nested = this.visitChildren(node.patterns());
+		nested.forEach(pattern::addExpression);
+		text.append(joinTexts(nested, ", "));
 		text.append(")");
 		pattern.setText(text.toString());
 
@@ -289,12 +276,10 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				ExpressionInfo.CATEGORY.Pattern, startLine, endLine);
 		this.stack.push(guarded);
 
-		node.getPattern().accept(this);
-		final ProgramElementInfo pattern = this.stack.pop();
+		final ProgramElementInfo pattern = this.visitChild(node.getPattern());
 		guarded.addExpression(pattern);
 
-		node.getExpression().accept(this);
-		final ProgramElementInfo guard = this.stack.pop();
+		final ProgramElementInfo guard = this.visitChild(node.getExpression());
 		guarded.addExpression(guard);
 
 		guarded.setText(pattern.getText() + " when " + guard.getText());
@@ -312,12 +297,10 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				ExpressionInfo.CATEGORY.Instanceof, startLine, endLine);
 		this.stack.push(instanceofExpression);
 
-		node.getLeftOperand().accept(this);
-		final ProgramElementInfo left = this.stack.pop();
+		final ProgramElementInfo left = this.visitChild(node.getLeftOperand());
 		instanceofExpression.addExpression(left);
 
-		node.getPattern().accept(this);
-		final ProgramElementInfo pattern = this.stack.pop();
+		final ProgramElementInfo pattern = this.visitChild(node.getPattern());
 		instanceofExpression.addExpression(pattern);
 
 		instanceofExpression.setText(
@@ -345,8 +328,7 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		final StringBuilder signature = new StringBuilder();
 		signature.append("(");
 		for (final Object o : node.parameters()) {
-			((ASTNode) o).accept(this);
-			final ProgramElementInfo parameter = this.stack.pop();
+			final ProgramElementInfo parameter = this.visitChild((ASTNode) o);
 			// (String s) -> ... なら SingleVariableDeclaration として
 			// VariableInfo が積まれる。s -> ... のように型を書かない場合は
 			// VariableDeclarationFragment なので、名前から組み立て直す。
@@ -371,8 +353,7 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 
 		final ASTNode body = node.getBody();
 		if (body instanceof Block) {
-			body.accept(this);
-			final ProgramElementInfo statement = this.stack.pop();
+			final ProgramElementInfo statement = this.visitChild(body);
 			lambda.setStatement((StatementInfo) statement);
 			signature.append(statement.getText());
 
@@ -391,8 +372,7 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 					StatementInfo.CATEGORY.Return, bodyStart, bodyEnd);
 			this.stack.push(returnStatement);
 
-			body.accept(this);
-			final ProgramElementInfo expression = this.stack.pop();
+			final ProgramElementInfo expression = this.visitChild(body);
 			returnStatement.addExpression(expression);
 			returnStatement.setText("return " + expression.getText() + ";");
 
@@ -459,12 +439,10 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				ExpressionInfo.CATEGORY.ArrayAccess, startLine, endLine);
 		this.stack.push(expression);
 
-		node.getArray().accept(this);
-		final ProgramElementInfo array = this.stack.pop();
+		final ProgramElementInfo array = this.visitChild(node.getArray());
 		expression.addExpression(array);
 
-		node.getIndex().accept(this);
-		final ProgramElementInfo index = this.stack.pop();
+		final ProgramElementInfo index = this.visitChild(node.getIndex());
 		expression.addExpression(index);
 
 		final StringBuilder text = new StringBuilder();
@@ -528,8 +506,7 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				ExpressionInfo.CATEGORY.Postfix, startLine, endLine);
 		this.stack.push(postfixExpression);
 
-		node.getOperand().accept(this);
-		final ProgramElementInfo operand = this.stack.pop();
+		final ProgramElementInfo operand = this.visitChild(node.getOperand());
 		postfixExpression.addExpression(operand);
 
 		final OperatorInfo operator = new OperatorInfo(node.getOperator()
@@ -557,8 +534,7 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				.toString(), startLine, endLine);
 		prefixExpression.addExpression(operator);
 
-		node.getOperand().accept(this);
-		final ProgramElementInfo operand = this.stack.pop();
+		final ProgramElementInfo operand = this.visitChild(node.getOperand());
 		prefixExpression.addExpression(operand);
 
 		final StringBuilder text = new StringBuilder();
@@ -591,8 +567,7 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				ExpressionInfo.CATEGORY.SuperFieldAccess, startLine, endLine);
 		this.stack.push(superFieldAccess);
 
-		node.getName().accept(this);
-		final ProgramElementInfo name = this.stack.pop();
+		final ProgramElementInfo name = this.visitChild(node.getName());
 		superFieldAccess.addExpression(name);
 
 		final StringBuilder text = new StringBuilder();
@@ -613,19 +588,17 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				endLine);
 		this.stack.push(superMethodInvocation);
 
-		node.getName().accept(this);
-		final ProgramElementInfo name = this.stack.pop();
+		final ProgramElementInfo name = this.visitChild(node.getName());
 		superMethodInvocation.addExpression(name);
 
 		final StringBuilder text = new StringBuilder();
 		text.append("super.");
-		text.append(name);
-		for (final Object argument : node.arguments()) {
-			((ASTNode) argument).accept(this);
-			final ProgramElementInfo argumentExpression = this.stack.pop();
-			superMethodInvocation.addExpression(argumentExpression);
-			text.append(argumentExpression.getText());
-		}
+		text.append(name.getText());
+		text.append("(");
+		final List<ProgramElementInfo> arguments = this.visitChildren(node.arguments());
+		arguments.forEach(superMethodInvocation::addExpression);
+		text.append(joinTexts(arguments, ","));
+		text.append(")");
 		superMethodInvocation.setText(text.toString());
 
 		return false;
@@ -652,12 +625,10 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				ExpressionInfo.CATEGORY.QualifiedName, startLine, endLine);
 		this.stack.push(qualifiedName);
 
-		node.getQualifier().accept(this);
-		final ProgramElementInfo qualifier = this.stack.pop();
+		final ProgramElementInfo qualifier = this.visitChild(node.getQualifier());
 		qualifiedName.setQualifier(qualifier);
 
-		node.getName().accept(this);
-		final ProgramElementInfo name = this.stack.pop();
+		final ProgramElementInfo name = this.visitChild(node.getName());
 		qualifiedName.addExpression(name);
 
 		final StringBuilder text = new StringBuilder();
@@ -704,12 +675,10 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				ExpressionInfo.CATEGORY.FieldAccess, startLine, endLine);
 		this.stack.push(fieldAccess);
 
-		node.getExpression().accept(this);
-		final ProgramElementInfo expression = this.stack.pop();
+		final ProgramElementInfo expression = this.visitChild(node.getExpression());
 		fieldAccess.addExpression(expression);
 
-		node.getName().accept(this);
-		final ProgramElementInfo name = this.stack.pop();
+		final ProgramElementInfo name = this.visitChild(node.getName());
 		fieldAccess.addExpression(name);
 
 		final StringBuilder text = new StringBuilder();
@@ -730,16 +699,14 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				ExpressionInfo.CATEGORY.Infix, startLine, endLine);
 		this.stack.push(infixExpression);
 
-		node.getLeftOperand().accept(this);
-		final ProgramElementInfo left = this.stack.pop();
+		final ProgramElementInfo left = this.visitChild(node.getLeftOperand());
 		infixExpression.addExpression(left);
 
 		final OperatorInfo operator = new OperatorInfo(node.getOperator()
 				.toString(), startLine, endLine);
 		infixExpression.addExpression(operator);
 
-		node.getRightOperand().accept(this);
-		final ProgramElementInfo right = this.stack.pop();
+		final ProgramElementInfo right = this.visitChild(node.getRightOperand());
 		infixExpression.addExpression(right);
 
 		final StringBuilder text = new StringBuilder();
@@ -751,8 +718,7 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 
 		if (node.hasExtendedOperands()) {
 			for (final Object operand : node.extendedOperands()) {
-				((ASTNode) operand).accept(this);
-				final ProgramElementInfo operandExpression = this.stack.pop();
+				final ProgramElementInfo operandExpression = this.visitChild((ASTNode) operand);
 				infixExpression.addExpression(operator);
 				infixExpression.addExpression(operandExpression);
 
@@ -767,6 +733,14 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		return false;
 	}
 
+	/**
+	 * 配列生成。
+	 *
+	 * <p>子は、配列型、次元式 (0 個以上)、初期化子 (あれば) の順に並べる。
+	 * {@code new int[n][]} のように、次元式は型の次元より少ないことがある。
+	 * 以前は次元式を訪問しておらず、n のような次元に使われた変数が参照として
+	 * 数えられなかった。
+	 */
 	@Override
 	public boolean visit(final ArrayCreation node) {
 
@@ -776,20 +750,32 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				ExpressionInfo.CATEGORY.ArrayCreation, startLine, endLine);
 		this.stack.push(arrayCreation);
 
-		node.getType().accept(this);
-		final ProgramElementInfo type = this.stack.pop();
+		final ArrayType arrayType = node.getType();
+		final ProgramElementInfo type = this.visitChild(arrayType);
 		arrayCreation.addExpression(type);
 
 		final StringBuilder text = new StringBuilder();
 		text.append("new ");
-		text.append(type.getText());
-		text.append("[]");
+		text.append(arrayType.getElementType().toString());
+
+		// 次元式のある次元にはその式を、残りの次元には空の [] を書く。
+		int dimensions = 0;
+		for (final Object o : node.dimensions()) {
+			final ProgramElementInfo dimension = this.visitChild((ASTNode) o);
+			arrayCreation.addExpression(dimension);
+			text.append("[");
+			text.append(dimension.getText());
+			text.append("]");
+			dimensions++;
+		}
+		for (; dimensions < arrayType.getDimensions(); dimensions++) {
+			text.append("[]");
+		}
 
 		if (null != node.getInitializer()) {
-			node.getInitializer().accept(this);
-			final ProgramElementInfo initializer = this.stack.pop();
+			final ProgramElementInfo initializer = this.visitChild(node.getInitializer());
 			arrayCreation.addExpression(initializer);
-			text.append(arrayCreation);
+			text.append(initializer.getText());
 		}
 		arrayCreation.setText(text.toString());
 
@@ -807,16 +793,9 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 
 		final StringBuilder text = new StringBuilder();
 		text.append("{");
-		for (final Object expression : node.expressions()) {
-			((ASTNode) expression).accept(this);
-			final ProgramElementInfo subexpression = this.stack.pop();
-			initializer.addExpression(subexpression);
-			text.append(subexpression.getText());
-			text.append(",");
-		}
-		if (0 < node.expressions().size()) {
-			text.deleteCharAt(text.length() - 1);
-		}
+		final List<ProgramElementInfo> elements = this.visitChildren(node.expressions());
+		elements.forEach(initializer::addExpression);
+		text.append(joinTexts(elements, ","));
 		text.append("}");
 		initializer.setText(text.toString());
 
@@ -845,16 +824,14 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				ExpressionInfo.CATEGORY.Assignment, startLine, endLine);
 		this.stack.push(assignment);
 
-		node.getLeftHandSide().accept(this);
-		final ProgramElementInfo left = this.stack.pop();
+		final ProgramElementInfo left = this.visitChild(node.getLeftHandSide());
 		assignment.addExpression(left);
 
 		final OperatorInfo operator = new OperatorInfo(node.getOperator()
 				.toString(), startLine, endLine);
 		assignment.addExpression(operator);
 
-		node.getRightHandSide().accept(this);
-		final ProgramElementInfo right = this.stack.pop();
+		final ProgramElementInfo right = this.visitChild(node.getRightHandSide());
 		assignment.addExpression(right);
 
 		final StringBuilder text = new StringBuilder();
@@ -881,8 +858,7 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				startLine, endLine);
 		cast.addExpression(type);
 
-		node.getExpression().accept(this);
-		final ProgramElementInfo expression = this.stack.pop();
+		final ProgramElementInfo expression = this.visitChild(node.getExpression());
 		cast.addExpression(expression);
 
 		final StringBuilder text = new StringBuilder();
@@ -913,31 +889,20 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		text.append("new ");
 		text.append(type.getText());
 		text.append("(");
-		for (final Object argument : node.arguments()) {
-			((ASTNode) argument).accept(this);
-			final ProgramElementInfo argumentExpression = this.stack.pop();
-			classInstanceCreation
-					.addExpression(argumentExpression);
-
-			text.append(argumentExpression.getText());
-			text.append(",");
-		}
-		if (0 < node.arguments().size()) {
-			text.deleteCharAt(text.length() - 1);
-		}
+		final List<ProgramElementInfo> arguments = this.visitChildren(node.arguments());
+		arguments.forEach(classInstanceCreation::addExpression);
+		text.append(joinTexts(arguments, ","));
 		text.append(")");
 
 		if (null != node.getExpression()) {
-			node.getExpression().accept(this);
-			final ProgramElementInfo expression = this.stack.pop();
+			final ProgramElementInfo expression = this.visitChild(node.getExpression());
 			classInstanceCreation
 					.addExpression(expression);
 			text.append(expression.getText());
 		}
 
 		if (null != node.getAnonymousClassDeclaration()) {
-			node.getAnonymousClassDeclaration().accept(this);
-			final ProgramElementInfo anonymousClass = this.stack.pop();
+			final ProgramElementInfo anonymousClass = this.visitChild(node.getAnonymousClassDeclaration());
 			classInstanceCreation
 					.setAnonymousClassDeclaration((ClassInfo) anonymousClass);
 			text.append(anonymousClass.getText());
@@ -957,16 +922,13 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				ExpressionInfo.CATEGORY.Trinomial, startLine, endLine);
 		this.stack.push(trinomial);
 
-		node.getExpression().accept(this);
-		final ProgramElementInfo expression = this.stack.pop();
+		final ProgramElementInfo expression = this.visitChild(node.getExpression());
 		trinomial.addExpression(expression);
 
-		node.getThenExpression().accept(this);
-		final ProgramElementInfo thenExpression = this.stack.pop();
+		final ProgramElementInfo thenExpression = this.visitChild(node.getThenExpression());
 		trinomial.addExpression(thenExpression);
 
-		node.getElseExpression().accept(this);
-		final ProgramElementInfo elseExpression = this.stack.pop();
+		final ProgramElementInfo elseExpression = this.visitChild(node.getElseExpression());
 		trinomial.addExpression(elseExpression);
 
 		final StringBuilder text = new StringBuilder();
@@ -981,44 +943,6 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 	}
 
 	@Override
-	public boolean visit(final ConstructorInvocation node) {
-
-		final int startLine = this.getStartLineNumber(node);
-		final int endLine = this.getEndLineNumber(node);
-		final ExpressionInfo invocation = new ExpressionInfo(
-				ExpressionInfo.CATEGORY.ConstructorInvocation, startLine,
-				endLine);
-		this.stack.push(invocation);
-
-		final StringBuilder text = new StringBuilder();
-		text.append("this(");
-		for (final Object argument : node.arguments()) {
-			((ASTNode) argument).accept(this);
-			final ProgramElementInfo argumentExpression = this.stack.pop();
-			invocation.addExpression(argumentExpression);
-			text.append(argumentExpression.getText());
-			text.append(",");
-		}
-		if (0 < node.arguments().size()) {
-			text.deleteCharAt(text.length() - 1);
-		}
-		text.append(")");
-		invocation.setText(text.toString());
-
-		this.stack.pop();
-		final ProgramElementInfo ownerBlock = this.stack.peek();
-		final SimpleStatementInfo statement = new SimpleStatementInfo(ownerBlock,
-				StatementInfo.CATEGORY.Expression, startLine, endLine);
-		this.stack.push(statement);
-
-		statement.addExpression(invocation);
-		text.append(";");
-		statement.setText(text.toString());
-
-		return false;
-	}
-
-	@Override
 	public boolean visit(final InstanceofExpression node) {
 
 		final int startLine = this.getStartLineNumber(node);
@@ -1027,12 +951,10 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				ExpressionInfo.CATEGORY.Instanceof, startLine, endLine);
 		this.stack.push(instanceofExpression);
 
-		node.getLeftOperand().accept(this);
-		final ProgramElementInfo left = this.stack.pop();
+		final ProgramElementInfo left = this.visitChild(node.getLeftOperand());
 		instanceofExpression.addExpression(left);
 
-		node.getRightOperand().accept(this);
-		final ProgramElementInfo right = this.stack.pop();
+		final ProgramElementInfo right = this.visitChild(node.getRightOperand());
 		instanceofExpression.addExpression(right);
 
 		final StringBuilder text = new StringBuilder();
@@ -1056,32 +978,21 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		final StringBuilder text = new StringBuilder();
 
 		if (null != node.getExpression()) {
-			node.getExpression().accept(this);
-			final ProgramElementInfo expression = this.stack.pop();
+			final ProgramElementInfo expression = this.visitChild(node.getExpression());
 			methodInvocation.setQualifier(expression);
 
 			text.append(expression.getText());
 			text.append(".");
 		}
 
-		node.getName().accept(this);
-		final ProgramElementInfo name = this.stack.pop();
+		final ProgramElementInfo name = this.visitChild(node.getName());
 		methodInvocation.addExpression(name);
 
 		text.append(name.getText());
 		text.append("(");
-		for (final Object argument : node.arguments()) {
-			((ASTNode) argument).accept(this);
-			final ProgramElementInfo argumentExpression = this.stack.pop();
-			methodInvocation
-					.addExpression(argumentExpression);
-
-			text.append(argumentExpression.getText());
-			text.append(",");
-		}
-		if (0 < node.arguments().size()) {
-			text.deleteCharAt(text.length() - 1);
-		}
+		final List<ProgramElementInfo> arguments = this.visitChildren(node.arguments());
+		arguments.forEach(methodInvocation::addExpression);
+		text.append(joinTexts(arguments, ","));
 		text.append(")");
 		methodInvocation.setText(text.toString());
 
@@ -1097,8 +1008,7 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				ExpressionInfo.CATEGORY.Parenthesized, startLine, endLine);
 		this.stack.push(parenthesizedExpression);
 
-		node.getExpression().accept(this);
-		final ProgramElementInfo expression = this.stack.pop();
+		final ProgramElementInfo expression = this.visitChild(node.getExpression());
 		parenthesizedExpression.addExpression(expression);
 
 		final StringBuilder text = new StringBuilder();
@@ -1106,55 +1016,6 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		text.append(expression.getText());
 		text.append(")");
 		parenthesizedExpression.setText(text.toString());
-
-		return false;
-	}
-
-	@Override
-	public boolean visit(final SuperConstructorInvocation node) {
-
-		final int startLine = this.getStartLineNumber(node);
-		final int endLine = this.getEndLineNumber(node);
-		final ExpressionInfo superConstructorInvocation = new ExpressionInfo(
-				ExpressionInfo.CATEGORY.SuperConstructorInvocation, startLine,
-				endLine);
-		this.stack.push(superConstructorInvocation);
-
-		final StringBuilder text = new StringBuilder();
-
-		if (null != node.getExpression()) {
-			node.getExpression().accept(this);
-			final ProgramElementInfo qualifier = this.stack.pop();
-			superConstructorInvocation.setQualifier(qualifier);
-			text.append(qualifier.getText());
-			text.append(".super(");
-		} else {
-			text.append("super(");
-		}
-
-		for (final Object argument : node.arguments()) {
-			((ASTNode) argument).accept(this);
-			final ProgramElementInfo argumentExpression = this.stack.pop();
-			superConstructorInvocation
-					.addExpression(argumentExpression);
-			text.append(argumentExpression.getText());
-			text.append(",");
-		}
-		if (0 < node.arguments().size()) {
-			text.deleteCharAt(text.length() - 1);
-		}
-		text.append(")");
-		superConstructorInvocation.setText(text.toString());
-
-		this.stack.pop();
-		final ProgramElementInfo ownerBlock = this.stack.peek();
-		final SimpleStatementInfo statement = new SimpleStatementInfo(ownerBlock,
-				StatementInfo.CATEGORY.Expression, startLine, endLine);
-		this.stack.push(statement);
-
-		statement.addExpression(superConstructorInvocation);
-		text.append(";");
-		statement.setText(text.toString());
 
 		return false;
 	}
@@ -1172,34 +1033,70 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		return false;
 	}
 
+	/**
+	 * 宣言式。for の初期化式と try のリソースに現れる。
+	 *
+	 * <p>断片が複数ある {@code int i = 0, j = n} は for の初期化式にしか
+	 * 現れず、そこでは ForStatement の visit が {@link #declarationExpressions}
+	 * で変数ごとに分ける。ここへ来るのは断片が 1 つのものである。
+	 */
 	@Override
 	public boolean visit(final VariableDeclarationExpression node) {
 
-		final int startLine = this.getStartLineNumber(node);
-		final int endLine = this.getEndLineNumber(node);
-		final ExpressionInfo vdExpression = new ExpressionInfo(
-				ExpressionInfo.CATEGORY.VariableDeclarationExpression,
-				startLine, endLine);
-		this.stack.push(vdExpression);
-
-		final TypeInfo type = new TypeInfo(node.getType().toString(),
-				startLine, endLine);
-		vdExpression.addExpression(type);
-
-		final StringBuilder text = new StringBuilder();
-		text.append(type.getText());
-		text.append(" ");
-
-		for (final Object fragment : node.fragments()) {
-			((ASTNode) fragment).accept(this);
-			final ProgramElementInfo fragmentExpression = this.stack.pop();
-			vdExpression.addExpression(fragmentExpression);
-			text.append(fragmentExpression.getText());
+		final List<ExpressionInfo> declarations = this.declarationExpressions(node);
+		if (1 == declarations.size()) {
+			this.stack.push(declarations.get(0));
+			return false;
 		}
 
-		vdExpression.setText(text.toString());
-
+		// 文法上ここには来ないが、来ても取りこぼさない。変数は子から集まる。
+		final ExpressionInfo group = new ExpressionInfo(
+				ExpressionInfo.CATEGORY.Unsupported,
+				this.getStartLineNumber(node), this.getEndLineNumber(node));
+		declarations.forEach(group::addExpression);
+		group.setText(flatten(node));
+		this.stack.push(group);
 		return false;
+	}
+
+	/**
+	 * 宣言式を変数ごとの式にする。{@code int i = 0, j = n} は
+	 * {@code int i = 0} と {@code int j = n} の 2 つになる。
+	 */
+	List<ExpressionInfo> declarationExpressions(
+			final VariableDeclarationExpression node) {
+		final List<ExpressionInfo> declarations = new ArrayList<>();
+		for (final Object o : node.fragments()) {
+			declarations.add(this.declarationExpression(node,
+					(VariableDeclarationFragment) o));
+		}
+		return declarations;
+	}
+
+	/** 変数 1 つの宣言式。型は元の宣言のものを使う。 */
+	private ExpressionInfo declarationExpression(
+			final VariableDeclarationExpression node,
+			final VariableDeclarationFragment fragment) {
+
+		final int startLine = this.getStartLineNumber(fragment);
+		final int endLine = this.getEndLineNumber(fragment);
+		final ExpressionInfo declaration = new ExpressionInfo(
+				ExpressionInfo.CATEGORY.VariableDeclarationExpression,
+				startLine, endLine);
+		this.stack.push(declaration);
+
+		// C 形式の int a[] は int[] a として扱う。
+		final TypeInfo type = new TypeInfo(node.getType().toString()
+				+ "[]".repeat(fragment.extraDimensions().size()), startLine,
+				endLine);
+		declaration.addExpression(type);
+
+		final ProgramElementInfo declarator = this.visitChild(fragment);
+		declaration.addExpression(declarator);
+		declaration.setText(type.getText() + " " + declarator.getText());
+
+		this.stack.pop();
+		return declaration;
 	}
 
 	@Override
@@ -1212,16 +1109,16 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				endLine);
 		this.stack.push(vdFragment);
 
-		node.getName().accept(this);
-		final ProgramElementInfo name = this.stack.pop();
+		final ProgramElementInfo name = this.visitChild(node.getName());
 		vdFragment.addExpression(name);
 
 		final StringBuilder text = new StringBuilder();
 		text.append(name.getText());
+		// C 形式の int a[] = ... の [] は断片に付いているが、宣言の側が型に
+		// 寄せて int[] a にするので、ここでは書かない。
 
 		if (null != node.getInitializer()) {
-			node.getInitializer().accept(this);
-			final ProgramElementInfo expression = this.stack.pop();
+			final ProgramElementInfo expression = this.visitChild(node.getInitializer());
 			vdFragment.addExpression(expression);
 
 			text.append(" = ");
@@ -1238,8 +1135,12 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 
 		final int startLine = this.getStartLineNumber(node);
 		final int endLine = this.getEndLineNumber(node);
-		final TypeInfo type = new TypeInfo(node.getType().toString(),
-				startLine, endLine);
+		// 可変長引数 int... は、JDT では型 int に isVarargs の印が付いた形で
+		// 来る。C 形式の int a[] も、型 int と名前の後ろの次元とに分かれて
+		// 来る。どちらも型の名前に足し戻す。int a[] は int[] a として扱う。
+		final TypeInfo type = new TypeInfo(node.getType().toString()
+				+ "[]".repeat(node.extraDimensions().size())
+				+ (node.isVarargs() ? "..." : ""), startLine, endLine);
 		final String name = node.getName().toString();
 		final VariableInfo variable = new VariableInfo(
 				VariableInfo.CATEGORY.LOCAL, type, name, startLine, endLine);

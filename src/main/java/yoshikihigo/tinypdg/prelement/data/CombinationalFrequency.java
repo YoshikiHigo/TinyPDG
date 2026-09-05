@@ -18,7 +18,7 @@ public class CombinationalFrequency {
 		this.control = null != control ? control : new Frequency(0f, 0, 0, "");
 		this.data = null != data ? data : new Frequency(0f, 0, 0, "");
 		this.execution = null != execution ? execution : new Frequency(0f, 0,
-				0, "i");
+				0, "");
 	}
 
 	public int getTotalSupport() {
@@ -27,7 +27,7 @@ public class CombinationalFrequency {
 	}
 
 	public float getTotalProbability() {
-		return this.control.probablity + this.data.probablity
-				+ this.execution.probablity;
+		return this.control.probability + this.data.probability
+				+ this.execution.probability;
 	}
 }

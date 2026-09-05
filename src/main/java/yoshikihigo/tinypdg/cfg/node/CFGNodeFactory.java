@@ -88,7 +88,7 @@ public class CFGNodeFactory {
 	}
 
 	public synchronized boolean removeNode(final ProgramElementInfo element) {
-		return null != this.elementToNodeMap.remove(element) ? true : false;
+		return null != this.elementToNodeMap.remove(element);
 	}
 
 	public SortedSet<CFGNode<? extends ProgramElementInfo>> getAllNodes() {

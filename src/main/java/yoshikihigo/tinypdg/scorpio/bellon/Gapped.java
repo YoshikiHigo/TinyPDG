@@ -16,7 +16,7 @@ public class Gapped {
 			System.err.println("the number of command options must be two.");
 			System.err.println("the first one is an output file of SCORPIO.");
 			System.err
-					.println("the second one is a file for storing intertwined clones.");
+					.println("the second one is a file for storing gapped clones.");
 			System.exit(1);
 		}
 

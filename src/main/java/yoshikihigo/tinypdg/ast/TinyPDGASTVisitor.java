@@ -144,6 +144,9 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 	 *
 	 * <p>enum と record も型宣言なので、class や interface と同じ扱いをする。
 	 * enum のコンストラクタやメソッドは、この形の宣言としてここに現れる。
+	 * 注釈型も同じである。注釈型の要素宣言 ({@code String value();}) は
+	 * MethodDeclaration ではないので拾わないが、注釈型の中に書かれた
+	 * クラスや enum はネストした型としてここを通る。
 	 *
 	 * <p>以前はメソッドだけを拾い、ネストした型を素通りしていた。そのため
 	 * 内部クラスや enum の中のメソッドが 1 つも見つからなかった。
@@ -166,8 +169,7 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 		for (final Object o : node.bodyDeclarations()) {
 
 			if (o instanceof MethodDeclaration) {
-				((ASTNode) o).accept(this);
-				final ProgramElementInfo method = this.stack.pop();
+				final ProgramElementInfo method = this.visitChild((ASTNode) o);
 				this.methods.add((MethodInfo) method);
 				typeDeclaration.addMethod((MethodInfo) method);
 				text.append(method.getText());
@@ -176,8 +178,7 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 			} else if (o instanceof AbstractTypeDeclaration) {
 				// ネストした型。その中のメソッドは、ネスト側の
 				// visitTypeDeclaration が this.methods に積む。
-				((ASTNode) o).accept(this);
-				final ProgramElementInfo nested = this.stack.pop();
+				final ProgramElementInfo nested = this.visitChild((ASTNode) o);
 				text.append(nested.getText());
 				text.append(System.lineSeparator());
 			}
@@ -187,14 +188,18 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 		typeDeclaration.setText(text.toString());
 	}
 
+	/**
+	 * 注釈型。他の型宣言と同じ経路を通す。
+	 *
+	 * <p>以前は本体の要素を 1 つずつ accept して pop していた。要素宣言には
+	 * visit がなく、preVisit2 も式でも文でもないものは積まないので、pop する
+	 * 相手がない。トップレベルの注釈型では空のスタックから pop して落ち、
+	 * クラスの中にネストした注釈型では外側のクラスを pop してしまい、その後
+	 * 外側の visitTypeDeclaration が行う pop が今度は空振りして落ちていた。
+	 */
 	@Override
 	public boolean visit(final AnnotationTypeDeclaration node) {
-
-		for (final Object o : node.bodyDeclarations()) {
-			((ASTNode) o).accept(this);
-			final ProgramElementInfo method = this.stack.pop();
-		}
-
+		this.visitTypeDeclaration(node, "@interface ");
 		return false;
 	}
 
@@ -203,7 +208,7 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 
 		final StringBuilder text = new StringBuilder();
 		text.append("{");
-		text.append(System.getProperty("line.separator"));
+		text.append(System.lineSeparator());
 
 		final int startLine = this.getStartLineNumber(node);
 		final int endLine = this.getEndLineNumber(node);
@@ -213,8 +218,7 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 
 		for (final Object o : node.bodyDeclarations()) {
 			if (o instanceof MethodDeclaration) {
-				((ASTNode) o).accept(this);
-				final ProgramElementInfo method = this.stack.pop();
+				final ProgramElementInfo method = this.visitChild((ASTNode) o);
 				// 匿名クラスのメソッドも 1 つの独立した解析単位として扱う。
 				// ここで this.methods に入れ忘れていたため、これまで
 				// 匿名クラスの中身は誰からも見えていなかった。
@@ -253,22 +257,17 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 		text.append(name);
 		text.append("(");
 
-		for (final Object o : node.parameters()) {
-			((ASTNode) o).accept(this);
-			final VariableInfo parameter = (VariableInfo) this.stack.pop();
+		final List<ProgramElementInfo> parameters = this.visitChildren(node.parameters());
+		for (final ProgramElementInfo o : parameters) {
+			final VariableInfo parameter = (VariableInfo) o;
 			parameter.setCategory(VariableInfo.CATEGORY.PARAMETER);
 			method.addParameter(parameter);
-			text.append(parameter.getText());
-			text.append(",");
 		}
-		if (0 < node.parameters().size()) {
-			text.deleteCharAt(text.length() - 1);
-		}
+		text.append(joinTexts(parameters, ","));
 		text.append(")");
 
 		if (null != node.getBody()) {
-			node.getBody().accept(this);
-			final ProgramElementInfo body = this.stack.pop();
+			final ProgramElementInfo body = this.visitChild(node.getBody());
 			method.setStatement((StatementInfo) body);
 			text.append(body.getText());
 		}

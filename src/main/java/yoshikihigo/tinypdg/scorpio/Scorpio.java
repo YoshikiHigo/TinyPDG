@@ -15,6 +15,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import yoshikihigo.tinypdg.CommandLineTools;
 import yoshikihigo.tinypdg.ast.JavaAstFactory;
 import yoshikihigo.tinypdg.pdg.PDG;
 import yoshikihigo.tinypdg.pdg.PDGGeneration;
@@ -35,14 +36,7 @@ public class Scorpio {
 
 			final Options options = new Options();
 
-			{
-				final Option d = new Option("d", "directory", true,
-						"target directory");
-				d.setArgName("directory");
-				d.setArgs(1);
-				d.setRequired(true);
-				options.addOption(d);
-			}
+			options.addOption(CommandLineTools.targetOption());
 
 			{
 				final Option o = new Option("o", "output", true, "output file");
@@ -52,145 +46,47 @@ public class Scorpio {
 				options.addOption(o);
 			}
 
-			{
-				final Option s = new Option("s", "size", true, "size");
-				s.setArgName("size");
-				s.setArgs(1);
-				s.setRequired(true);
-				options.addOption(s);
-			}
+			options.addOption(CommandLineTools.sizeOption(true));
 
-			{
-				final Option t = new Option("t", "thread", true,
-						"number of threads");
-				t.setArgName("thread");
-				t.setArgs(1);
-				t.setRequired(false);
-				options.addOption(t);
-			}
+			options.addOption(CommandLineTools.threadsOption());
 
-			{
-				final Option C = new Option("C", "control", true,
-						"use of control dependency");
-				C.setArgName("on or off");
-				C.setArgs(1);
-				C.setRequired(false);
-				options.addOption(C);
-			}
+			options.addOption(CommandLineTools.onOffOption("C", "control",
+					"use of control dependency"));
 
-			{
-				final Option D = new Option("D", "data", true,
-						"use of data dependency");
-				D.setArgName("on or off");
-				D.setArgs(1);
-				D.setRequired(false);
-				options.addOption(D);
-			}
+			options.addOption(CommandLineTools.onOffOption("D", "data",
+					"use of data dependency"));
 
-			{
-				final Option E = new Option("E", "execution", true,
-						"use of execution dependency");
-				E.setArgName("on or off");
-				E.setArgs(1);
-				E.setRequired(false);
-				options.addOption(E);
-			}
+			options.addOption(CommandLineTools.onOffOption("E", "execution",
+					"use of execution dependency"));
 
-			{
-				final Option M = new Option("M", "merging", true,
-						"merging consecutive similar nodes");
-				M.setArgName("on or off");
-				M.setArgs(1);
-				M.setRequired(false);
-				options.addOption(M);
-			}
+			options.addOption(CommandLineTools.onOffOption("M", "merging",
+					"merging consecutive similar nodes"));
 
-			{
-				final Option j = new Option("j", "java-version", true,
-						"Java version assumed for the target source files");
-				j.setArgName("version");
-				j.setArgs(1);
-				j.setRequired(false);
-				options.addOption(j);
-			}
+			options.addOption(CommandLineTools.javaVersionOption());
 
 			final CommandLineParser parser = new DefaultParser();
 			final CommandLine cmd = parser.parse(options, args);
 
-			final File target = new File(cmd.getOptionValue("d"));
-			if (!target.exists()) {
-				System.err
-						.println("specified directory or file does not exist.");
-				System.exit(1);
-			}
+			final File target = CommandLineTools.target(cmd);
 
 			final String output = cmd.getOptionValue("o");
 			final int SIZE_THRESHOLD = Integer
 					.parseInt(cmd.getOptionValue("s"));
-			final int NUMBER_OF_THREADS = cmd.hasOption("t") ? Integer
-					.parseInt(cmd.getOptionValue("t")) : 1;
+			final int NUMBER_OF_THREADS = CommandLineTools.threads(cmd);
 
-			boolean useOfControl = !cmd.hasOption("C");
-			if (!useOfControl) {
-				if (cmd.getOptionValue("C").equals("on")) {
-					useOfControl = true;
-				} else if (cmd.getOptionValue("C").equals("off")) {
-					useOfControl = false;
-				} else {
-					System.err
-							.println("option of \"-C\" must be \"on\" or \"off\".");
-				}
-			}
-
-			boolean useOfData = !cmd.hasOption("D");
-			if (!useOfData) {
-				if (cmd.getOptionValue("D").equals("on")) {
-					useOfData = true;
-				} else if (cmd.getOptionValue("D").equals("off")) {
-					useOfData = false;
-				} else {
-					System.err
-							.println("option of \"-D\" must be \"on\" or \"off\".");
-				}
-			}
-
-			boolean useOfExecution = !cmd.hasOption("E");
-			if (!useOfExecution) {
-				if (cmd.getOptionValue("E").equals("on")) {
-					useOfExecution = true;
-				} else if (cmd.getOptionValue("E").equals("off")) {
-					useOfExecution = false;
-				} else {
-					System.err
-							.println("option of \"-E\" must be \"on\" or \"off\".");
-				}
-			}
-
-			boolean useOfMerging = !cmd.hasOption("M");
-			if (!useOfMerging) {
-				if (cmd.getOptionValue("M").equals("on")) {
-					useOfMerging = true;
-				} else if (cmd.getOptionValue("M").equals("off")) {
-					useOfMerging = false;
-				} else {
-					System.err
-							.println("option of \"-M\" must be \"on\" or \"off\".");
-				}
-			}
-
-			if (!useOfExecution && useOfMerging) {
-				useOfMerging = false;
-			}
+			final boolean useOfControl = CommandLineTools.onOff(cmd, "C");
+			final boolean useOfData = CommandLineTools.onOff(cmd, "D");
+			final boolean useOfExecution = CommandLineTools.onOff(cmd, "E");
+			final boolean mergingRequested = CommandLineTools.onOff(cmd, "M");
+			// 併合は実行依存の辺に沿って行うので、実行依存がなければ何もしない。
+			final boolean useOfMerging = useOfExecution && mergingRequested;
 
 			final long time1 = System.nanoTime();
 			System.out.print("generating PDGs ... ");
 			final PDG[] pdgArray;
 			{
-				final String javaVersion = cmd.hasOption("j")
-						? cmd.getOptionValue("j")
-						: JavaAstFactory.DEFAULT_JAVA_VERSION;
 				final List<MethodInfo> methods = JavaAstFactory
-						.collectMethods(target, javaVersion);
+						.collectMethods(target, CommandLineTools.javaVersion(cmd));
 
 				final PDGGeneration.Options generation = new PDGGeneration.Options(
 						new PDG.Dependences(useOfControl, useOfData,
@@ -204,9 +100,8 @@ public class Scorpio {
 						: PDGGeneration.buildInParallel(methods, generation);
 				pdgArray = pdgs.toArray(new PDG[0]);
 			}
-			System.out.print("done: ");
 			final long time2 = System.nanoTime();
-			printTime(time2 - time1);
+			System.out.println("done: " + CommandLineTools.formatElapsed(time2 - time1));
 
 			System.out.print("calculating hash values ... ");
 			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mappingPDGToPDGNodes = Collections
@@ -214,12 +109,11 @@ public class Scorpio {
 			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges = Collections
 					.synchronizedSortedMap(new TreeMap<>());
 			{
-				HashCalculationThread.calculate(pdgArray, mappingPDGToPDGNodes,
+				HashCalculation.calculate(pdgArray, mappingPDGToPDGNodes,
 						mappingPDGToPDGEdges, NUMBER_OF_THREADS);
 			}
-			System.out.print("done: ");
 			final long time3 = System.nanoTime();
-			printTime(time3 - time2);
+			System.out.println("done: " + CommandLineTools.formatElapsed(time3 - time2));
 
 			System.out.print("detecting clone pairs ... ");
 			final SortedSet<ClonePairInfo> clonepairs = Collections
@@ -233,23 +127,21 @@ public class Scorpio {
 				}
 				final PDGPairInfo[] pdgpairArray = pdgpairs
 						.toArray(new PDGPairInfo[0]);
-				SlicingThread.detect(pdgpairArray, pdgArray,
+				CloneDetection.detect(pdgpairArray, pdgArray,
 						mappingPDGToPDGNodes, mappingPDGToPDGEdges, clonepairs,
 						SIZE_THRESHOLD, NUMBER_OF_THREADS);
 			}
-			System.out.print("done: ");
 			final long time4 = System.nanoTime();
-			printTime(time4 - time3);
+			System.out.println("done: " + CommandLineTools.formatElapsed(time4 - time3));
 
 			System.out.print("writing to a file ... ");
 			final ClonePairWriter writer = new BellonWriter(output, clonepairs);
 			writer.write();
-			System.out.print("done: ");
 			final long time5 = System.nanoTime();
-			printTime(time5 - time4);
+			System.out.println("done: " + CommandLineTools.formatElapsed(time5 - time4));
 
-			System.out.print("total elapsed time: ");
-			printTime(time5 - time1);
+			System.out.println("total elapsed time: "
+					+ CommandLineTools.formatElapsed(time5 - time1));
 
 			System.out.print("number of comparisons: ");
 			printNumberOfComparison(Slicing.getNumberOfComparison());
@@ -262,48 +154,8 @@ public class Scorpio {
 		}
 	}
 
-	private static void printNumberOfRemoval(final long number) {
-		System.out.print("number of removed edges: ");
-		System.out.println(String.format("%1$,3d", number));
-	}
-
 	private static void printNumberOfComparison(final long number) {
 		System.out.println(String.format("%1$,3d", number));
 	}
 
-	private static void printTime(final long time) {
-		final long micro = time / 1000;
-		final long mili = micro / 1000;
-		final long sec = mili / 1000;
-
-		final long hour = sec / 3600;
-		final long minute = (sec % 3600) / 60;
-		final long second = (sec % 3600) % 60;
-
-		if (1l == hour) {
-			System.out.print(hour);
-			System.out.print(" hour ");
-		} else if (1l < hour) {
-			System.out.print(hour);
-			System.out.print(" hours ");
-		}
-
-		if (1l == minute) {
-			System.out.print(minute);
-			System.out.print(" minute ");
-		} else if (1l < minute) {
-			System.out.print(minute);
-			System.out.print(" minutes ");
-		} else if ((0l == minute) && (1l <= hour)) {
-			System.out.print(" 0 minute ");
-		}
-
-		if (2 <= second) {
-			System.out.print(second);
-			System.out.println(" seconds.");
-		} else {
-			System.out.print(second);
-			System.out.println(" second.");
-		}
-	}
 }
