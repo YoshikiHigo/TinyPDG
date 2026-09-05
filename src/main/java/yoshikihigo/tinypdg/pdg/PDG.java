@@ -47,6 +47,15 @@ public class PDG implements Comparable<PDG> {
 	private CFG cfg;
 
 	/**
+	 * CFG のノードの集合。build で CFG を作り終えたときに 1 回だけ写す。
+	 *
+	 * <p>CFG.getAllNodes() は呼ぶたびに TreeSet を作り直す。制御依存の
+	 * 構築は文ごとに「この文のノードは CFG にあるか」を問うので、以前は
+	 * その写しが文の数だけ作られていた。
+	 */
+	private SortedSet<CFGNode<?>> cfgNodes;
+
+	/**
 	 * PDG に何を含めるか。
 	 *
 	 * <p>以前はコンストラクタの引数として並んでいた。真偽値が 3 つ続くので、
@@ -169,8 +178,8 @@ public class PDG implements Comparable<PDG> {
 		}
 
 		// build する前は CFG がまだない。
-		if (null != this.cfg) {
-			for (final CFGNode<?> cfgNode : this.cfg.getAllNodes()) {
+		if (null != this.cfgNodes) {
+			for (final CFGNode<?> cfgNode : this.cfgNodes) {
 				this.collectFrom(this.pdgNodeFactory.makeNode(cfgNode), nodes);
 			}
 		}
@@ -215,6 +224,8 @@ public class PDG implements Comparable<PDG> {
 		this.cfg.build();
 		this.cfg.removeSwitchCases();
 		this.cfg.removeJumpStatements();
+		// 以後 CFG は変わらない。
+		this.cfgNodes = this.cfg.getAllNodes();
 
 		if (this.dependences.control()) {
 			this.buildControlDependence(this.enterNode, unit);
@@ -254,7 +265,7 @@ public class PDG implements Comparable<PDG> {
 
 		if (!this.cfg.isEmpty()) {
 			final Set<CFGNode<?>> unreachableNodes = new HashSet<>();
-			unreachableNodes.addAll(this.cfg.getAllNodes());
+			unreachableNodes.addAll(this.cfgNodes);
 			unreachableNodes.removeAll(this.cfg.getReachableNodes(this.cfg
 					.getEnterNode()));
 			for (final CFGNode<?> unreachableNode : unreachableNodes) {
@@ -429,7 +440,7 @@ public class PDG implements Comparable<PDG> {
 		}
 
 		final CFGNode<?> cfgNode = this.cfgNodeFactory.getNode(statement);
-		if ((null != cfgNode) && (this.cfg.getAllNodes().contains(cfgNode))) {
+		if ((null != cfgNode) && (this.cfgNodes.contains(cfgNode))) {
 			final PDGNode<?> toPDGNode = this.pdgNodeFactory
 					.makeNormalNode(statement);
 			new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
