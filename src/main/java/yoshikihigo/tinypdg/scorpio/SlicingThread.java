@@ -12,12 +12,12 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntFunction;
 
 import yoshikihigo.tinypdg.pdg.PDG;
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
-import yoshikihigo.tinypdg.scorpio.data.EdgePairInfo;
 import yoshikihigo.tinypdg.scorpio.data.NodePairInfo;
 import yoshikihigo.tinypdg.scorpio.data.PDGPairInfo;
 
@@ -98,111 +98,16 @@ public class SlicingThread implements Runnable {
 
 			final PDG pdgA = this.pdgpairs[index].left;
 			final PDG pdgB = this.pdgpairs[index].right;
-			final String pathA = pdgA.unit.path;
-			final String pathB = pdgB.unit.path;
 
 			try {
-
-				final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHashA = this.mapPDGToPDGNodes
-						.get(pdgA);
-				final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHashB = this.mapPDGToPDGNodes
-						.get(pdgB);
-				final SortedMap<Integer, List<PDGNode<?>>> mappingHashToPDGNodes = new TreeMap<Integer, List<PDGNode<?>>>();
-				this.registerNodes(mappingHashToPDGNodes, mappingPDGNodeToHashA);
-				this.registerNodes(mappingHashToPDGNodes, mappingPDGNodeToHashB);
-				final SortedMap<PDGNode<?>, PDGNode<?>[]> mappingPDGNodeToPDGNodes = new TreeMap<>();
-				for (final List<PDGNode<?>> list : mappingHashToPDGNodes
-						.values()) {
-					if (1 < list.size()) {
-						final PDGNode<?>[] nodes = list
-								.toArray(new PDGNode<?>[0]);
-						for (final PDGNode<?> node : nodes) {
-							mappingPDGNodeToPDGNodes.put(node, nodes);
-						}
-					}
-				}
-
-				final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHashA = this.mapPDGToPDGEdges
-						.get(pdgA);
-				final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHashB = this.mapPDGToPDGEdges
-						.get(pdgB);
-
-				final SortedSet<PDGEdge> edgesA = pdgA.getAllEdges();
-				final SortedSet<PDGEdge> edgesB = pdgB.getAllEdges();
-
-				final SortedMap<Integer, List<PDGEdge>> mappingHashToPDGEdges = new TreeMap<>();
-				this.registerEdges(mappingHashToPDGEdges, mappingPDGEdgeToHashA);
-				this.registerEdges(mappingHashToPDGEdges, mappingPDGEdgeToHashB);
-
-				final SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges = new TreeMap<>();
-				for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
-					if (1 < list.size()) {
-						final PDGEdge[] edges = list.toArray(new PDGEdge[0]);
-						for (final PDGEdge edge : edges) {
-							mappingPDGEdgeToPDGEdges.put(edge, edges);
-						}
-					}
-				}
-
-				final SortedSet<PDGEdge[]> sortedPDGEdges = new TreeSet<>(
-						new PDGEdgesComparator());
-				for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
-					if (1 < list.size()) {
-						final PDGEdge[] edges = list.toArray(new PDGEdge[0]);
-						sortedPDGEdges.add(edges);
-					}
-				}
-
-				final SortedSet<NodePairInfo> checkedNodepairs = new TreeSet<>();
-				for (final PDGEdge[] edges : sortedPDGEdges) {
-					for (int x = 0; x < edges.length; x++) {
-						for (int y = 0; y < edges.length; y++) {
-
-							if (x == y) {
-								continue;
-							}
-
-							final PDGEdge edgeA = edges[x];
-							final PDGEdge edgeB = edges[y];
-
-							if (!(edgesA.contains(edgeA) && edgesB
-									.contains(edgeB))) {
-								continue;
-							}
-
-							final NodePairInfo nodepair = new NodePairInfo(
-									edgeA.fromNode, edgeB.fromNode);
-							if (checkedNodepairs.contains(nodepair)) {
-								continue;
-							}
-
-							if (edgeA.connectedWith(edgeB)) {
-								continue;
-							}
-
-							final Slicing slicing = new Slicing(pathA, pathB,
-									edgeA.fromNode, edgeB.fromNode,
-									mappingPDGNodeToPDGNodes,
-									mappingPDGEdgeToPDGEdges, checkedNodepairs);
-							final ClonePairInfo clonepair = slicing.perform();
-							if (this.SIZE_THRESHOLD <= clonepair.size()) {
-								clonepairs.add(clonepair);
-							}
-						}
-					}
-				}
-
+				this.detect(pdgA, pdgB, clonepairs);
 			} catch (Exception e) {
 				e.printStackTrace();
 				System.err
 						.println("ERROR: failed to detect clones between the method "
-								+ pdgA.unit.name
-								+ " in "
-								+ pathA
-								+ " and the method"
-								+ pdgB.unit.name
-								+ " in "
-								+ pathB);
+								+ pdgA.unit.name + " in " + pdgA.unit.path
+								+ " and the method " + pdgB.unit.name + " in "
+								+ pdgB.unit.path);
 			}
 		}
 
@@ -210,84 +115,14 @@ public class SlicingThread implements Runnable {
 				.getAndIncrement()) {
 
 			final PDG pdg = this.pdgs[index];
-			final String path = pdg.unit.path;
 
 			try {
-
-				final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHash = this.mapPDGToPDGNodes
-						.get(pdg);
-				final SortedMap<Integer, List<PDGNode<?>>> mappingHashToPDGNodes = new TreeMap<Integer, List<PDGNode<?>>>();
-				this.registerNodes(mappingHashToPDGNodes, mappingPDGNodeToHash);
-				final SortedMap<PDGNode<?>, PDGNode<?>[]> mappingPDGNodeToPDGNodes = new TreeMap<>();
-				for (final List<PDGNode<?>> list : mappingHashToPDGNodes
-						.values()) {
-					if (1 < list.size()) {
-						final PDGNode<?>[] nodes = list
-								.toArray(new PDGNode<?>[0]);
-						for (final PDGNode<?> node : nodes) {
-							mappingPDGNodeToPDGNodes.put(node, nodes);
-						}
-					}
-				}
-
-				final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash = this.mapPDGToPDGEdges
-						.get(pdg);
-				final SortedMap<Integer, List<PDGEdge>> mappingHashToPDGEdges = new TreeMap<>();
-				this.registerEdges(mappingHashToPDGEdges, mappingPDGEdgeToHash);
-				final SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges = new TreeMap<>();
-				for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
-					if (1 < list.size()) {
-						final PDGEdge[] edges = list.toArray(new PDGEdge[0]);
-						for (final PDGEdge edge : edges) {
-							mappingPDGEdgeToPDGEdges.put(edge, edges);
-						}
-					}
-				}
-
-				final SortedSet<PDGEdge[]> sortedPDGEdges = new TreeSet<>(
-						new PDGEdgesComparator());
-				for (final List<PDGEdge> list : mappingHashToPDGEdges.values()) {
-					if (1 < list.size()) {
-						final PDGEdge[] edges = list.toArray(new PDGEdge[0]);
-						sortedPDGEdges.add(edges);
-					}
-				}
-
-				final SortedSet<NodePairInfo> checkedNodepairs = new TreeSet<>();
-				for (final PDGEdge[] edges : sortedPDGEdges) {
-					for (int x = 0; x < edges.length; x++) {
-						for (int y = x + 1; y < edges.length; y++) {
-
-							final PDGEdge edgeA = edges[x];
-							final PDGEdge edgeB = edges[y];
-
-							final NodePairInfo nodepair = new NodePairInfo(
-									edgeA.fromNode, edgeB.fromNode);
-							if (checkedNodepairs.contains(nodepair)) {
-								continue;
-							}
-
-							if (edgeA.connectedWith(edgeB)) {
-								continue;
-							}
-
-							final Slicing slicing = new Slicing(path, path,
-									edgeA.fromNode, edgeB.fromNode,
-									mappingPDGNodeToPDGNodes,
-									mappingPDGEdgeToPDGEdges, checkedNodepairs);
-							final ClonePairInfo clonepair = slicing.perform();
-							if (this.SIZE_THRESHOLD <= clonepair.size()) {
-								clonepairs.add(clonepair);
-							}
-						}
-					}
-				}
-
+				this.detect(pdg, pdg, clonepairs);
 			} catch (Exception e) {
 				e.printStackTrace();
 				System.err
 						.println("ERROR: failed to detect clones in the method "
-								+ pdg.unit.name + " in " + path);
+								+ pdg.unit.name + " in " + pdg.unit.path);
 			}
 		}
 
@@ -308,44 +143,128 @@ public class SlicingThread implements Runnable {
 		this.clonepairs.addAll(clonepairs);
 	}
 
-	private void registerNodes(
-			final SortedMap<Integer, List<PDGNode<?>>> mappingHashToPDGNodes,
-			final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHash) {
+	/**
+	 * 2 つの PDG の間でクローンペアを探す。同じ PDG を 2 回渡すと、その中で
+	 * 探す。
+	 *
+	 * <p>以前は「対の間」と「1 つの中」が別々の 100 行だった。違いは、
+	 * ハッシュを片方から集めるか両方から集めるか、辺の対を順序付きで見るか
+	 * 順序なしで見るか、そして対の間では A の辺と B の辺の組み合わせだけを
+	 * 見ること、の 3 点である。
+	 */
+	private void detect(final PDG pdgA, final PDG pdgB,
+			final SortedSet<ClonePairInfo> clonepairs) {
 
-		Objects.requireNonNull(mappingHashToPDGNodes, "\"mappingHashToPDGNodes\" is null.");
-		Objects.requireNonNull(mappingPDGNodeToHash, "\"mappingPDGNodeToHash\" is null.");
+		final boolean single = pdgA == pdgB;
 
-		for (final Entry<PDGNode<?>, Integer> entry : mappingPDGNodeToHash
-				.entrySet()) {
-			final Integer hash = entry.getValue();
-			final PDGNode<?> node = entry.getKey();
-			List<PDGNode<?>> nodes = mappingHashToPDGNodes.get(hash);
-			if (null == nodes) {
-				nodes = new ArrayList<>();
-				mappingHashToPDGNodes.put(hash, nodes);
+		final List<SortedMap<PDGNode<?>, Integer>> nodeHashes = single
+				? List.of(this.mapPDGToPDGNodes.get(pdgA))
+				: List.of(this.mapPDGToPDGNodes.get(pdgA),
+						this.mapPDGToPDGNodes.get(pdgB));
+		final List<SortedMap<PDGEdge, Integer>> edgeHashes = single
+				? List.of(this.mapPDGToPDGEdges.get(pdgA))
+				: List.of(this.mapPDGToPDGEdges.get(pdgA),
+						this.mapPDGToPDGEdges.get(pdgB));
+
+		final List<PDGNode<?>[]> nodeGroups = groupByHash(nodeHashes,
+				PDGNode<?>[]::new);
+		final List<PDGEdge[]> edgeGroups = groupByHash(edgeHashes,
+				PDGEdge[]::new);
+		final SortedMap<PDGNode<?>, PDGNode<?>[]> mappingPDGNodeToPDGNodes = indexByMember(
+				nodeGroups);
+		final SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges = indexByMember(
+				edgeGroups);
+
+		final SortedSet<PDGEdge[]> sortedPDGEdges = new TreeSet<>(
+				new PDGEdgesComparator());
+		sortedPDGEdges.addAll(edgeGroups);
+
+		final SortedSet<PDGEdge> edgesA = pdgA.getAllEdges();
+		final SortedSet<PDGEdge> edgesB = pdgB.getAllEdges();
+
+		final SortedSet<NodePairInfo> checkedNodepairs = new TreeSet<>();
+		for (final PDGEdge[] edges : sortedPDGEdges) {
+			for (int x = 0; x < edges.length; x++) {
+				// 1 つの中では順序なしの組を、対の間では順序付きの組を見る。
+				for (int y = single ? x + 1 : 0; y < edges.length; y++) {
+
+					if (x == y) {
+						continue;
+					}
+
+					final PDGEdge edgeA = edges[x];
+					final PDGEdge edgeB = edges[y];
+
+					// 対の間では、A の辺と B の辺の組み合わせだけを見る。
+					if (!single && !(edgesA.contains(edgeA) && edgesB
+							.contains(edgeB))) {
+						continue;
+					}
+
+					final NodePairInfo nodepair = new NodePairInfo(
+							edgeA.fromNode, edgeB.fromNode);
+					if (checkedNodepairs.contains(nodepair)) {
+						continue;
+					}
+
+					if (edgeA.connectedWith(edgeB)) {
+						continue;
+					}
+
+					final Slicing slicing = new Slicing(pdgA.unit.path,
+							pdgB.unit.path, edgeA.fromNode, edgeB.fromNode,
+							mappingPDGNodeToPDGNodes, mappingPDGEdgeToPDGEdges,
+							checkedNodepairs);
+					final ClonePairInfo clonepair = slicing.perform();
+					if (this.SIZE_THRESHOLD <= clonepair.size()) {
+						clonepairs.add(clonepair);
+					}
+				}
 			}
-			nodes.add(node);
 		}
 	}
 
-	private void registerEdges(
-			final SortedMap<Integer, List<PDGEdge>> mappingHashToPDGEdges,
-			final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash) {
+	/**
+	 * 要素をハッシュ値でまとめ、2 個以上あるまとまりだけを返す。1 個しか
+	 * ない要素には相手がいないので、クローンの種にならない。
+	 *
+	 * <p>まとまりは配列 1 個で表す。Slicing は 2 つのノードが同値かどうかを
+	 * この配列が同じものかで判定するので、同じまとまりの要素は同じ配列を
+	 * 指していなければならない。
+	 */
+	private static <T extends Comparable<? super T>> List<T[]> groupByHash(
+			final List<SortedMap<T, Integer>> elementToHashMaps,
+			final IntFunction<T[]> newArray) {
 
-		Objects.requireNonNull(mappingHashToPDGEdges, "\"mappingHashToPDGEdges\" is null.");
-		Objects.requireNonNull(mappingPDGEdgeToHash, "\"mappingPDGEdgeToHash\" is null.");
-
-		for (final Entry<PDGEdge, Integer> entry : mappingPDGEdgeToHash
-				.entrySet()) {
-			final Integer hash = entry.getValue();
-			final PDGEdge edge = entry.getKey();
-			List<PDGEdge> edges = mappingHashToPDGEdges.get(hash);
-			if (null == edges) {
-				edges = new ArrayList<>();
-				mappingHashToPDGEdges.put(hash, edges);
+		final SortedMap<Integer, List<T>> hashToElements = new TreeMap<>();
+		for (final SortedMap<T, Integer> elementToHash : elementToHashMaps) {
+			for (final Entry<T, Integer> entry : elementToHash.entrySet()) {
+				hashToElements
+						.computeIfAbsent(entry.getValue(), h -> new ArrayList<>())
+						.add(entry.getKey());
 			}
-			edges.add(edge);
 		}
+
+		final List<T[]> groups = new ArrayList<>();
+		for (final List<T> elements : hashToElements.values()) {
+			if (1 < elements.size()) {
+				groups.add(elements.toArray(newArray.apply(0)));
+			}
+		}
+		return groups;
+	}
+
+	/** 各要素から、それが属するまとまりを引けるようにする。 */
+	private static <T extends Comparable<? super T>> SortedMap<T, T[]> indexByMember(
+			final List<T[]> groups) {
+
+		final SortedMap<T, T[]> index = new TreeMap<>();
+		for (final T[] group : groups) {
+			for (final T member : group) {
+				index.put(member, group);
+			}
+		}
+		return index;
 	}
 
 	private boolean sameOnGoodValue(final ClonePairInfo pair1,
