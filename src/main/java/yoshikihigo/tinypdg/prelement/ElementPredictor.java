@@ -3,7 +3,6 @@ package yoshikihigo.tinypdg.prelement;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -150,23 +149,9 @@ public class ElementPredictor {
 			final CombinationalFrequency frequency = new CombinationalFrequency(
 					frequencyForExecution.hash, frequencyForExecution.text,
 					null, null, frequencyForExecution);
-			Collections.sort(frequencies,
-					new Comparator<CombinationalFrequency>() {
-
-						@Override
-						public int compare(final CombinationalFrequency f1,
-								final CombinationalFrequency f2) {
-
-							if (f1.getTotalSupport() > f2.getTotalSupport()) {
-								return -1;
-							} else if (f1.getTotalSupport() < f2
-									.getTotalSupport()) {
-								return 1;
-							} else {
-								return 0;
-							}
-						}
-					});
+			frequencies.sort(Comparator
+					.comparingInt(CombinationalFrequency::getTotalSupport)
+					.reversed());
 			frequencies.add(frequency);
 		}
 

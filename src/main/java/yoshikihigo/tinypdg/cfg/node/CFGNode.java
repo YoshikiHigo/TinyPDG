@@ -158,13 +158,7 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements
 			throw new IllegalArgumentException();
 		}
 
-		if (this.core.id < node.core.id) {
-			return -1;
-		} else if (this.core.id > node.core.id) {
-			return 1;
-		} else {
-			return 0;
-		}
+		return Integer.compare(this.core.id, node.core.id);
 	}
 
 	public final SortedSet<String> getAssignedVariables() {

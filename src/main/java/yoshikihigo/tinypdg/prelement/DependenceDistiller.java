@@ -2,7 +2,6 @@ package yoshikihigo.tinypdg.prelement;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -211,18 +210,9 @@ public class DependenceDistiller {
 						/ (float) totalTime, time, toNodeHash, normalizedText);
 				frequencies.add(frequency);
 			}
-			Collections.sort(frequencies, new Comparator<Frequency>() {
-				@Override
-				public int compare(final Frequency f1, final Frequency f2) {
-					if (f1.probablity > f2.probablity) {
-						return -1;
-					} else if (f1.probablity < f2.probablity) {
-						return 1;
-					} else {
-						return 0;
-					}
-				}
-			});
+			// 確率の高いものから。
+			frequencies.sort(Comparator
+					.comparingDouble((Frequency f) -> f.probablity).reversed());
 			allFrequencies.put(fromNodeHash, frequencies);
 		}
 	}

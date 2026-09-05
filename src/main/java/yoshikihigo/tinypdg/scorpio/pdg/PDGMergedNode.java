@@ -100,20 +100,23 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 		}
 	}
 
+	/** 元のノードはソース上の位置順に持つ。 */
+	private static final Comparator<PDGNormalNode<?>> BY_LOCATION = Comparator
+			.comparing((PDGNormalNode<?> node) -> node.core,
+					ProgramElementInfo.BY_LOCATION);
+
 	final private SortedSet<PDGNormalNode<?>> originalNodes;
 
 	public PDGMergedNode(final PDGNormalNode<?> node1,
 			final PDGNormalNode<?> node2) {
 		super(node1.core);
-		this.originalNodes = new TreeSet<>(
-				new LocationalComparator());
+		this.originalNodes = new TreeSet<>(BY_LOCATION);
 		this.add(node1);
 		this.add(node2);
 	}
 
 	public SortedSet<PDGNormalNode<?>> getOriginalNodes() {
-		final SortedSet<PDGNormalNode<?>> nodes = new TreeSet<>(
-				new LocationalComparator());
+		final SortedSet<PDGNormalNode<?>> nodes = new TreeSet<>(BY_LOCATION);
 		nodes.addAll(this.originalNodes);
 		return nodes;
 	}
@@ -141,28 +144,6 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 
 		else {
 			this.originalNodes.add(node);
-		}
-	}
-
-	class LocationalComparator implements Comparator<PDGNormalNode<?>> {
-
-		@Override
-		public int compare(PDGNormalNode<?> o1, PDGNormalNode<?> o2) {
-
-			Objects.requireNonNull(o1, "\"o1\" is null.");
-			Objects.requireNonNull(o2, "\"o2\" is null.");
-
-			if (o1.core.startLine < o2.core.startLine) {
-				return -1;
-			} else if (o1.core.startLine > o2.core.startLine) {
-				return 1;
-			} else if (o1.core.endLine < o2.core.endLine) {
-				return -1;
-			} else if (o1.core.endLine > o2.core.endLine) {
-				return 1;
-			} else {
-				return 0;
-			}
 		}
 	}
 }

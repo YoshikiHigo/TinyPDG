@@ -14,17 +14,10 @@ public class NodePairInfo implements Comparable<NodePairInfo> {
 
 	@Override
 	public int compareTo(final NodePairInfo o) {
-
-		if (this.nodeA.core.id < o.nodeA.core.id) {
-			return -1;
-		} else if (this.nodeA.core.id > o.nodeA.core.id) {
-			return 1;
-		} else if (this.nodeB.core.id < o.nodeB.core.id) {
-			return -1;
-		} else if (this.nodeB.core.id > o.nodeB.core.id) {
-			return 1;
-		} else {
-			return 0;
+		final int orderA = Integer.compare(this.nodeA.core.id, o.nodeA.core.id);
+		if (0 != orderA) {
+			return orderA;
 		}
+		return Integer.compare(this.nodeB.core.id, o.nodeB.core.id);
 	}
 }
