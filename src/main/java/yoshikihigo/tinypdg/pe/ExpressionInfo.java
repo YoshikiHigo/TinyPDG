@@ -121,6 +121,64 @@ public class ExpressionInfo extends ProgramElementInfo {
 		return this.anonymousClassDeclaration;
 	}
 
+	/**
+	 * 代入先の式が定義する変数。
+	 *
+	 * <p>a なら a。a[i] なら配列 a であって、添字 i ではない。o.f なら
+	 * フィールド f と、中身が変わる o。以前は代入先の式が参照する変数を
+	 * 全て代入先と見ていたので、a[i] = x は添字 i も定義することになり、
+	 * 以後の i の使用がこの代入に依存していた。
+	 */
+	private static SortedSet<String> targets(final ProgramElementInfo lvalue) {
+
+		if (!(lvalue instanceof ExpressionInfo expression)) {
+			return lvalue.getReferencedVariables();
+		}
+
+		final List<ProgramElementInfo> children = expression.expressions;
+		return switch (expression.category) {
+		case SimpleName -> only(expression.getText());
+		case ArrayAccess -> targets(children.get(0));
+		case FieldAccess -> {
+			final SortedSet<String> variables = targets(children.get(0));
+			variables.add(children.get(1).getText());
+			yield variables;
+		}
+		case QualifiedName -> {
+			final SortedSet<String> variables = targets(expression.qualifier);
+			variables.add(children.get(0).getText());
+			yield variables;
+		}
+		case SuperFieldAccess -> only(children.get(0).getText());
+		case Parenthesized -> targets(children.get(0));
+		// 代入先になりえない、あるいは分解して見る理由のないもの。従来どおり
+		// 参照する変数を全て代入先とする。
+		default -> expression.getReferencedVariables();
+		};
+	}
+
+	/**
+	 * 代入先の式を評価するときに読む変数。a なら何もない。a[i] なら a と i。
+	 * o.f なら o。
+	 */
+	private static SortedSet<String> readsForWriting(
+			final ProgramElementInfo lvalue) {
+
+		if (!(lvalue instanceof ExpressionInfo expression)) {
+			return new TreeSet<>();
+		}
+
+		final List<ProgramElementInfo> children = expression.expressions;
+		return switch (expression.category) {
+		case SimpleName, SuperFieldAccess -> new TreeSet<>();
+		case ArrayAccess -> expression.getReferencedVariables();
+		case FieldAccess -> children.get(0).getReferencedVariables();
+		case QualifiedName -> expression.qualifier.getReferencedVariables();
+		case Parenthesized -> readsForWriting(children.get(0));
+		default -> expression.getReferencedVariables();
+		};
+	}
+
 	/** 前置式の演算子が ++ か -- か。演算子は先頭の子である。 */
 	private boolean isIncrementOrDecrement() {
 		final String operator = this.expressions.get(0).getText();
@@ -185,8 +243,7 @@ public class ExpressionInfo extends ProgramElementInfo {
 
 		case Assignment -> {
 			// 左辺が代入先。右辺は右辺でさらに代入しているかもしれない (a = b = c)。
-			final SortedSet<String> variables = new TreeSet<>(
-					this.expressions.get(0).getReferencedVariables());
+			final SortedSet<String> variables = targets(this.expressions.get(0));
 			variables.addAll(this.expressions.get(2).getAssignedVariables());
 			yield variables;
 		}
@@ -204,14 +261,13 @@ public class ExpressionInfo extends ProgramElementInfo {
 
 		case Postfix ->
 			// i++ は i を読み、かつ書く。被演算子は先頭の子。
-			new TreeSet<>(this.expressions.get(0).getReferencedVariables());
+			targets(this.expressions.get(0));
 
 		case Prefix ->
 			// ++i は i を読み、かつ書く。-x や !flag は読むだけである。
 			// 前置式は演算子が先頭の子で、被演算子はその次にある。
 			this.isIncrementOrDecrement()
-					? new TreeSet<>(this.expressions.get(1)
-							.getReferencedVariables())
+					? targets(this.expressions.get(1))
 					: this.expressions.get(1).getAssignedVariables();
 
 		case ArrayAccess, ArrayCreation, ArrayInitializer,
@@ -235,13 +291,14 @@ public class ExpressionInfo extends ProgramElementInfo {
 		return switch (this.category) {
 
 		case Assignment -> {
-			// 左辺は書き込み先であって読み出しではない。ただし += のような
-			// 複合代入は左辺の値を読んでから書くので、左辺も参照に数える。
+			// 右辺と、左辺を評価するために読むもの (a[i] = x の a と i)。
+			// += のような複合代入は、それに加えて左辺の値そのものも読む。
+			final ProgramElementInfo left = this.expressions.get(0);
 			final SortedSet<String> variables = new TreeSet<>(
 					this.expressions.get(2).getReferencedVariables());
-			if (!"=".equals(this.expressions.get(1).getText())) {
-				variables.addAll(this.expressions.get(0).getReferencedVariables());
-			}
+			variables.addAll("=".equals(this.expressions.get(1).getText())
+					? readsForWriting(left)
+					: left.getReferencedVariables());
 			yield variables;
 		}
 
