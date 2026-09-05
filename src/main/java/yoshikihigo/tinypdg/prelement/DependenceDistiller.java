@@ -140,15 +140,15 @@ public class DependenceDistiller {
 			System.out.println("done: " + CommandLineTools.formatElapsed(time4 - time3));
 
 			System.out.print("registering to database ... ");
-			final DAO dao = new DAO(database, true);
-			registerTextsToDatabase(dao, texts);
-			registerFrequenciesToDatabase(dao, DEPENDENCE_TYPE.CONTROL,
-					frequenciesForControlDependence);
-			registerFrequenciesToDatabase(dao, DEPENDENCE_TYPE.DATA,
-					frequenciesForDataDependence);
-			registerFrequenciesToDatabase(dao, DEPENDENCE_TYPE.EXECUTION,
-					frequenciesForExecutionDependence);
-			dao.close();
+			try (final DAO dao = new DAO(database, true)) {
+				registerTextsToDatabase(dao, texts);
+				registerFrequenciesToDatabase(dao, DEPENDENCE_TYPE.CONTROL,
+						frequenciesForControlDependence);
+				registerFrequenciesToDatabase(dao, DEPENDENCE_TYPE.DATA,
+						frequenciesForDataDependence);
+				registerFrequenciesToDatabase(dao, DEPENDENCE_TYPE.EXECUTION,
+						frequenciesForExecutionDependence);
+			}
 			final long time5 = System.nanoTime();
 			System.out.println("done: " + CommandLineTools.formatElapsed(time5 - time4));
 

@@ -30,21 +30,17 @@ class DAOTest {
 
 		final Path database = workDir.resolve("test.db");
 
-		final DAO dao = new DAO(database.toString(), true);
-		try {
+		// close() がバッチを flush するので、読み戻す前に必ず閉じる。
+		try (final DAO dao = new DAO(database.toString(), true)) {
 			dao.addToTexts(100, "int a = 10;");
 			dao.addToTexts(200, "int b = 20;");
 			dao.addToFrequencies(DEPENDENCE_TYPE.DATA, 100,
 					new Frequency(0.75f, 3, 200, "int b = 20;"));
-		} finally {
-			// close() がバッチを flush するので、読み戻す前に必ず閉じる。
-			dao.close();
 		}
 
 		assertTrue(Files.exists(database), "データベースファイルが作成されていること");
 
-		final DAO reader = new DAO(database.toString(), false);
-		try {
+		try (final DAO reader = new DAO(database.toString(), false)) {
 			final List<Frequency> found =
 					reader.getFrequencies(DEPENDENCE_TYPE.DATA, 100);
 
@@ -59,8 +55,6 @@ class DAOTest {
 
 			assertTrue(reader.getFrequencies(DEPENDENCE_TYPE.CONTROL, 100).isEmpty(),
 					"型が異なる依存関係は返らないこと");
-		} finally {
-			reader.close();
 		}
 	}
 

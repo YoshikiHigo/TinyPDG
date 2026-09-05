@@ -29,8 +29,7 @@ class ElementPredictorTest {
 		final String base = "int a = 10;";
 		final int from = base.hashCode();
 
-		final DAO writer = new DAO(database, true);
-		try {
+		try (final DAO writer = new DAO(database, true)) {
 			// hash 10 は制御 2 とデータ 5 で合計 7、hash 20 はデータ 1、
 			// hash 30 と 40 は実行依存だけで 3 と 9。
 			writer.addToFrequencies(DEPENDENCE_TYPE.CONTROL, from,
@@ -43,12 +42,9 @@ class ElementPredictorTest {
 					new Frequency(0.5f, 3, 30, "c"));
 			writer.addToFrequencies(DEPENDENCE_TYPE.EXECUTION, from,
 					new Frequency(0.5f, 9, 40, "d"));
-		} finally {
-			writer.close();
 		}
 
-		final DAO reader = new DAO(database, false);
-		try {
+		try (final DAO reader = new DAO(database, false)) {
 			final List<CombinationalFrequency> predicted = ElementPredictor
 					.getPredictedElements(reader, base);
 
@@ -59,8 +55,6 @@ class ElementPredictorTest {
 					"支持度の合計の降順に並ぶこと");
 			assertEquals(List.of(40, 10, 30, 20),
 					predicted.stream().map(f -> f.hash).toList());
-		} finally {
-			reader.close();
 		}
 	}
 }

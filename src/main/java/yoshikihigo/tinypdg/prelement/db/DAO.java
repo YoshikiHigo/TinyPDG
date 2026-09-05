@@ -13,70 +13,121 @@ import yoshikihigo.tinypdg.TinyPDGException;
 import yoshikihigo.tinypdg.prelement.data.DEPENDENCE_TYPE;
 import yoshikihigo.tinypdg.prelement.data.Frequency;
 
-public class DAO {
+/**
+ * 依存の頻度を入れる SQLite のデータベース。
+ *
+ * <p>AutoCloseable なので try-with-resources で使える。書き込みは
+ * まとめて実行され、残りは close で流れる。読み戻す前には必ず閉じること。
+ */
+public class DAO implements AutoCloseable {
 
 	static public final String TEXTS_SCHEMA = "id integer primary key autoincrement, hash integer, text string";
 	static public final String FREQUENCIES_SCHEMA = "id integer primary key autoincrement, type string, fromhash integer, tohash integer, support integer, probability real";
 
-	protected Connection connector;
-	private PreparedStatement insertToTexts;
-	private PreparedStatement insertToFrequencies;
-	private PreparedStatement selectFromFrequencies;
+	private final Connection connection;
+	private final BatchedInsert insertToTexts;
+	private final BatchedInsert insertToFrequencies;
+	private final PreparedStatement selectFromFrequencies;
 
-	private int numberInWaitingBatchForTexts;
-	private int numberInWaitingBatchForFrequencies;
+	/**
+	 * まとめて実行する insert。一定の件数がたまるごとに、そして close で流す。
+	 *
+	 * <p>texts と frequencies の 2 つの insert が、件数を数えて流す同じ
+	 * 手順をそれぞれ持っていた。
+	 */
+	private static final class BatchedInsert implements AutoCloseable {
 
-	public DAO(final String database, final boolean creation) {
+		private static final int BATCH_SIZE = 2000;
 
-		try {
-			Class.forName("org.sqlite.JDBC");
-		} catch (final ClassNotFoundException e) {
-			throw new TinyPDGException(
-					"sqlite の JDBC ドライバが見つかりません。", e);
+		private final PreparedStatement statement;
+		private int waiting;
+
+		BatchedInsert(final Connection connection, final String sql)
+				throws SQLException {
+			this.statement = connection.prepareStatement(sql);
+			this.waiting = 0;
 		}
 
-		try {
-			final StringBuilder url = new StringBuilder();
-			url.append("jdbc:sqlite:");
-			url.append(database);
-			this.connector = DriverManager.getConnection(url.toString());
+		/** 引数を詰めるための文。詰めたら {@link #addBatch()} を呼ぶ。 */
+		PreparedStatement statement() {
+			return this.statement;
+		}
 
-			if (creation) {
-				final Statement statement = this.connector.createStatement();
-				statement.executeUpdate("create table if not exists texts ("
-						+ TEXTS_SCHEMA + ")");
-				statement
-						.executeUpdate("create table if not exists frequencies ("
-								+ FREQUENCIES_SCHEMA + ")");
+		void addBatch() throws SQLException {
+			this.statement.addBatch();
+			if (BATCH_SIZE < ++this.waiting) {
+				this.statement.executeBatch();
+				this.waiting = 0;
 			}
+		}
 
-			this.insertToTexts = this.connector
-					.prepareStatement("insert into texts (hash, text) values (?, ?)");
-			this.insertToFrequencies = this.connector
-					.prepareStatement("insert into frequencies (type, fromhash, tohash, support, probability) values (?, ?, ?, ?, ?)");
-			this.selectFromFrequencies = this.connector
-					.prepareStatement("select tohash, (select text from texts T where T.hash = F.tohash), support, probability from frequencies F where (fromhash = ?) and (type = ?)");
+		@Override
+		public void close() throws SQLException {
+			try (this.statement) {
+				if (0 < this.waiting) {
+					this.statement.executeBatch();
+					this.waiting = 0;
+				}
+			}
+		}
+	}
 
+	/**
+	 * @param creation テーブルがなければ作る。読むだけなら false
+	 * @throws TinyPDGException データベースを開けない場合
+	 */
+	public DAO(final String database, final boolean creation) {
+
+		// JDBC 4 以降、ドライバは ServiceLoader が見つける。Class.forName は
+		// 要らない。
+
+		try {
+			this.connection = DriverManager
+					.getConnection("jdbc:sqlite:" + database);
 		} catch (final SQLException e) {
 			throw new TinyPDGException(
 					"データベースを開けませんでした: " + database, e);
 		}
 
-		this.numberInWaitingBatchForTexts = 0;
-		this.numberInWaitingBatchForFrequencies = 0;
+		try {
+			if (creation) {
+				try (final Statement statement = this.connection
+						.createStatement()) {
+					statement.executeUpdate(
+							"create table if not exists texts (" + TEXTS_SCHEMA
+									+ ")");
+					statement.executeUpdate(
+							"create table if not exists frequencies ("
+									+ FREQUENCIES_SCHEMA + ")");
+				}
+			}
+
+			this.insertToTexts = new BatchedInsert(this.connection,
+					"insert into texts (hash, text) values (?, ?)");
+			this.insertToFrequencies = new BatchedInsert(this.connection,
+					"insert into frequencies (type, fromhash, tohash, support, probability) values (?, ?, ?, ?, ?)");
+			this.selectFromFrequencies = this.connection.prepareStatement(
+					"select tohash, (select text from texts T where T.hash = F.tohash), support, probability from frequencies F where (fromhash = ?) and (type = ?)");
+
+		} catch (final SQLException e) {
+			// 開いた接続を残さない。
+			try {
+				this.connection.close();
+			} catch (final SQLException suppressed) {
+				e.addSuppressed(suppressed);
+			}
+			throw new TinyPDGException(
+					"データベースを開けませんでした: " + database, e);
+		}
 	}
 
 	public void addToTexts(final int hash, final String text) {
 
 		try {
-			this.insertToTexts.setInt(1, hash);
-			this.insertToTexts.setString(2, text);
+			final PreparedStatement insert = this.insertToTexts.statement();
+			insert.setInt(1, hash);
+			insert.setString(2, text);
 			this.insertToTexts.addBatch();
-
-			if (2000 < ++this.numberInWaitingBatchForTexts) {
-				this.insertToTexts.executeBatch();
-				this.numberInWaitingBatchForTexts = 0;
-			}
 
 		} catch (final SQLException e) {
 			throw new TinyPDGException("texts への書き込みに失敗しました。", e);
@@ -87,17 +138,14 @@ public class DAO {
 			final int fromhash, final Frequency frequency) {
 
 		try {
-			this.insertToFrequencies.setString(1, type.text);
-			this.insertToFrequencies.setInt(2, fromhash);
-			this.insertToFrequencies.setInt(3, frequency.hash);
-			this.insertToFrequencies.setInt(4, frequency.support);
-			this.insertToFrequencies.setFloat(5, frequency.probablity);
+			final PreparedStatement insert = this.insertToFrequencies
+					.statement();
+			insert.setString(1, type.text);
+			insert.setInt(2, fromhash);
+			insert.setInt(3, frequency.hash);
+			insert.setInt(4, frequency.support);
+			insert.setFloat(5, frequency.probablity);
 			this.insertToFrequencies.addBatch();
-
-			if (2000 < ++this.numberInWaitingBatchForFrequencies) {
-				this.insertToFrequencies.executeBatch();
-				this.numberInWaitingBatchForFrequencies = 0;
-			}
 
 		} catch (final SQLException e) {
 			throw new TinyPDGException(
@@ -114,16 +162,17 @@ public class DAO {
 			this.selectFromFrequencies.clearParameters();
 			this.selectFromFrequencies.setInt(1, fromhash);
 			this.selectFromFrequencies.setString(2, type.text);
-			final ResultSet result = this.selectFromFrequencies.executeQuery();
 
-			while (result.next()) {
-				final int tohash = result.getInt(1);
-				final String toText = result.getString(2);
-				final int support = result.getInt(3);
-				final float probability = result.getFloat(4);
-				final Frequency frequency = new Frequency(probability, support,
-						tohash, toText);
-				frequencies.add(frequency);
+			try (final ResultSet result = this.selectFromFrequencies
+					.executeQuery()) {
+				while (result.next()) {
+					final int tohash = result.getInt(1);
+					final String toText = result.getString(2);
+					final int support = result.getInt(3);
+					final float probability = result.getFloat(4);
+					frequencies.add(new Frequency(probability, support, tohash,
+							toText));
+				}
 			}
 
 		} catch (final SQLException e) {
@@ -134,25 +183,20 @@ public class DAO {
 		return frequencies;
 	}
 
+	/**
+	 * 残っている書き込みを流し、文と接続を閉じる。
+	 *
+	 * <p>try-with-resources は挙げた逆順に閉じるので、insert が先に閉じて
+	 * バッチを流し、最後に接続が閉じる。以前は select の文を閉じ忘れていた。
+	 */
+	@Override
 	public void close() {
-
-		try {
-
-			if (0 < this.numberInWaitingBatchForTexts) {
-				this.insertToTexts.executeBatch();
-				this.numberInWaitingBatchForTexts = 0;
-			}
-
-			if (0 < this.numberInWaitingBatchForFrequencies) {
-				this.insertToFrequencies.executeBatch();
-				this.numberInWaitingBatchForFrequencies = 0;
-			}
-
-			this.insertToTexts.close();
-			this.insertToFrequencies.close();
-			this.connector.close();
-
-		} catch (final Exception e) {
+		try (this.connection;
+				this.selectFromFrequencies;
+				this.insertToFrequencies;
+				this.insertToTexts) {
+			// 閉じるだけ。
+		} catch (final SQLException e) {
 			throw new TinyPDGException("データベースを閉じられませんでした。", e);
 		}
 	}

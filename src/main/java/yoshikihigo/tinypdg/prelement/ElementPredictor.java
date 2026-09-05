@@ -32,25 +32,27 @@ public class ElementPredictor {
 			final CommandLine cmd = parser.parse(options, args);
 
 			final String database = cmd.getOptionValue("b");
-			final DAO dao = new DAO(database, false);
 
-			final BufferedReader in = new BufferedReader(new InputStreamReader(
-					System.in));
-			while (true) {
-				System.out.println("input an element for prediction");
-				System.out.print("> ");
-				final String line = in.readLine();
+			try (final DAO dao = new DAO(database, false);
+					final BufferedReader in = new BufferedReader(
+							new InputStreamReader(System.in))) {
+				while (true) {
+					System.out.println("input an element for prediction");
+					System.out.print("> ");
+					final String line = in.readLine();
 
-				if (line.equals("")) {
-					in.close();
-					System.out.println("done.");
-					// これは正常終了。main から戻れば終了コードは 0 になる。
-					return;
+					// 空行か、入力の終わりで終える。以前は入力の終わり (null) を
+					// 見ておらず、NullPointerException で落ちていた。
+					if (null == line || line.isEmpty()) {
+						System.out.println("done.");
+						// これは正常終了。main から戻れば終了コードは 0 になる。
+						return;
+					}
+
+					final List<CombinationalFrequency> frequencies = getPredictedElements(
+							dao, line);
+					printCombinationalFrequencies(frequencies);
 				}
-
-				final List<CombinationalFrequency> frequencies = getPredictedElements(
-						dao, line);
-				printCombinationalFrequencies(frequencies);
 			}
 
 		} catch (final Exception e) {
