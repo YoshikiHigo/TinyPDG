@@ -3,7 +3,9 @@ package yoshikihigo.tinypdg.prelement;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,13 +21,9 @@ import yoshikihigo.tinypdg.CommandLineTools;
 import yoshikihigo.tinypdg.ast.JavaAstFactory;
 import yoshikihigo.tinypdg.pdg.PDG;
 import yoshikihigo.tinypdg.pdg.PDGGeneration;
-import yoshikihigo.tinypdg.pdg.edge.PDGControlDependenceEdge;
-import yoshikihigo.tinypdg.pdg.edge.PDGDataDependenceEdge;
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
-import yoshikihigo.tinypdg.pdg.edge.PDGExecutionDependenceEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
 import yoshikihigo.tinypdg.pe.MethodInfo;
-import yoshikihigo.tinypdg.prelement.data.DEPENDENCE_TYPE;
 import yoshikihigo.tinypdg.prelement.data.Frequency;
 import yoshikihigo.tinypdg.prelement.db.DAO;
 import yoshikihigo.tinypdg.scorpio.NormalizedText;
@@ -79,9 +77,13 @@ public class DependenceDistiller {
 			System.out.print("distilling dependencies ... ");
 			final ConcurrentMap<Integer, String> texts = new ConcurrentHashMap<>();
 			final ConcurrentMap<Integer, AtomicInteger> fromNodeFrequencies = new ConcurrentHashMap<>();
-			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeControlFrequencies = new ConcurrentHashMap<>();
-			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeDataFrequencies = new ConcurrentHashMap<>();
-			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeExecutionFrequencies = new ConcurrentHashMap<>();
+			// 依存の種類ごとに、始点のハッシュから終点のハッシュごとの回数へ。
+			// 以前は種類ごとに別の変数で、辺のクラスを instanceof で振り分けていた。
+			final Map<PDGEdge.TYPE, ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>>> toNodeFrequencies = new EnumMap<>(
+					PDGEdge.TYPE.class);
+			for (final PDGEdge.TYPE type : PDGEdge.TYPE.values()) {
+				toNodeFrequencies.put(type, new ConcurrentHashMap<>());
+			}
 			for (final PDG pdg : pdgArray) {
 				final SortedSet<PDGNode<?>> nodes = pdg.getAllNodes();
 				for (final PDGNode<?> fromNode : nodes) {
@@ -109,16 +111,8 @@ public class DependenceDistiller {
 						final String toNodeNormalizedText = NormalizedText
 								.normalize(edge.toNode.core);
 						final int toNodeHash = toNodeNormalizedText.hashCode();
-						if (edge instanceof PDGControlDependenceEdge) {
-							addToNodeHash(fromNodeHash, toNodeHash,
-									toNodeControlFrequencies);
-						} else if (edge instanceof PDGDataDependenceEdge) {
-							addToNodeHash(fromNodeHash, toNodeHash,
-									toNodeDataFrequencies);
-						} else if (edge instanceof PDGExecutionDependenceEdge) {
-							addToNodeHash(fromNodeHash, toNodeHash,
-									toNodeExecutionFrequencies);
-						}
+						addToNodeHash(fromNodeHash, toNodeHash,
+								toNodeFrequencies.get(edge.type));
 					}
 				}
 			}
@@ -126,28 +120,24 @@ public class DependenceDistiller {
 			System.out.println("done: " + CommandLineTools.formatElapsed(time3 - time2));
 
 			System.out.print("sorting frequencies ... ");
-			final ConcurrentMap<Integer, List<Frequency>> frequenciesForControlDependence = new ConcurrentHashMap<>();
-			final ConcurrentMap<Integer, List<Frequency>> frequenciesForDataDependence = new ConcurrentHashMap<>();
-			final ConcurrentMap<Integer, List<Frequency>> frequenciesForExecutionDependence = new ConcurrentHashMap<>();
-			calculateFrequencies(fromNodeFrequencies, toNodeControlFrequencies,
-					texts, frequenciesForControlDependence);
-			calculateFrequencies(fromNodeFrequencies, toNodeDataFrequencies,
-					texts, frequenciesForDataDependence);
-			calculateFrequencies(fromNodeFrequencies,
-					toNodeExecutionFrequencies, texts,
-					frequenciesForExecutionDependence);
+			final Map<PDGEdge.TYPE, ConcurrentMap<Integer, List<Frequency>>> frequencies = new EnumMap<>(
+					PDGEdge.TYPE.class);
+			for (final PDGEdge.TYPE type : PDGEdge.TYPE.values()) {
+				final ConcurrentMap<Integer, List<Frequency>> ofType = new ConcurrentHashMap<>();
+				calculateFrequencies(fromNodeFrequencies,
+						toNodeFrequencies.get(type), texts, ofType);
+				frequencies.put(type, ofType);
+			}
 			final long time4 = System.nanoTime();
 			System.out.println("done: " + CommandLineTools.formatElapsed(time4 - time3));
 
 			System.out.print("registering to database ... ");
 			try (final DAO dao = new DAO(database, true)) {
 				registerTextsToDatabase(dao, texts);
-				registerFrequenciesToDatabase(dao, DEPENDENCE_TYPE.CONTROL,
-						frequenciesForControlDependence);
-				registerFrequenciesToDatabase(dao, DEPENDENCE_TYPE.DATA,
-						frequenciesForDataDependence);
-				registerFrequenciesToDatabase(dao, DEPENDENCE_TYPE.EXECUTION,
-						frequenciesForExecutionDependence);
+				for (final PDGEdge.TYPE type : PDGEdge.TYPE.values()) {
+					registerFrequenciesToDatabase(dao, type,
+							frequencies.get(type));
+				}
 			}
 			final long time5 = System.nanoTime();
 			System.out.println("done: " + CommandLineTools.formatElapsed(time5 - time4));
@@ -223,7 +213,7 @@ public class DependenceDistiller {
 	}
 
 	private static void registerFrequenciesToDatabase(final DAO dao,
-			DEPENDENCE_TYPE type,
+			final PDGEdge.TYPE type,
 			final ConcurrentMap<Integer, List<Frequency>> allFrequencies) {
 
 		for (final Entry<Integer, List<Frequency>> entry : allFrequencies
@@ -235,5 +225,4 @@ public class DependenceDistiller {
 			}
 		}
 	}
-
 }

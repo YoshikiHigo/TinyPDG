@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import yoshikihigo.tinypdg.prelement.data.CombinationalFrequency;
-import yoshikihigo.tinypdg.prelement.data.DEPENDENCE_TYPE;
+import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.prelement.data.Frequency;
 import yoshikihigo.tinypdg.prelement.db.DAO;
 
@@ -32,15 +32,15 @@ class ElementPredictorTest {
 		try (final DAO writer = new DAO(database, true)) {
 			// hash 10 は制御 2 とデータ 5 で合計 7、hash 20 はデータ 1、
 			// hash 30 と 40 は実行依存だけで 3 と 9。
-			writer.addToFrequencies(DEPENDENCE_TYPE.CONTROL, from,
+			writer.addToFrequencies(PDGEdge.TYPE.CONTROL, from,
 					new Frequency(0.5f, 2, 10, "a"));
-			writer.addToFrequencies(DEPENDENCE_TYPE.DATA, from,
+			writer.addToFrequencies(PDGEdge.TYPE.DATA, from,
 					new Frequency(0.5f, 5, 10, "a"));
-			writer.addToFrequencies(DEPENDENCE_TYPE.DATA, from,
+			writer.addToFrequencies(PDGEdge.TYPE.DATA, from,
 					new Frequency(0.5f, 1, 20, "b"));
-			writer.addToFrequencies(DEPENDENCE_TYPE.EXECUTION, from,
+			writer.addToFrequencies(PDGEdge.TYPE.EXECUTION, from,
 					new Frequency(0.5f, 3, 30, "c"));
-			writer.addToFrequencies(DEPENDENCE_TYPE.EXECUTION, from,
+			writer.addToFrequencies(PDGEdge.TYPE.EXECUTION, from,
 					new Frequency(0.5f, 9, 40, "d"));
 		}
 

@@ -14,7 +14,7 @@ import org.apache.commons.cli.Options;
 
 import yoshikihigo.tinypdg.CommandLineTools;
 import yoshikihigo.tinypdg.prelement.data.CombinationalFrequency;
-import yoshikihigo.tinypdg.prelement.data.DEPENDENCE_TYPE;
+import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.prelement.data.Frequency;
 import yoshikihigo.tinypdg.prelement.db.DAO;
 
@@ -67,11 +67,11 @@ public class ElementPredictor {
 		final List<CombinationalFrequency> frequencies = new ArrayList<>();
 
 		final List<Frequency> frequenciesForControl = dao.getFrequencies(
-				DEPENDENCE_TYPE.CONTROL, baseText.hashCode());
+				PDGEdge.TYPE.CONTROL, baseText.hashCode());
 		final List<Frequency> frequenciesForData = dao.getFrequencies(
-				DEPENDENCE_TYPE.DATA, baseText.hashCode());
+				PDGEdge.TYPE.DATA, baseText.hashCode());
 		final List<Frequency> frequenciesForExecution = dao.getFrequencies(
-				DEPENDENCE_TYPE.EXECUTION, baseText.hashCode());
+				PDGEdge.TYPE.EXECUTION, baseText.hashCode());
 
 		final Iterator<Frequency> iteratorForControl = frequenciesForControl
 				.iterator();

@@ -97,26 +97,25 @@ public abstract class PDGEdge implements Comparable<PDGEdge> {
 		assert b : "invalid status.";
 	}
 
+	/**
+	 * 依存の種類。
+	 *
+	 * <p>prelement パッケージにも同じ 3 値の DEPENDENCE_TYPE があり、
+	 * データベースに書く文字列を持っていた。文字列は toString と同じもの
+	 * だったので、こちらに寄せた。
+	 */
 	public enum TYPE {
-		CONTROL {
-			@Override
-			public String toString() {
-				return "control";
-			}
-		},
-		DATA {
-			@Override
-			public String toString() {
-				return "data";
-			}
-		},
-		EXECUTION {
-			@Override
-			public String toString() {
-				return "execution";
-			}
-		};
+		CONTROL("control"), DATA("data"), EXECUTION("execution");
 
-		abstract public String toString();
+		private final String text;
+
+		TYPE(final String text) {
+			this.text = text;
+		}
+
+		@Override
+		public String toString() {
+			return this.text;
+		}
 	}
 }

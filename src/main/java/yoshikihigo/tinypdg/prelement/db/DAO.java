@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import yoshikihigo.tinypdg.TinyPDGException;
-import yoshikihigo.tinypdg.prelement.data.DEPENDENCE_TYPE;
+import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.prelement.data.Frequency;
 
 /**
@@ -134,13 +134,13 @@ public class DAO implements AutoCloseable {
 		}
 	}
 
-	public void addToFrequencies(final DEPENDENCE_TYPE type,
+	public void addToFrequencies(final PDGEdge.TYPE type,
 			final int fromhash, final Frequency frequency) {
 
 		try {
 			final PreparedStatement insert = this.insertToFrequencies
 					.statement();
-			insert.setString(1, type.text);
+			insert.setString(1, type.toString());
 			insert.setInt(2, fromhash);
 			insert.setInt(3, frequency.hash);
 			insert.setInt(4, frequency.support);
@@ -153,7 +153,7 @@ public class DAO implements AutoCloseable {
 		}
 	}
 
-	public List<Frequency> getFrequencies(final DEPENDENCE_TYPE type,
+	public List<Frequency> getFrequencies(final PDGEdge.TYPE type,
 			final int fromhash) {
 
 		final List<Frequency> frequencies = new ArrayList<>();
@@ -161,7 +161,7 @@ public class DAO implements AutoCloseable {
 		try {
 			this.selectFromFrequencies.clearParameters();
 			this.selectFromFrequencies.setInt(1, fromhash);
-			this.selectFromFrequencies.setString(2, type.text);
+			this.selectFromFrequencies.setString(2, type.toString());
 
 			try (final ResultSet result = this.selectFromFrequencies
 					.executeQuery()) {
