@@ -78,6 +78,13 @@ public class ExpressionInfo extends ProgramElementInfo {
 		Pattern,
 
 		/**
+		 * foreach のヘッダ {@code T x : expr}。子は取り出す変数 (VariableInfo)
+		 * と反復対象の式の 2 つ。反復のたびに変数を定義し、式を参照する。
+		 * foreach 文の条件式としてループの制御ノードになる。
+		 */
+		ForeachHeader,
+
+		/**
 		 * このツールがまだ個別に解釈できない構文。ソース断片をそのまま
 		 * 保持する不透明な 1 要素として扱われる。
 		 */
@@ -181,6 +188,14 @@ public class ExpressionInfo extends ProgramElementInfo {
 		case VariableDeclarationFragment ->
 			only(this.expressions.get(0).getText());
 
+		case ForeachHeader -> {
+			// 取り出す変数を定義する。反復対象の式の中で代入していれば、それも。
+			final SortedSet<String> variables = only(
+					((VariableInfo) this.expressions.get(0)).name);
+			variables.addAll(this.expressions.get(1).getAssignedVariables());
+			yield variables;
+		}
+
 		case Postfix, Prefix ->
 			// i++ は i を読み、かつ書く。
 			new TreeSet<>(this.expressions.get(0).getReferencedVariables());
@@ -215,6 +230,10 @@ public class ExpressionInfo extends ProgramElementInfo {
 					? new TreeSet<>(this.expressions.get(1)
 							.getReferencedVariables())
 					: new TreeSet<>();
+
+		case ForeachHeader ->
+			// 反復対象の式を読む。取り出す変数は定義であって参照ではない。
+			new TreeSet<>(this.expressions.get(1).getReferencedVariables());
 
 		case Postfix, Prefix ->
 			new TreeSet<>(this.expressions.get(0).getReferencedVariables());

@@ -167,8 +167,8 @@ public class CFG {
 				yield true;
 			}
 			case Foreach -> {
-				this.buildConditionalBlockCFG((ForStatementInfo) coreStatement,
-						true);
+				this.buildConditionalBlockCFG(
+						(ConditionalStatementInfo) coreStatement, true);
 				yield true;
 			}
 			case If -> {

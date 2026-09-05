@@ -142,6 +142,14 @@ class NormalizedTextTest {
 				"int $1 = $2,$3 = $4");
 	}
 
+	@Test
+	void writesAForeachHeaderAsItsVariableAndIterable() {
+		// for (final int value : values) のヘッダ。以前はヘッダがなく、
+		// 変数と反復対象が別々の孤立したノードになっていた。
+		assertContains(normalizedTexts("lang15_jumpincatch", "breakInCatch"),
+				"int $1 : $2");
+	}
+
 	/**
 	 * case 文は CFG から取り除かれて PDG に現れないので、グラフ経由では
 	 * この経路に届かない。文を直接組み立てて確かめる。

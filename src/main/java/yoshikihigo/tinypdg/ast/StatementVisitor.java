@@ -281,32 +281,40 @@ abstract class StatementVisitor extends ExpressionVisitor {
 		return false;
 	}
 
+	/**
+	 * foreach。while と同じ形で、条件式の位置にヘッダ {@code T x : expr} が
+	 * 入る。ヘッダは反復のたびに x を定義し expr を参照する 1 個の式である。
+	 */
 	@Override
 	public boolean visit(final EnhancedForStatement node) {
 
 		if (this.inBlock()) {
 
-			final ProgramElementInfo parameter = this.visitChild(node.getParameter());
-
-			final ProgramElementInfo expression = this.visitChild(node.getExpression());
-
 			final int startLine = this.getStartLineNumber(node);
 			final int endLine = this.getEndLineNumber(node);
 			final ProgramElementInfo ownerBlock = this.stack.peek();
-			final ForStatementInfo foreachBlock = new ForStatementInfo(ownerBlock,
-					StatementInfo.CATEGORY.Foreach, startLine, endLine);
-			foreachBlock.addInitializer(parameter);
-			foreachBlock.addInitializer(expression);
+			final ConditionalStatementInfo foreachBlock = new ConditionalStatementInfo(
+					ownerBlock, StatementInfo.CATEGORY.Foreach, startLine,
+					endLine);
 			this.stack.push(foreachBlock);
+
+			final ProgramElementInfo parameter = this.visitChild(node.getParameter());
+			final ProgramElementInfo expression = this.visitChild(node.getExpression());
+			final ExpressionInfo header = new ExpressionInfo(
+					ExpressionInfo.CATEGORY.ForeachHeader, parameter.startLine,
+					expression.endLine);
+			header.addExpression(parameter);
+			header.addExpression(expression);
+			header.setText(parameter.getText() + " : " + expression.getText());
+			foreachBlock.setCondition(header);
+			header.setOwnerConditinalBlock(foreachBlock);
 
 			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
 			foreachBlock.setStatement(body);
 
 			final StringBuilder text = new StringBuilder();
 			text.append("for (");
-			text.append(parameter.getText());
-			text.append(" : ");
-			text.append(expression.getText());
+			text.append(header.getText());
 			text.append(")");
 			text.append(body.getText());
 			foreachBlock.setText(text.toString());

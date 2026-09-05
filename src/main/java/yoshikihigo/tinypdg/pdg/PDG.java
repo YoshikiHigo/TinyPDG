@@ -377,7 +377,7 @@ public class PDG implements Comparable<PDG> {
 		if (statement instanceof BlockStatementInfo block) {
 
 			// 条件式を持たない種別もある。SimpleBlock と try、それに
-			// foreach がそうである。
+			// for (;;) がそうである。
 			final ProgramElementInfo condition = block instanceof ConditionalStatementInfo conditional
 					? conditional.getCondition()
 					: null;

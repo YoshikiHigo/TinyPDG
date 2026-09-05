@@ -299,6 +299,10 @@ public class NormalizedText {
 		// 子を順に正規化して並べる。
 		case SwitchExpression, Pattern -> join(children, " ");
 
+		// 取り出す変数と反復対象。int $1 : $2 のようになる。
+		case ForeachHeader -> normalized(children.get(0)) + " : "
+				+ normalized(children.get(1));
+
 		// 字面を持たない。
 		case TypeLiteral -> "";
 		};

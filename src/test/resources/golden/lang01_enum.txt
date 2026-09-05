@@ -38,31 +38,34 @@ edges:
 ## CFG use <20...26>
 nodes:
   0: [enter,normal] int total = 0; <21>
-  1: [normal] total = total + c.doubled(); <23>
-  2: [exit,normal] return total; <25>
+  1: [control] Color c : Color.values() <22>
+  2: [normal] total = total + c.doubled(); <23>
+  3: [exit,normal] return total; <25>
 edges:
   0 -> 1 []
-  1 -> 1 []
-  1 -> 2 []
+  1 -> 2 [true]
+  1 -> 3 [false]
+  2 -> 1 []
 
 ## PDG use <20...26>
 nodes:
   0: [normal] int total = 0; <21>
-  1: [parameter] Color c <22>
-  2: [normal] Color.values() <22>
-  3: [normal] total = total + c.doubled(); <23>
-  4: [exit] return total; <25>
-  5: [enter,control] Enter <20...26>
+  1: [control] Color c : Color.values() <22>
+  2: [normal] total = total + c.doubled(); <23>
+  3: [exit] return total; <25>
+  4: [enter,control] Enter <20...26>
 edges:
+  0 -> 1 [execution: ]
+  0 -> 2 [data: total]
   0 -> 3 [data: total]
-  0 -> 3 [execution: ]
-  3 -> 3 [data: total]
-  3 -> 3 [execution: ]
-  3 -> 4 [data: total]
-  3 -> 4 [execution: ]
-  5 -> 0 [control: true]
-  5 -> 0 [execution: ]
-  5 -> 1 [control: true]
-  5 -> 2 [control: true]
-  5 -> 3 [control: true]
-  5 -> 4 [control: true]
+  1 -> 2 [control: true]
+  1 -> 2 [data: c]
+  1 -> 2 [execution: ]
+  1 -> 3 [execution: ]
+  2 -> 1 [execution: ]
+  2 -> 2 [data: total]
+  2 -> 3 [data: total]
+  4 -> 0 [control: true]
+  4 -> 0 [execution: ]
+  4 -> 1 [control: true]
+  4 -> 3 [control: true]
