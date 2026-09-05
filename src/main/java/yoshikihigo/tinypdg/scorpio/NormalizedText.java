@@ -256,15 +256,47 @@ public class NormalizedText {
 			}
 
 			case ArrayCreation -> {
+				// 子は、配列型、次元式 (0 個以上)、初期化子 (あれば) の順。
+				// 初期化子があれば最後の子で、次元式と同時には現れない。
+				final List<ProgramElementInfo> children = coreExp
+						.getExpressions();
+				final List<ProgramElementInfo> rest = children.subList(1,
+						children.size());
+				final boolean hasInitializer = !rest.isEmpty()
+						&& rest.get(rest.size() - 1) instanceof ExpressionInfo last
+						&& ExpressionInfo.CATEGORY.ArrayInitializer == last.category;
+				final List<ProgramElementInfo> dimensions = hasInitializer
+						? rest.subList(0, rest.size() - 1)
+						: rest;
+
+				// 型の名前は、要素型に次元の数だけ [] を付けたものである
+				// (ArrayType の visit がそう作る)。末尾の [] を外して要素型と
+				// 次元数に分け、先頭から次元式の数だけ式を入れ、残りは空の
+				// ままにする。new int[n][] は new int[$1][] になる。
+				String elementType = children.get(0).getText();
+				int emptyDimensions = 0;
+				while (elementType.endsWith("[]")) {
+					elementType = elementType.substring(0,
+							elementType.length() - 2);
+					emptyDimensions++;
+				}
+				emptyDimensions -= dimensions.size();
+
 				text.append("new ");
-				// 型の名前に次元の [] まで入っている。
-				final ProgramElementInfo type = coreExp.getExpressions().get(0);
-				text.append(type.getText());
-				if (1 < coreExp.getExpressions().size()) {
-					final ProgramElementInfo initializer = coreExp
-							.getExpressions().get(1);
+				text.append(elementType);
+				for (final ProgramElementInfo dimension : dimensions) {
+					final NormalizedText dimensionText = new NormalizedText(
+							dimension);
+					text.append("[");
+					text.append(dimensionText.getText());
+					text.append("]");
+				}
+				for (int i = 0; i < emptyDimensions; i++) {
+					text.append("[]");
+				}
+				if (hasInitializer) {
 					final NormalizedText initializerText = new NormalizedText(
-							initializer);
+							rest.get(rest.size() - 1));
 					text.append(initializerText.getText());
 				}
 				yield text.toString();

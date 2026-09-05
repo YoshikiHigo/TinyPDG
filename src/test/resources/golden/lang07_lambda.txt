@@ -82,15 +82,16 @@ edges:
 
 ## CFG lambda$31 <31...31>
 nodes:
-  0: [enter,exit,normal] return new int[]; <31>
+  0: [enter,exit,normal] return new int[n]; <31>
 edges:
 
 ## PDG lambda$31 <31...31>
 nodes:
   0: [parameter] Integer n <31>
-  1: [exit] return new int[]; <31>
+  1: [exit] return new int[n]; <31>
   2: [enter,control] Enter <31>
 edges:
+  0 -> 1 [data: n]
   2 -> 0 [control: true]
   2 -> 1 [control: true]
   2 -> 1 [execution: ]

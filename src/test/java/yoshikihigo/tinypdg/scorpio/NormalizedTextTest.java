@@ -118,4 +118,16 @@ class NormalizedTextTest {
 		assertContains(normalizedTexts("lang14_arraycreation", "emptyInitializer"),
 				"int[] $1 = new int[]{};");
 	}
+
+	@Test
+	void writesTheDimensionExpressionsOfAnArrayCreation() {
+		// 次元式を訪問していなかったので、new int[n] が new int[] になっていた。
+		assertContains(normalizedTexts("lang14_arraycreation", "withDimension"),
+				"int[] $1 = new int[$2];");
+		// 次元式は型の次元より少ないことがある。残りは空のまま書く。
+		assertContains(normalizedTexts("lang14_arraycreation", "partialDimensions"),
+				"int[][] $1 = new int[$2][];");
+		assertContains(normalizedTexts("lang14_arraycreation", "twoDimensions"),
+				"String[][] $1 = new String[$2][$3];");
+	}
 }

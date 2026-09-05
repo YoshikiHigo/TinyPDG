@@ -773,6 +773,14 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		return false;
 	}
 
+	/**
+	 * 配列生成。
+	 *
+	 * <p>子は、配列型、次元式 (0 個以上)、初期化子 (あれば) の順に並べる。
+	 * {@code new int[n][]} のように、次元式は型の次元より少ないことがある。
+	 * 以前は次元式を訪問しておらず、n のような次元に使われた変数が参照として
+	 * 数えられなかった。
+	 */
 	@Override
 	public boolean visit(final ArrayCreation node) {
 
@@ -782,14 +790,29 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				ExpressionInfo.CATEGORY.ArrayCreation, startLine, endLine);
 		this.stack.push(arrayCreation);
 
-		node.getType().accept(this);
+		final ArrayType arrayType = node.getType();
+		arrayType.accept(this);
 		final ProgramElementInfo type = this.stack.pop();
 		arrayCreation.addExpression(type);
 
-		// 型は ArrayType なので、その visit が作る名前に次元の [] まで入っている。
 		final StringBuilder text = new StringBuilder();
 		text.append("new ");
-		text.append(type.getText());
+		text.append(arrayType.getElementType().toString());
+
+		// 次元式のある次元にはその式を、残りの次元には空の [] を書く。
+		int dimensions = 0;
+		for (final Object o : node.dimensions()) {
+			((ASTNode) o).accept(this);
+			final ProgramElementInfo dimension = this.stack.pop();
+			arrayCreation.addExpression(dimension);
+			text.append("[");
+			text.append(dimension.getText());
+			text.append("]");
+			dimensions++;
+		}
+		for (; dimensions < arrayType.getDimensions(); dimensions++) {
+			text.append("[]");
+		}
 
 		if (null != node.getInitializer()) {
 			node.getInitializer().accept(this);
