@@ -19,6 +19,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import yoshikihigo.tinypdg.CommandLineTools;
 import yoshikihigo.tinypdg.ast.JavaAstFactory;
 import yoshikihigo.tinypdg.cfg.CFG;
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
@@ -46,14 +47,7 @@ public class Writer {
 
 			final Options options = new Options();
 
-			{
-				final Option d = new Option("d", "directory", true,
-						"target directory");
-				d.setArgName("directory");
-				d.setArgs(1);
-				d.setRequired(true);
-				options.addOption(d);
-			}
+			options.addOption(CommandLineTools.targetOption());
 
 			{
 				final Option c = new Option("c", "ControlFlowGraph", true,
@@ -73,49 +67,15 @@ public class Writer {
 				options.addOption(p);
 			}
 
-			{
-				final Option j = new Option("j", "java-version", true,
-						"Java version assumed for the target source files");
-				j.setArgName("version");
-				j.setArgs(1);
-				j.setRequired(false);
-				options.addOption(j);
-			}
-
-			// {
-			// final Option o = new Option("o", "optimize", true,
-			// "remove unnecessary nodes from CFGs and PDGs");
-			// o.setArgName("boolean");
-			// o.setArgs(1);
-			// o.setRequired(false);
-			// options.addOption(o);
-			// }
-
-			// {
-			// final Option a = new Option("a", "atomic", true,
-			// "dissolve complicated statements into simple statements");
-			// a.setArgName("boolean");
-			// a.setArgs(1);
-			// a.setRequired(false);
-			// options.addOption(a);
-			// }
+			options.addOption(CommandLineTools.javaVersionOption());
 
 			final CommandLineParser parser = new DefaultParser();
 			final CommandLine cmd = parser.parse(options, args);
 
-			final File target = new File(cmd.getOptionValue("d"));
-			if (!target.exists()) {
-				System.err
-						.println("specified directory or file does not exist.");
-				System.exit(1);
-			}
-
-			final String javaVersion = cmd.hasOption("j")
-					? cmd.getOptionValue("j")
-					: JavaAstFactory.DEFAULT_JAVA_VERSION;
+			final File target = CommandLineTools.target(cmd);
 
 			final List<MethodInfo> methods = JavaAstFactory.collectMethods(
-					target, javaVersion);
+					target, CommandLineTools.javaVersion(cmd));
 
 			if (cmd.hasOption("c")) {
 				System.out.println("building and outputing CFGs ...");

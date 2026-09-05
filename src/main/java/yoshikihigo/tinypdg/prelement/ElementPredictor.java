@@ -11,9 +11,9 @@ import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import yoshikihigo.tinypdg.CommandLineTools;
 import yoshikihigo.tinypdg.prelement.data.CombinationalFrequency;
 import yoshikihigo.tinypdg.prelement.data.DEPENDENCE_TYPE;
 import yoshikihigo.tinypdg.prelement.data.Frequency;
@@ -27,13 +27,7 @@ public class ElementPredictor {
 
 			final Options options = new Options();
 
-			{
-				final Option b = new Option("b", "database", true, "database");
-				b.setArgName("database");
-				b.setArgs(1);
-				b.setRequired(true);
-				options.addOption(b);
-			}
+			options.addOption(CommandLineTools.databaseOption());
 
 			final CommandLineParser parser = new DefaultParser();
 			final CommandLine cmd = parser.parse(options, args);

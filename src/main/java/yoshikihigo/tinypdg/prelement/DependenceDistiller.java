@@ -14,9 +14,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import yoshikihigo.tinypdg.CommandLineTools;
 import yoshikihigo.tinypdg.ast.JavaAstFactory;
 import yoshikihigo.tinypdg.pdg.PDG;
 import yoshikihigo.tinypdg.pdg.PDGGeneration;
@@ -39,75 +39,33 @@ public class DependenceDistiller {
 
 			final Options options = new Options();
 
-			{
-				final Option b = new Option("b", "database", true, "database");
-				b.setArgName("database");
-				b.setArgs(1);
-				b.setRequired(true);
-				options.addOption(b);
-			}
+			options.addOption(CommandLineTools.databaseOption());
 
-			{
-				final Option d = new Option("d", "directory", true,
-						"target directory");
-				d.setArgName("directory");
-				d.setArgs(1);
-				d.setRequired(true);
-				options.addOption(d);
-			}
+			options.addOption(CommandLineTools.targetOption());
 
-			{
-				final Option s = new Option("s", "size", true, "size");
-				s.setArgName("size");
-				s.setArgs(1);
-				s.setRequired(false);
-				options.addOption(s);
-			}
+			options.addOption(CommandLineTools.sizeOption(false));
 
-			{
-				final Option t = new Option("t", "thread", true,
-						"number of threads");
-				t.setArgName("thread");
-				t.setArgs(1);
-				t.setRequired(false);
-				options.addOption(t);
-			}
+			options.addOption(CommandLineTools.threadsOption());
 
-			{
-				final Option j = new Option("j", "java-version", true,
-						"Java version assumed for the target source files");
-				j.setArgName("version");
-				j.setArgs(1);
-				j.setRequired(false);
-				options.addOption(j);
-			}
+			options.addOption(CommandLineTools.javaVersionOption());
 
 			final CommandLineParser parser = new DefaultParser();
 			final CommandLine cmd = parser.parse(options, args);
 
 			final String database = cmd.getOptionValue("b");
 
-			final File target = new File(cmd.getOptionValue("d"));
-			if (!target.exists()) {
-				System.err
-						.println("specified directory or file does not exist.");
-				System.exit(1);
-			}
+			final File target = CommandLineTools.target(cmd);
 
 			final int SIZE_THRESHOLD = cmd.hasOption("s") ? Integer
 					.parseInt(cmd.getOptionValue("s")) : 5;
-			final int NUMBER_OF_THREADS = cmd.hasOption("t") ? Integer
-					.parseInt(cmd.getOptionValue("t")) : 1;
+			final int NUMBER_OF_THREADS = CommandLineTools.threads(cmd);
 
 			final long time1 = System.nanoTime();
 			System.out.print("generating PDGs ... ");
 			final PDG[] pdgArray;
 			{
-				final String javaVersion = cmd.hasOption("j")
-						? cmd.getOptionValue("j")
-						: JavaAstFactory.DEFAULT_JAVA_VERSION;
 				final List<MethodInfo> methods = JavaAstFactory
-						.collectMethods(target, javaVersion);
+						.collectMethods(target, CommandLineTools.javaVersion(cmd));
 
 				// ノードの併合はしない。
 				final SortedSet<PDG> pdgs = PDGGeneration.buildInParallel(
@@ -116,9 +74,8 @@ public class DependenceDistiller {
 								NUMBER_OF_THREADS));
 				pdgArray = pdgs.toArray(new PDG[0]);
 			}
-			System.out.print("done: ");
 			final long time2 = System.nanoTime();
-			printTime(time2 - time1);
+			System.out.println("done: " + CommandLineTools.formatElapsed(time2 - time1));
 
 			System.out.print("distilling dependencies ... ");
 			final ConcurrentMap<Integer, String> texts = new ConcurrentHashMap<>();
@@ -166,9 +123,8 @@ public class DependenceDistiller {
 					}
 				}
 			}
-			System.out.print("done: ");
 			final long time3 = System.nanoTime();
-			printTime(time3 - time2);
+			System.out.println("done: " + CommandLineTools.formatElapsed(time3 - time2));
 
 			System.out.print("sorting frequencies ... ");
 			final ConcurrentMap<Integer, List<Frequency>> frequenciesForControlDependence = new ConcurrentHashMap<>();
@@ -181,9 +137,8 @@ public class DependenceDistiller {
 			calculateFrequencies(fromNodeFrequencies,
 					toNodeExecutionFrequencies, texts,
 					frequenciesForExecutionDependence);
-			System.out.print("done: ");
 			final long time4 = System.nanoTime();
-			printTime(time4 - time3);
+			System.out.println("done: " + CommandLineTools.formatElapsed(time4 - time3));
 
 			System.out.print("registering to database ... ");
 			final DAO dao = new DAO(database, true);
@@ -195,12 +150,11 @@ public class DependenceDistiller {
 			registerFrequenciesToDatabase(dao, DEPENDENCE_TYPE.EXECUTION,
 					frequenciesForExecutionDependence);
 			dao.close();
-			System.out.print("done: ");
 			final long time5 = System.nanoTime();
-			printTime(time5 - time4);
+			System.out.println("done: " + CommandLineTools.formatElapsed(time5 - time4));
 
-			System.out.print("total elapsed time: ");
-			printTime(time5 - time1);
+			System.out.println("total elapsed time: "
+					+ CommandLineTools.formatElapsed(time5 - time1));
 
 			// printFrequencies("control", texts, frequenciesForControlDependence);
 			// printFrequencies("data", texts, frequenciesForDataDependence);
@@ -320,39 +274,4 @@ public class DependenceDistiller {
 		}
 	}
 
-	private static void printTime(final long time) {
-		final long micro = time / 1000;
-		final long mili = micro / 1000;
-		final long sec = mili / 1000;
-
-		final long hour = sec / 3600;
-		final long minute = (sec % 3600) / 60;
-		final long second = (sec % 3600) % 60;
-
-		if (1l == hour) {
-			System.out.print(hour);
-			System.out.print(" hour ");
-		} else if (1l < hour) {
-			System.out.print(hour);
-			System.out.print(" hours ");
-		}
-
-		if (1l == minute) {
-			System.out.print(minute);
-			System.out.print(" minute ");
-		} else if (1l < minute) {
-			System.out.print(minute);
-			System.out.print(" minutes ");
-		} else if ((0l == minute) && (1l <= hour)) {
-			System.out.print(" 0 minute ");
-		}
-
-		if (2 <= second) {
-			System.out.print(second);
-			System.out.println(" seconds.");
-		} else {
-			System.out.print(second);
-			System.out.println(" second.");
-		}
-	}
 }
