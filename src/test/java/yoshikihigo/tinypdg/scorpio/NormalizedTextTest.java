@@ -207,4 +207,14 @@ class NormalizedTextTest {
 		// 以前は最初のラベルしか書いていなかった。
 		assertEquals("case $1,$2:", NormalizedText.normalize(statement));
 	}
+
+	@Test
+	void keepsACharacterLiteralQuoteApart() {
+		// 文字リテラル '"' の引用符 1 つで、次のリテラルまでを 1 つの印に
+		// まとめてしまっていた。
+		assertContains(normalizedTexts("lang49_quotechar", "isQuote"),
+				"return $1 == $2 || $1 == $3.charAt($4);");
+		assertContains(normalizedTexts("lang49_quotechar", "isOther"),
+				"return $1 == $2 || $3 == $4.charAt($5);");
+	}
 }
