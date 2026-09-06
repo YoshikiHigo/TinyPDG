@@ -241,8 +241,9 @@ public class NormalizedText {
 		// 被演算子と演算子が交互に並んでいる。
 		case Infix -> join(children, " ");
 
+		// 右の子は型か、パターン。型なら字面、パターンなら宣言と同じ形になる。
 		case Instanceof -> normalized(children.get(0)) + " instanceof "
-				+ raw(children.get(1).getText());
+				+ normalized(children.get(1));
 
 		case MethodEnter -> "METHODENTER";
 
@@ -295,7 +296,17 @@ public class NormalizedText {
 		case Lambda, MethodReference, Unsupported -> raw(expression.getText());
 
 		// 子を順に正規化して並べる。
-		case SwitchExpression, Pattern -> join(children, " ");
+		case SwitchExpression -> join(children, " ");
+
+		// パターン。束縛する変数は宣言と同じく型の後に番号で書く。以前は名前を
+		// 字面のまま残していて、束縛名だけが違うコード片が別物になっていた
+		// (issue #25)。
+		case TypePattern -> normalized(children.get(0)) + " "
+				+ normalized(children.get(1));
+		case RecordPattern -> raw(children.get(0).getText()) + "("
+				+ join(rest(children), ", ") + ")";
+		case GuardedPattern -> normalized(children.get(0)) + " when "
+				+ normalized(children.get(1));
 
 		// 取り出す変数と反復対象。int $1 : $2 のようになる。
 		case ForeachHeader -> normalized(children.get(0)) + " : "

@@ -233,8 +233,10 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 	/**
 	 * 型パターン (o instanceof String s の String s の部分)。
 	 *
-	 * <p>パターン変数はその場での変数定義なので、変数宣言と同じ形にして
-	 * 「定義された変数」として数えられるようにする。
+	 * <p>パターン変数はその場での変数定義である。子は型と名前で、宣言と同じ
+	 * 形をしている。正規化では宣言と同じく "String $1" になる。以前は名前
+	 * だけを子に持つ宣言の断片として表していて、正規化で型が消え、名前が
+	 * 字面のまま残っていた (issue #25)。
 	 */
 	@Override
 	public boolean visit(final TypePattern node) {
@@ -242,13 +244,16 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		final int startLine = this.getStartLineNumber(node);
 		final int endLine = this.getEndLineNumber(node);
 		final ExpressionInfo pattern = new ExpressionInfo(
-				ExpressionInfo.CATEGORY.VariableDeclarationFragment, startLine,
-				endLine);
+				ExpressionInfo.CATEGORY.TypePattern, startLine, endLine);
 
 		// getPatternVariable() は JLS20 専用の旧 API で、それより新しい AST では
 		// 例外も出さずに空のダミー ("int MISSING") を返す。JLS22 以降は
 		// getPatternVariable2() を使う。
 		final VariableDeclaration variable = node.getPatternVariable2();
+		final String typeName = variable instanceof SingleVariableDeclaration single
+				? single.getType().toString()
+				: "var";
+		pattern.addExpression(new TypeInfo(typeName, startLine, endLine));
 		final ExpressionInfo name = new ExpressionInfo(
 				ExpressionInfo.CATEGORY.SimpleName, startLine, endLine);
 		name.setText(variable.getName().getIdentifier());
@@ -259,18 +264,20 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		return false;
 	}
 
-	/** record パターン。内側のパターンが定義する変数をまとめて持つ。 */
+	/** record パターン。子は record の型と内側のパターンたち。 */
 	@Override
 	public boolean visit(final RecordPattern node) {
 
 		final int startLine = this.getStartLineNumber(node);
 		final int endLine = this.getEndLineNumber(node);
 		final ExpressionInfo pattern = new ExpressionInfo(
-				ExpressionInfo.CATEGORY.Pattern, startLine, endLine);
+				ExpressionInfo.CATEGORY.RecordPattern, startLine, endLine);
 		this.stack.push(pattern);
 
 		final StringBuilder text = new StringBuilder();
 		text.append(node.getPatternType().toString());
+		pattern.addExpression(new TypeInfo(node.getPatternType().toString(),
+				startLine, endLine));
 		text.append("(");
 		final List<ProgramElementInfo> nested = this.visitChildren(node.patterns());
 		nested.forEach(pattern::addExpression);
@@ -288,7 +295,7 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		final int startLine = this.getStartLineNumber(node);
 		final int endLine = this.getEndLineNumber(node);
 		final ExpressionInfo guarded = new ExpressionInfo(
-				ExpressionInfo.CATEGORY.Pattern, startLine, endLine);
+				ExpressionInfo.CATEGORY.GuardedPattern, startLine, endLine);
 		this.stack.push(guarded);
 
 		final ProgramElementInfo pattern = this.visitChild(node.getPattern());

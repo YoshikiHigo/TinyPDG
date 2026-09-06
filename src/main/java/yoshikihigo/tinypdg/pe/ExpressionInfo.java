@@ -75,10 +75,22 @@ public class ExpressionInfo extends ProgramElementInfo {
 		SwitchExpression,
 
 		/**
-		 * パターン。record パターンや when 節つきパターンなど、内側に別の
-		 * パターンを含みうるもの。定義される変数は内側のパターンから集まる。
+		 * 型パターン (String s)。子は型と、束縛する変数の名前の 2 つ。
+		 * 名前は定義であって参照ではない。
 		 */
-		Pattern,
+		TypePattern,
+
+		/**
+		 * record パターン (Circle(double r))。子は record の型と、内側の
+		 * パターンたち。定義される変数は内側のパターンから集まる。
+		 */
+		RecordPattern,
+
+		/**
+		 * when 節つきパターン。子はパターンとガードの式。ガードは束縛した
+		 * 変数を参照する。
+		 */
+		GuardedPattern,
 
 		/**
 		 * foreach のヘッダ {@code T x : expr}。子は取り出す変数 (VariableInfo)
@@ -331,9 +343,12 @@ public class ExpressionInfo extends ProgramElementInfo {
 				SimpleName, String, SuperConstructorInvocation,
 				SuperFieldAccess, This, Trinomial,
 				TypeLiteral, VariableDeclarationExpression, MethodEnter,
-				MethodReference, SwitchExpression, Pattern,
-				Unsupported ->
+				MethodReference, SwitchExpression, RecordPattern,
+				GuardedPattern, Unsupported ->
 			collectFromChildren(ProgramElementInfo::getAssignedVariables);
+
+		// 型パターンは 2 つ目の子の名前を束縛する。
+		case TypePattern -> only(this.expressions.get(1).getText());
 		};
 	}
 
@@ -390,8 +405,12 @@ public class ExpressionInfo extends ProgramElementInfo {
 				String, SuperConstructorInvocation, SuperFieldAccess,
 				This, Trinomial, TypeLiteral,
 				VariableDeclarationExpression, MethodEnter, MethodReference,
-				SwitchExpression, Pattern, Unsupported ->
+				SwitchExpression, RecordPattern, GuardedPattern,
+				Unsupported ->
 			collectFromChildren(ProgramElementInfo::getReferencedVariables);
+
+		// 型パターンは変数を束縛するだけで、何も読まない。
+		case TypePattern -> new TreeSet<>();
 		};
 	}
 }
