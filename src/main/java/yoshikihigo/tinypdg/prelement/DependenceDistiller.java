@@ -79,11 +79,12 @@ public class DependenceDistiller {
 			System.out.println("done: " + CommandLineTools.formatElapsed(time2 - time1));
 
 			System.out.print("distilling dependencies ... ");
-			final ConcurrentMap<Integer, String> texts = new ConcurrentHashMap<>();
-			final ConcurrentMap<Integer, AtomicInteger> fromNodeFrequencies = new ConcurrentHashMap<>();
-			// 依存の種類ごとに、始点のハッシュから終点のハッシュごとの回数へ。
+			// 要素の鍵は正規化テキストそのもの。以前は int のハッシュで、衝突した
+			// 別のテキスト同士が 1 つの要素に合算されていた (issue #24)。
+			final ConcurrentMap<String, AtomicInteger> fromNodeFrequencies = new ConcurrentHashMap<>();
+			// 依存の種類ごとに、始点のテキストから終点のテキストごとの回数へ。
 			// 以前は種類ごとに別の変数で、辺のクラスを instanceof で振り分けていた。
-			final Map<PDGEdge.TYPE, ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>>> toNodeFrequencies = new EnumMap<>(
+			final Map<PDGEdge.TYPE, ConcurrentMap<String, ConcurrentMap<String, AtomicInteger>>> toNodeFrequencies = new EnumMap<>(
 					PDGEdge.TYPE.class);
 			for (final PDGEdge.TYPE type : PDGEdge.TYPE.values()) {
 				toNodeFrequencies.put(type, new ConcurrentHashMap<>());
@@ -92,39 +93,25 @@ public class DependenceDistiller {
 				final SortedSet<PDGNode<?>> nodes = pdg.getAllNodes();
 				for (final PDGNode<?> fromNode : nodes) {
 
-					// generate a hash value from fromNode
-					final String fromNodeNormalizedText = NormalizedText
+					final String fromNodeText = NormalizedText
 							.normalize(fromNode.core);
-					final int fromNodeHash = fromNodeNormalizedText.hashCode();
-
-					// make mapping between hash value and normalized text
-					if (!texts.containsKey(fromNodeHash)) {
-						texts.put(fromNodeHash, fromNodeNormalizedText);
-					}
-
-					AtomicInteger frequencies = fromNodeFrequencies
-							.get(fromNodeHash);
-					if (null == frequencies) {
-						frequencies = new AtomicInteger(0);
-						fromNodeFrequencies.put(fromNodeHash, frequencies);
-					}
-					frequencies.incrementAndGet();
+					fromNodeFrequencies
+							.computeIfAbsent(fromNodeText, t -> new AtomicInteger(0))
+							.incrementAndGet();
 
 					// 同じ出現から同じ正規化テキストへ同じ種類の辺が複数あっても
 					// 1 回と数える。辺の数で数えると、出現回数で割った「確率」が
 					// 1 を超えていた (issue #28)。
-					final Map<PDGEdge.TYPE, Set<Integer>> reached = new EnumMap<>(
+					final Map<PDGEdge.TYPE, Set<String>> reached = new EnumMap<>(
 							PDGEdge.TYPE.class);
 					for (final PDGEdge edge : fromNode.getForwardEdges()) {
-						final int toNodeHash = NormalizedText
-								.normalize(edge.toNode.core).hashCode();
 						reached.computeIfAbsent(edge.type, t -> new HashSet<>())
-								.add(toNodeHash);
+								.add(NormalizedText.normalize(edge.toNode.core));
 					}
-					for (final Entry<PDGEdge.TYPE, Set<Integer>> reachedOfType : reached
+					for (final Entry<PDGEdge.TYPE, Set<String>> reachedOfType : reached
 							.entrySet()) {
-						for (final int toNodeHash : reachedOfType.getValue()) {
-							addToNodeHash(fromNodeHash, toNodeHash,
+						for (final String toNodeText : reachedOfType.getValue()) {
+							addToNodeText(fromNodeText, toNodeText,
 									toNodeFrequencies.get(reachedOfType.getKey()));
 						}
 					}
@@ -134,12 +121,12 @@ public class DependenceDistiller {
 			System.out.println("done: " + CommandLineTools.formatElapsed(time3 - time2));
 
 			System.out.print("sorting frequencies ... ");
-			final Map<PDGEdge.TYPE, ConcurrentMap<Integer, List<Frequency>>> frequencies = new EnumMap<>(
+			final Map<PDGEdge.TYPE, ConcurrentMap<String, List<Frequency>>> frequencies = new EnumMap<>(
 					PDGEdge.TYPE.class);
 			for (final PDGEdge.TYPE type : PDGEdge.TYPE.values()) {
-				final ConcurrentMap<Integer, List<Frequency>> ofType = new ConcurrentHashMap<>();
+				final ConcurrentMap<String, List<Frequency>> ofType = new ConcurrentHashMap<>();
 				calculateFrequencies(fromNodeFrequencies,
-						toNodeFrequencies.get(type), texts, ofType);
+						toNodeFrequencies.get(type), ofType);
 				frequencies.put(type, ofType);
 			}
 			final long time4 = System.nanoTime();
@@ -147,7 +134,6 @@ public class DependenceDistiller {
 
 			System.out.print("registering to database ... ");
 			try (final DAO dao = new DAO(database, true)) {
-				registerTextsToDatabase(dao, texts);
 				for (final PDGEdge.TYPE type : PDGEdge.TYPE.values()) {
 					registerFrequenciesToDatabase(dao, type,
 							frequencies.get(type));
@@ -167,75 +153,50 @@ public class DependenceDistiller {
 		}
 	}
 
-	private static void addToNodeHash(
-			final int fromNodeHash,
-			final int toNodeHash,
-			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeFrequencies) {
+	private static void addToNodeText(
+			final String fromNodeText,
+			final String toNodeText,
+			final ConcurrentMap<String, ConcurrentMap<String, AtomicInteger>> toNodeFrequencies) {
 
-		ConcurrentMap<Integer, AtomicInteger> toNodeHashes = toNodeFrequencies
-				.get(fromNodeHash);
-		if (null == toNodeHashes) {
-			toNodeHashes = new ConcurrentHashMap<>();
-			toNodeFrequencies.put(fromNodeHash, toNodeHashes);
-		}
-		AtomicInteger frequency = toNodeHashes.get(toNodeHash);
-		if (null == frequency) {
-			frequency = new AtomicInteger(0);
-			toNodeHashes.put(toNodeHash, frequency);
-		}
-		frequency.incrementAndGet();
+		toNodeFrequencies
+				.computeIfAbsent(fromNodeText, t -> new ConcurrentHashMap<>())
+				.computeIfAbsent(toNodeText, t -> new AtomicInteger(0))
+				.incrementAndGet();
 	}
 
 	private static void calculateFrequencies(
-			final ConcurrentMap<Integer, AtomicInteger> fromNodeAllFrequencies,
-			final ConcurrentMap<Integer, ConcurrentMap<Integer, AtomicInteger>> toNodeAllFrequencies,
-			final ConcurrentMap<Integer, String> texts,
-			final ConcurrentMap<Integer, List<Frequency>> allFrequencies) {
+			final ConcurrentMap<String, AtomicInteger> fromNodeAllFrequencies,
+			final ConcurrentMap<String, ConcurrentMap<String, AtomicInteger>> toNodeAllFrequencies,
+			final ConcurrentMap<String, List<Frequency>> allFrequencies) {
 
-		for (final Entry<Integer, ConcurrentMap<Integer, AtomicInteger>> entry : toNodeAllFrequencies
+		for (final Entry<String, ConcurrentMap<String, AtomicInteger>> entry : toNodeAllFrequencies
 				.entrySet()) {
-			final int fromNodeHash = entry.getKey();
-			final int totalTime = fromNodeAllFrequencies.get(fromNodeHash)
-					.get();
+			final String fromNodeText = entry.getKey();
+			final int totalTime = fromNodeAllFrequencies.get(fromNodeText).get();
 			final List<Frequency> frequencies = new ArrayList<>();
-			final ConcurrentMap<Integer, AtomicInteger> toNodeFrequencies = entry
-					.getValue();
-			for (final Entry<Integer, AtomicInteger> entry2 : toNodeFrequencies
+			for (final Entry<String, AtomicInteger> entry2 : entry.getValue()
 					.entrySet()) {
-				final int toNodeHash = entry2.getKey();
+				final String toNodeText = entry2.getKey();
 				final int time = entry2.getValue().get();
-				final String normalizedText = texts.get(toNodeHash);
-				final Frequency frequency = new Frequency((float) time
-						/ (float) totalTime, time, toNodeHash, normalizedText);
-				frequencies.add(frequency);
+				frequencies.add(new Frequency((float) time / (float) totalTime,
+						time, toNodeText));
 			}
 			// 確率の高いものから。
 			frequencies.sort(Comparator
 					.comparingDouble((Frequency f) -> f.probability).reversed());
-			allFrequencies.put(fromNodeHash, frequencies);
-		}
-	}
-
-	private static void registerTextsToDatabase(final DAO dao,
-			final ConcurrentMap<Integer, String> texts) {
-
-		for (final Entry<Integer, String> entry : texts.entrySet()) {
-			final int hash = entry.getKey();
-			final String text = entry.getValue();
-			dao.addToTexts(hash, text);
+			allFrequencies.put(fromNodeText, frequencies);
 		}
 	}
 
 	private static void registerFrequenciesToDatabase(final DAO dao,
 			final PDGEdge.TYPE type,
-			final ConcurrentMap<Integer, List<Frequency>> allFrequencies) {
+			final ConcurrentMap<String, List<Frequency>> allFrequencies) {
 
-		for (final Entry<Integer, List<Frequency>> entry : allFrequencies
+		for (final Entry<String, List<Frequency>> entry : allFrequencies
 				.entrySet()) {
-
-			final int fromhash = entry.getKey();
+			final String fromText = entry.getKey();
 			for (final Frequency frequency : entry.getValue()) {
-				dao.addToFrequencies(type, fromhash, frequency);
+				dao.addToFrequencies(type, fromText, frequency);
 			}
 		}
 	}

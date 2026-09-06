@@ -33,29 +33,49 @@ class DAOTest {
 
 		// close() がバッチを flush するので、読み戻す前に必ず閉じる。
 		try (final DAO dao = new DAO(database.toString(), true)) {
-			dao.addToTexts(100, "int a = 10;");
-			dao.addToTexts(200, "int b = 20;");
-			dao.addToFrequencies(PDGEdge.TYPE.DATA, 100,
-					new Frequency(0.75f, 3, 200, "int b = 20;"));
+			dao.addToFrequencies(PDGEdge.TYPE.DATA, "int a = 10;",
+					new Frequency(0.75f, 3, "int b = 20;"));
 		}
 
 		assertTrue(Files.exists(database), "データベースファイルが作成されていること");
 
 		try (final DAO reader = new DAO(database.toString(), false)) {
 			final List<Frequency> found =
-					reader.getFrequencies(PDGEdge.TYPE.DATA, 100);
+					reader.getFrequencies(PDGEdge.TYPE.DATA, "int a = 10;");
 
 			assertEquals(1, found.size(), "登録した依存関係が 1 件読み戻せること");
 
 			final Frequency frequency = found.get(0);
-			assertEquals(200, frequency.hash);
 			assertEquals(3, frequency.support);
 			assertEquals(0.75f, frequency.probability, 0.0001f);
-			assertEquals("int b = 20;", frequency.text,
-					"texts テーブルとの結合が効いていること");
+			assertEquals("int b = 20;", frequency.text);
 
-			assertTrue(reader.getFrequencies(PDGEdge.TYPE.CONTROL, 100).isEmpty(),
+			assertTrue(reader.getFrequencies(PDGEdge.TYPE.CONTROL, "int a = 10;").isEmpty(),
 					"型が異なる依存関係は返らないこと");
+			assertTrue(reader.getFrequencies(PDGEdge.TYPE.DATA, "int c = 30;").isEmpty(),
+					"別の始点の依存関係は返らないこと");
+		}
+	}
+
+	@Test
+	void keepsTextsApartEvenWhenTheirHashesCollide(@TempDir final Path workDir) throws Exception {
+
+		// "Aa" と "BB" は String.hashCode が同じ。以前はハッシュが鍵だったので、
+		// 別の文が 1 つの要素として合算されていた。
+		final Path database = workDir.resolve("collision.db");
+		assertEquals("Aa($1);".hashCode(), "BB($1);".hashCode());
+
+		try (final DAO dao = new DAO(database.toString(), true)) {
+			dao.addToFrequencies(PDGEdge.TYPE.DATA, "int $1 = $2;",
+					new Frequency(0.5f, 1, "Aa($1);"));
+			dao.addToFrequencies(PDGEdge.TYPE.DATA, "int $1 = $2;",
+					new Frequency(0.5f, 2, "BB($1);"));
+		}
+
+		try (final DAO reader = new DAO(database.toString(), false)) {
+			assertEquals(List.of("Aa($1);", "BB($1);"),
+					reader.getFrequencies(PDGEdge.TYPE.DATA, "int $1 = $2;")
+							.stream().map(f -> f.text).sorted().toList());
 		}
 	}
 
@@ -85,14 +105,12 @@ class DAOTest {
 		final Path database = workDir.resolve("twice.db");
 		for (int round = 0; round < 2; round++) {
 			try (final DAO dao = new DAO(database.toString(), true)) {
-				dao.addToTexts(1, "a");
-				dao.addToTexts(2, "b");
-				dao.addToFrequencies(PDGEdge.TYPE.DATA, 1,
-						new Frequency(0.5f, 3, 2, "b"));
+				dao.addToFrequencies(PDGEdge.TYPE.DATA, "a",
+						new Frequency(0.5f, 3, "b"));
 			}
 		}
 		try (final DAO reader = new DAO(database.toString(), false)) {
-			assertEquals(1, reader.getFrequencies(PDGEdge.TYPE.DATA, 1).size(),
+			assertEquals(1, reader.getFrequencies(PDGEdge.TYPE.DATA, "a").size(),
 					"2 回書いても行が重複しないこと");
 		}
 	}

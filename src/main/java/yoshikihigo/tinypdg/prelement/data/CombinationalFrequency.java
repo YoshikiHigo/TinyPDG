@@ -1,24 +1,20 @@
 package yoshikihigo.tinypdg.prelement.data;
 
+/** 1 つの要素についての、3 種類の依存の頻度。 */
 public class CombinationalFrequency {
 
-	final public int hash;
 	final public String text;
 	final public Frequency control;
 	final public Frequency data;
 	final public Frequency execution;
 
-	public CombinationalFrequency(final int hash, final String text,
-			final Frequency control, final Frequency data,
-			final Frequency execution) {
-
-		this.hash = hash;
+	public CombinationalFrequency(final String text, final Frequency control,
+			final Frequency data, final Frequency execution) {
 		this.text = text;
-
-		this.control = null != control ? control : new Frequency(0f, 0, 0, "");
-		this.data = null != data ? data : new Frequency(0f, 0, 0, "");
-		this.execution = null != execution ? execution : new Frequency(0f, 0,
-				0, "");
+		this.control = null != control ? control : new Frequency(0f, 0, text);
+		this.data = null != data ? data : new Frequency(0f, 0, text);
+		this.execution = null != execution ? execution
+				: new Frequency(0f, 0, text);
 	}
 
 	public int getTotalSupport() {

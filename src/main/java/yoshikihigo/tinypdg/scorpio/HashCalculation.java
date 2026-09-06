@@ -10,11 +10,16 @@ import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
 
 /**
- * PDG のノードと辺に、正規化したテキストから求めたハッシュ値を付ける。
+ * PDG のノードと辺に、同値性の鍵になる正規化テキストを付ける。
  *
- * <p>ノードのハッシュはそのノードの正規化テキストから、辺のハッシュは
- * 両端のテキストと依存の種類から求める。同じハッシュのノード同士、辺同士が
- * クローン検出の種になる。
+ * <p>ノードの鍵はそのノードの正規化テキスト、辺の鍵は両端のテキストと依存の
+ * 種類を並べたものである。同じ鍵のノード同士、辺同士がクローン検出の種になる。
+ *
+ * <p>以前は正規化テキストの String.hashCode() (int) を鍵にしていた。
+ * "Aa($1);" と "BB($1);" のように別のテキストが同じ値になり、別のメソッドを
+ * 呼ぶ文同士がクローンとして報告された (issue #24)。テキストそのものを鍵に
+ * すれば衝突はない。クラス名は歴史的なもので、計算するのはハッシュではなく
+ * 鍵である。
  *
  * <p>以前は HashCalculationThread という名前の Runnable だった。スレッドの
  * 骨組みは Parallel に移り、ここに残るのは計算だけである。
@@ -25,11 +30,11 @@ public final class HashCalculation {
 	}
 
 	/**
-	 * 全ての PDG のノードと辺のハッシュを、スレッドを分けて計算する。
+	 * 全ての PDG のノードと辺の鍵を、スレッドを分けて計算する。
 	 */
 	public static void calculate(final PDG[] pdgs,
-			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mappingPDGToPDGNodes,
-			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges,
+			final SortedMap<PDG, SortedMap<PDGNode<?>, String>> mappingPDGToPDGNodes,
+			final SortedMap<PDG, SortedMap<PDGEdge, String>> mappingPDGToPDGEdges,
 			final int threads) {
 
 		Objects.requireNonNull(pdgs, "\"pdgs\" is null.");
@@ -41,37 +46,25 @@ public final class HashCalculation {
 	}
 
 	private static void calculate(final PDG pdg,
-			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mappingPDGToPDGNodes,
-			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges) {
+			final SortedMap<PDG, SortedMap<PDGNode<?>, String>> mappingPDGToPDGNodes,
+			final SortedMap<PDG, SortedMap<PDGEdge, String>> mappingPDGToPDGEdges) {
 
 		try {
 
-			final SortedMap<PDGNode<?>, Integer> mappingPDGNodeToHash = new TreeMap<>();
+			final SortedMap<PDGNode<?>, String> mappingPDGNodeToKey = new TreeMap<>();
 			for (final PDGNode<?> node : pdg.getAllNodes()) {
-				final int hash = NormalizedText.normalize(node.core)
-						.hashCode();
-				mappingPDGNodeToHash.put(node, hash);
+				mappingPDGNodeToKey.put(node, NormalizedText.normalize(node.core));
 			}
-			mappingPDGToPDGNodes.put(pdg, mappingPDGNodeToHash);
+			mappingPDGToPDGNodes.put(pdg, mappingPDGNodeToKey);
 
-			final SortedMap<PDGEdge, Integer> mappingPDGEdgeToHash = new TreeMap<>();
+			final SortedMap<PDGEdge, String> mappingPDGEdgeToKey = new TreeMap<>();
 			for (final PDGEdge edge : pdg.getAllEdges()) {
-
-				final String fromNodeText = NormalizedText
-						.normalize(edge.fromNode.core);
-				final String toNodeText = NormalizedText
-						.normalize(edge.toNode.core);
-				final StringBuilder edgeText = new StringBuilder();
-				edgeText.append(fromNodeText);
-				edgeText.append("-");
-				edgeText.append(edge.type.toString());
-				edgeText.append("->");
-				edgeText.append(toNodeText);
-				final int hash = edgeText.toString().hashCode();
-
-				mappingPDGEdgeToHash.put(edge, hash);
+				final String key = NormalizedText.normalize(edge.fromNode.core) + "-"
+						+ edge.type + "->"
+						+ NormalizedText.normalize(edge.toNode.core);
+				mappingPDGEdgeToKey.put(edge, key);
 			}
-			mappingPDGToPDGEdges.put(pdg, mappingPDGEdgeToHash);
+			mappingPDGToPDGEdges.put(pdg, mappingPDGEdgeToKey);
 
 		} catch (Exception e) {
 			e.printStackTrace();
