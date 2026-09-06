@@ -1,5 +1,6 @@
 package yoshikihigo.tinypdg.prelement.db;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -21,8 +22,10 @@ import yoshikihigo.tinypdg.prelement.data.Frequency;
  */
 public class DAO implements AutoCloseable {
 
-	static public final String TEXTS_SCHEMA = "id integer primary key autoincrement, hash integer, text string";
-	static public final String FREQUENCIES_SCHEMA = "id integer primary key autoincrement, type string, fromhash integer, tohash integer, support integer, probability real";
+	// 文字列の列は text にする。string と書くと SQLite では数値の親和性に
+	// なり、'007' が '7' として入る (issue #28)。
+	static public final String TEXTS_SCHEMA = "id integer primary key autoincrement, hash integer, text text";
+	static public final String FREQUENCIES_SCHEMA = "id integer primary key autoincrement, type text, fromhash integer, tohash integer, support integer, probability real";
 
 	private final Connection connection;
 	private final BatchedInsert insertToTexts;
@@ -73,10 +76,19 @@ public class DAO implements AutoCloseable {
 	}
 
 	/**
-	 * @param creation テーブルがなければ作る。読むだけなら false
-	 * @throws TinyPDGException データベースを開けない場合
+	 * @param creation 真なら空のテーブルを作る (あれば作り直す)。読むだけなら
+	 *                 false で、そのときはファイルがなければ開かない
+	 * @throws TinyPDGException データベースを開けない場合、読むだけなのに
+	 *                          ファイルがない場合
 	 */
 	public DAO(final String database, final boolean creation) {
+
+		// 読むだけなのにファイルがなければ、開かずに止める。SQLite は開くだけで
+		// 空のファイルを作るので、以前はパスの綴りを間違えると 0 バイトの
+		// ファイルが残ったうえで「開けない」と言っていた (issue #28)。
+		if (!creation && !new File(database).isFile()) {
+			throw new TinyPDGException("データベースがありません: " + database);
+		}
 
 		// JDBC 4 以降、ドライバは ServiceLoader が見つける。Class.forName は
 		// 要らない。
@@ -91,14 +103,16 @@ public class DAO implements AutoCloseable {
 
 		try {
 			if (creation) {
+				// 作り直す。以前は "if not exists" で残していたので、同じ
+				// データベースへ 2 回書くと行が重複し、予測が両方を足していた。
 				try (final Statement statement = this.connection
 						.createStatement()) {
+					statement.executeUpdate("drop table if exists texts");
+					statement.executeUpdate("drop table if exists frequencies");
 					statement.executeUpdate(
-							"create table if not exists texts (" + TEXTS_SCHEMA
-									+ ")");
+							"create table texts (" + TEXTS_SCHEMA + ")");
 					statement.executeUpdate(
-							"create table if not exists frequencies ("
-									+ FREQUENCIES_SCHEMA + ")");
+							"create table frequencies (" + FREQUENCIES_SCHEMA + ")");
 				}
 			}
 
