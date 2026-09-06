@@ -106,6 +106,30 @@ public final class CommandLineTools {
 	}
 
 	/**
+	 * {@code -s} の値。省略時は defaultValue。
+	 *
+	 * @throws TinyPDGException 整数でない値や 1 未満の値が指定された場合。
+	 *                          以前は CloneDetection の表明だけが見ていて、
+	 *                          表明は既定で無効なので 0 や負の値が素通りしていた
+	 */
+	public static int size(final CommandLine cmd, final int defaultValue) {
+		if (!cmd.hasOption("s")) {
+			return defaultValue;
+		}
+		final String value = cmd.getOptionValue("s");
+		final int size;
+		try {
+			size = Integer.parseInt(value);
+		} catch (final NumberFormatException e) {
+			throw new TinyPDGException("-s には整数を指定してください: " + value, e);
+		}
+		if (size < 1) {
+			throw new TinyPDGException("-s には 1 以上の値を指定してください: " + value);
+		}
+		return size;
+	}
+
+	/**
 	 * on / off オプションの値。省略時は on。
 	 *
 	 * <p>以前は on でも off でもない値を警告するだけで、off として続けて

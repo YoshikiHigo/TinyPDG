@@ -74,7 +74,12 @@ public final class CloneDetection {
 		Objects.requireNonNull(pdgs, "\"pdgs\" is null.");
 		Objects.requireNonNull(mapPDGToPDGNodes, "\"mapPDGToPDGNodes\"");
 		Objects.requireNonNull(mapPDGToPDGEdges, "\"mapPDGToPDGEdges\" is null.");
-		assert 0 < SIZE_THRESHOLD : "\"THRESHOLD\" must be greater than 0.";
+		// 表明ではなく例外で止める。表明は既定で無効なので、以前は 0 や負の
+		// 値がそのまま通っていた。
+		if (SIZE_THRESHOLD < 1) {
+			throw new IllegalArgumentException(
+					"SIZE_THRESHOLD must be at least 1: " + SIZE_THRESHOLD);
+		}
 		this.pdgpairs = pdgpairs;
 		this.pdgs = pdgs;
 		this.mapPDGToPDGNodes = mapPDGToPDGNodes;

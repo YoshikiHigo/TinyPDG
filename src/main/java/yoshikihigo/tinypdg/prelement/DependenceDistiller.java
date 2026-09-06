@@ -53,8 +53,7 @@ public class DependenceDistiller {
 
 			final File target = CommandLineTools.target(cmd);
 
-			final int SIZE_THRESHOLD = cmd.hasOption("s") ? Integer
-					.parseInt(cmd.getOptionValue("s")) : 5;
+			final int SIZE_THRESHOLD = CommandLineTools.size(cmd, 5);
 			final int NUMBER_OF_THREADS = CommandLineTools.threads(cmd);
 
 			final long time1 = System.nanoTime();

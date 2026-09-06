@@ -70,8 +70,8 @@ public class Scorpio {
 			final File target = CommandLineTools.target(cmd);
 
 			final String output = cmd.getOptionValue("o");
-			final int SIZE_THRESHOLD = Integer
-					.parseInt(cmd.getOptionValue("s"));
+			// -s は必須なので、既定値が使われることはない。
+			final int SIZE_THRESHOLD = CommandLineTools.size(cmd, 1);
 			final int NUMBER_OF_THREADS = CommandLineTools.threads(cmd);
 
 			final boolean useOfControl = CommandLineTools.onOff(cmd, "C");
