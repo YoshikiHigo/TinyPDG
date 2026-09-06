@@ -988,7 +988,13 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		final ProgramElementInfo left = this.visitChild(node.getLeftOperand());
 		instanceofExpression.addExpression(left);
 
-		final ProgramElementInfo right = this.visitChild(node.getRightOperand());
+		// 右オペランドは型で、式ではない。Cast と同じく字面から TypeInfo を作る。
+		// 以前は visitChild で訪問していたが、型のノードには visit がなく
+		// preVisit2 も何も積まないので、visitChild が親の要素を pop してスタック
+		// が崩れ、パターンなしの instanceof を含むファイル全体が
+		// ClassCastException で落ちていた (issue #15)。
+		final TypeInfo right = new TypeInfo(node.getRightOperand().toString(),
+				startLine, endLine);
 		instanceofExpression.addExpression(right);
 
 		final StringBuilder text = new StringBuilder();
