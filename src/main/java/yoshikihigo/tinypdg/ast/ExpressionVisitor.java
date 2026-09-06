@@ -391,9 +391,11 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		this.stack.pop();
 		this.methods.add(lambda);
 
-		// 呼び出し元の式に残すのは、ラムダ 1 個ぶんの要素。
+		// 呼び出し元の式に残すのは、ラムダ 1 個ぶんの要素。本体を子として
+		// 持たせ、捕捉した変数を囲む文の参照・定義に数えられるようにする。
 		final ExpressionInfo reference = new ExpressionInfo(
 				ExpressionInfo.CATEGORY.Lambda, startLine, endLine);
+		reference.addExpression(lambda);
 		reference.setText(flatten(node));
 		this.stack.push(reference);
 

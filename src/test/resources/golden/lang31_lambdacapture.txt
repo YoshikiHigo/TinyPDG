@@ -1,0 +1,45 @@
+# sample: lang31_lambdacapture
+
+## CFG capture <7...11>
+nodes:
+  0: [enter,normal] final int[] total = {0}; <8>
+  1: [normal] values.forEach(v -> total[0]+=v); <9>
+  2: [exit,normal] return total[0]; <10>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+
+## PDG capture <7...11>
+nodes:
+  0: [parameter] final List<Integer> values <7>
+  1: [normal] final int[] total = {0}; <8>
+  2: [normal] values.forEach(v -> total[0]+=v); <9>
+  3: [exit] return total[0]; <10>
+  4: [enter,control] Enter <7...11>
+edges:
+  0 -> 2 [data: values]
+  1 -> 2 [data: total]
+  1 -> 2 [execution: ]
+  2 -> 3 [data: total]
+  2 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 1 [control: true]
+  4 -> 1 [execution: ]
+  4 -> 2 [control: true]
+  4 -> 3 [control: true]
+
+## CFG lambda$9 <9...9>
+nodes:
+  0: [enter,exit,normal] return total[0] += v; <9>
+edges:
+
+## PDG lambda$9 <9...9>
+nodes:
+  0: [parameter] v <9>
+  1: [exit] return total[0] += v; <9>
+  2: [enter,control] Enter <9>
+edges:
+  0 -> 1 [data: v]
+  2 -> 0 [control: true]
+  2 -> 1 [control: true]
+  2 -> 1 [execution: ]

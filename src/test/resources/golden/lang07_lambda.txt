@@ -14,6 +14,7 @@ nodes:
   2: [exit] return r; <22>
   3: [enter,control] Enter <17...23>
 edges:
+  0 -> 1 [data: seed]
   1 -> 2 [data: r]
   1 -> 2 [execution: ]
   3 -> 0 [control: true]
