@@ -46,6 +46,17 @@ public class CFG {
 
 	final protected LinkedList<CFGContinueStatementNode> unhandledContinueStatementNodes;
 
+	/**
+	 * return と throw のノード。メソッドから出る文なので、次の文へは流れない。
+	 *
+	 * <p>break と同じく、行き先の決まっていないものとして外側へ渡す。try の
+	 * finally があればそこへ繋ぎ、なければメソッドの出口になる。以前は他の
+	 * 文と同じく直後の文へ繋がっていて、{@code if (c) { return a; } b = a;} で
+	 * return から b の代入へ辺が張られ、ループの中の return はループの先頭へ
+	 * 戻っていた。
+	 */
+	final protected LinkedList<CFGNode<? extends ProgramElementInfo>> unhandledExitStatementNodes;
+
 	protected boolean built;
 
 	public CFG(final ProgramElementInfo core, final CFGNodeFactory nodeFactory) {
@@ -59,6 +70,7 @@ public class CFG {
 
 		this.unhandledBreakStatementNodes = new LinkedList<>();
 		this.unhandledContinueStatementNodes = new LinkedList<>();
+		this.unhandledExitStatementNodes = new LinkedList<>();
 	}
 
 	public boolean isEmpty() {
@@ -206,6 +218,8 @@ public class CFG {
 				} else if (node instanceof CFGContinueStatementNode continueNode) {
 					this.unhandledContinueStatementNodes
 							.addFirst(continueNode);
+				} else if (leavesTheMethod(coreStatement)) {
+					this.unhandledExitStatementNodes.add(node);
 				} else {
 					this.exitNodes.add(node);
 				}
@@ -222,9 +236,11 @@ public class CFG {
 			this.nodes.add(node);
 		}
 
-		else if (this.core instanceof MethodInfo) {
-			final MethodInfo coreMethod = (MethodInfo) this.core;
+		else if (this.core instanceof MethodInfo coreMethod) {
 			this.buildSimpleBlockCFG(coreMethod);
+			// メソッドの出口は、本体の最後の文に加えて、途中の return と throw。
+			this.exitNodes.addAll(this.unhandledExitStatementNodes);
+			this.unhandledExitStatementNodes.clear();
 		}
 
 		else {
@@ -402,15 +418,14 @@ public class CFG {
 				connect(conditionNode, subCFG.enterNode, true);
 				yield false;
 			}
-			case Break, Continue -> true;
+			case Break, Continue, Return, Throw -> true;
 			// 直前の文から順に繋がる。ここで足すことはない。
 			case Assert, Catch, Do,
 					Empty, Expression, If,
-					For, Foreach, Return,
-					SimpleBlock, Synchronized, Switch,
-					Throw, Try, TypeDeclaration,
-					VariableDeclaration, While, Yield,
-					Unsupported -> false;
+					For, Foreach, SimpleBlock,
+					Synchronized, Switch, Try,
+					TypeDeclaration, VariableDeclaration, While,
+					Yield, Unsupported -> false;
 			};
 
 			if (exitsTheSwitch) {
@@ -424,17 +439,16 @@ public class CFG {
 
 			final ProgramElementInfo anteriorCore = anteriorCFG.core;
 			if (anteriorCore instanceof StatementInfo anteriorStatement) {
-				// break と continue は次の文へ流れない。
+				// break、continue、return、throw は次の文へ流れない。
 				final boolean fallsThrough = switch (anteriorStatement
 						.getCategory()) {
-				case Break, Continue -> false;
+				case Break, Continue, Return, Throw -> false;
 				case Assert, Case, Catch,
 						Do, Empty, Expression,
 						If, For, Foreach,
-						Return, SimpleBlock, Synchronized,
-						Switch, Throw, Try,
-						TypeDeclaration, VariableDeclaration, While,
-						Yield, Unsupported -> true;
+						SimpleBlock, Synchronized, Switch,
+						Try, TypeDeclaration, VariableDeclaration,
+						While, Yield, Unsupported -> true;
 				};
 				if (!fallsThrough) {
 					continue CFG;
@@ -469,9 +483,6 @@ public class CFG {
 
 		this.enterNode = sequentialCFGs.enterNode;
 		this.absorb(sequentialCFGs);
-		this.nodes.addAll(finallyCFG.nodes);
-		this.exitNodes.addAll(finallyCFG.exitNodes);
-
 		for (final CFGNode<? extends ProgramElementInfo> sequentialExitNode : sequentialCFGs.exitNodes) {
 			connect(sequentialExitNode, finallyCFG.enterNode);
 		}
@@ -490,6 +501,20 @@ public class CFG {
 				connect(catchExitNode, finallyCFG.enterNode);
 			}
 		}
+
+		// try 本体と catch 節の中の return と throw は、finally があればまず
+		// そこへ進む。finally の後は次の文へ流れてしまい、メソッドの外へ出る
+		// 経路としては正確でないが、finally が実行されることは表せる。
+		// finally がなければ、メソッドの出口として外側へ渡す。
+		if (null != finallyBlock) {
+			for (final CFGNode<? extends ProgramElementInfo> exitStatementNode : this.unhandledExitStatementNodes) {
+				connect(exitStatementNode, finallyCFG.enterNode);
+			}
+			this.unhandledExitStatementNodes.clear();
+		}
+
+		this.absorb(finallyCFG);
+		this.exitNodes.addAll(finallyCFG.exitNodes);
 	}
 
 	/**
@@ -505,6 +530,22 @@ public class CFG {
 				.addAll(sub.unhandledBreakStatementNodes);
 		this.unhandledContinueStatementNodes
 				.addAll(sub.unhandledContinueStatementNodes);
+		this.unhandledExitStatementNodes
+				.addAll(sub.unhandledExitStatementNodes);
+	}
+
+	/** return と throw。メソッド (と、あれば finally) の外へ出る文。 */
+	private static boolean leavesTheMethod(final StatementInfo statement) {
+		return switch (statement.getCategory()) {
+		case Return, Throw -> true;
+		case Assert, Break, Case,
+				Catch, Continue, Do,
+				Empty, Expression, For,
+				Foreach, If, SimpleBlock,
+				Switch, Synchronized, Try,
+				TypeDeclaration, VariableDeclaration, While,
+				Yield, Unsupported -> false;
+		};
 	}
 
 	/** from から to へ辺を張る。 */
