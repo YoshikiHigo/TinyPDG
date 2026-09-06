@@ -2,6 +2,7 @@ package yoshikihigo.tinypdg.prelement;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -37,7 +38,7 @@ public class ElementPredictor {
 
 			try (final DAO dao = new DAO(database, false);
 					final BufferedReader in = new BufferedReader(
-							new InputStreamReader(System.in))) {
+							new InputStreamReader(System.in, consoleCharset()))) {
 				while (true) {
 					System.out.println("input an element for prediction");
 					System.out.print("> ");
@@ -61,6 +62,28 @@ public class ElementPredictor {
 			e.printStackTrace();
 			System.exit(1);
 		}
+	}
+
+	/**
+	 * 標準入力の文字コード。
+	 *
+	 * <p>コンソールがあればその文字コード、なければ stdin.encoding、それも
+	 * なければ既定の文字コード。以前は既定の文字コード (UTF-8) で読んでいて、
+	 * Windows のコンソール (ms932) から入れた日本語が化けていた (issue #28)。
+	 */
+	private static Charset consoleCharset() {
+		if (null != System.console()) {
+			return System.console().charset();
+		}
+		final String encoding = System.getProperty("stdin.encoding");
+		if (null != encoding) {
+			try {
+				return Charset.forName(encoding);
+			} catch (final IllegalArgumentException e) {
+				// 知らない名前なら既定へ。
+			}
+		}
+		return Charset.defaultCharset();
 	}
 
 	/**

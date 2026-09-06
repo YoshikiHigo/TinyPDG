@@ -1,6 +1,7 @@
 package yoshikihigo.tinypdg.prelement.db;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -69,5 +70,30 @@ class DAOTest {
 		final TinyPDGException thrown = assertThrows(TinyPDGException.class,
 				() -> new DAO(missing.toString(), true));
 		assertNotNull(thrown.getCause(), "元の例外が原因として保持されていること");
+	}
+
+	@Test
+	void refusesToReadAMissingDatabaseWithoutCreatingIt(@TempDir final Path workDir) {
+		final Path missing = workDir.resolve("typo.db");
+		assertThrows(TinyPDGException.class,
+				() -> new DAO(missing.toString(), false));
+		assertFalse(Files.exists(missing), "読むだけのつもりでファイルを作らないこと");
+	}
+
+	@Test
+	void startsFromEmptyTablesOnCreation(@TempDir final Path workDir) throws Exception {
+		final Path database = workDir.resolve("twice.db");
+		for (int round = 0; round < 2; round++) {
+			try (final DAO dao = new DAO(database.toString(), true)) {
+				dao.addToTexts(1, "a");
+				dao.addToTexts(2, "b");
+				dao.addToFrequencies(PDGEdge.TYPE.DATA, 1,
+						new Frequency(0.5f, 3, 2, "b"));
+			}
+		}
+		try (final DAO reader = new DAO(database.toString(), false)) {
+			assertEquals(1, reader.getFrequencies(PDGEdge.TYPE.DATA, 1).size(),
+					"2 回書いても行が重複しないこと");
+		}
 	}
 }

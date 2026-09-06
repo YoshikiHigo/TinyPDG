@@ -4,9 +4,11 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -108,13 +110,23 @@ public class DependenceDistiller {
 					}
 					frequencies.incrementAndGet();
 
-					final SortedSet<PDGEdge> edges = fromNode.getForwardEdges();
-					for (final PDGEdge edge : edges) {
-						final String toNodeNormalizedText = NormalizedText
-								.normalize(edge.toNode.core);
-						final int toNodeHash = toNodeNormalizedText.hashCode();
-						addToNodeHash(fromNodeHash, toNodeHash,
-								toNodeFrequencies.get(edge.type));
+					// 同じ出現から同じ正規化テキストへ同じ種類の辺が複数あっても
+					// 1 回と数える。辺の数で数えると、出現回数で割った「確率」が
+					// 1 を超えていた (issue #28)。
+					final Map<PDGEdge.TYPE, Set<Integer>> reached = new EnumMap<>(
+							PDGEdge.TYPE.class);
+					for (final PDGEdge edge : fromNode.getForwardEdges()) {
+						final int toNodeHash = NormalizedText
+								.normalize(edge.toNode.core).hashCode();
+						reached.computeIfAbsent(edge.type, t -> new HashSet<>())
+								.add(toNodeHash);
+					}
+					for (final Entry<PDGEdge.TYPE, Set<Integer>> reachedOfType : reached
+							.entrySet()) {
+						for (final int toNodeHash : reachedOfType.getValue()) {
+							addToNodeHash(fromNodeHash, toNodeHash,
+									toNodeFrequencies.get(reachedOfType.getKey()));
+						}
 					}
 				}
 			}
