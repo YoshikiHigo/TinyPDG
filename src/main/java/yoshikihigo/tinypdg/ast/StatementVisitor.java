@@ -95,7 +95,16 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			if (null != node.getExpression()) {
 				final ProgramElementInfo expression = this.visitChild(node.getExpression());
 
-				if (this.yieldTargets.isEmpty()) {
+				if (node.isImplicit()
+						&& node.getParent() instanceof SwitchStatement) {
+					// switch 文の矢印形式のアーム case 1 -> r = 10; を、JDT は
+					// 暗黙の yield 文として渡してくる。switch 文に値はないので、
+					// これはただの式文である。yield のままだと制御依存の相手に
+					// ならず、テキストにも yield が付いていた。
+					yieldStatement.setCategory(StatementInfo.CATEGORY.Expression);
+					yieldStatement.addExpression(expression);
+					text.append(expression.getText());
+				} else if (this.yieldTargets.isEmpty()) {
 					yieldStatement.addExpression(expression);
 					text.append("yield ");
 					text.append(expression.getText());
@@ -564,15 +573,36 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			text.append(") {");
 			text.append(System.lineSeparator());
 
+			// 矢印形式 case X -> ... のアームは次のアームへ流れない。CFG は
+			// コロン形式の並びとして組むので、アームの文の後ろに break を置いて
+			// 同じ形にする。文がそれ自身で switch から出るなら要らない。
+			boolean arrowArm = false;
 			for (final Object o : node.statements()) {
 				final StatementInfo statement = (StatementInfo) this.visitChild((ASTNode) o);
 				// 複数の変数を宣言する文は変数ごとの文に分かれ、SimpleBlock に
-				// 包まれて届く。中身を並べる。
-				for (final StatementInfo inner : BlockStatementInfo.flatten(statement)) {
-					inner.setOwnerBlock(switchBlock);
-					switchBlock.addStatement(inner);
-					text.append(inner.getText());
+				// 包まれて届く。ブロック形式のアームも同じ形で届く。中身を並べる。
+				final List<StatementInfo> inner = BlockStatementInfo.flatten(statement);
+				for (final StatementInfo s : inner) {
+					s.setOwnerBlock(switchBlock);
+					switchBlock.addStatement(s);
+					text.append(s.getText());
 					text.append(System.lineSeparator());
+				}
+
+				if (o instanceof SwitchCase switchCase) {
+					arrowArm = switchCase.isSwitchLabeledRule();
+				} else if (arrowArm) {
+					final StatementInfo last = inner.get(inner.size() - 1);
+					if (!leavesTheSwitch(last)) {
+						final SimpleStatementInfo jump = new SimpleStatementInfo(
+								switchBlock, StatementInfo.CATEGORY.Break,
+								last.startLine, last.endLine);
+						jump.setText("break;");
+						switchBlock.addStatement(jump);
+						text.append(jump.getText());
+						text.append(System.lineSeparator());
+					}
+					arrowArm = false;
 				}
 			}
 
@@ -580,6 +610,19 @@ abstract class StatementVisitor extends ExpressionVisitor {
 		}
 
 		return false;
+	}
+
+	/** その文自身で switch の外へ出るか。break を置く必要がない。 */
+	private static boolean leavesTheSwitch(final StatementInfo statement) {
+		return switch (statement.getCategory()) {
+		case Break, Continue, Return, Throw -> true;
+		case Assert, Case, Catch,
+				Do, Empty, Expression,
+				For, Foreach, If,
+				SimpleBlock, Switch, Synchronized,
+				Try, TypeDeclaration, VariableDeclaration,
+				While, Yield, Unsupported -> false;
+		};
 	}
 
 	@Override
