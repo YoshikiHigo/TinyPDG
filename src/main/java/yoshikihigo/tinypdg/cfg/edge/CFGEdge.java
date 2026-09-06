@@ -98,7 +98,7 @@ public abstract class CFGEdge implements Comparable<CFGEdge> {
 	@Override
 	public int hashCode() {
 		return Objects.hash(this.fromNode.core.id, this.toNode.core.id,
-				this.getDependenceTypeString());
+				this.getDependenceTypeString(), this.getDependenceString());
 	}
 
 	@Override
@@ -118,7 +118,15 @@ public abstract class CFGEdge implements Comparable<CFGEdge> {
 			return toOrder;
 		}
 
-		return this.getDependenceTypeString().compareTo(
+		final int typeOrder = this.getDependenceTypeString().compareTo(
 				edge.getDependenceTypeString());
+		if (0 != typeOrder) {
+			return typeOrder;
+		}
+
+		// 条件つきの辺は真偽も同一性に入る。if (c) {} のように、条件から同じ
+		// ノードへ真と偽の両方で進むことがある。以前は種類までしか見ておらず、
+		// 後から入れた方が集合から落ちていた。
+		return this.getDependenceString().compareTo(edge.getDependenceString());
 	}
 }

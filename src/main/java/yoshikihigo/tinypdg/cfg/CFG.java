@@ -59,10 +59,26 @@ public class CFG {
 
 	protected boolean built;
 
+	/**
+	 * 別の CFG の部分グラフとして組み立てられているか。
+	 *
+	 * <p>疑似ノードは、グラフ全体ができてから消す。以前は文ごとの CFG が
+	 * それぞれ自分の疑似ノードを消していた。すると if (c) {} の空の本体の
+	 * 疑似ノードは「条件から真の辺で進む先」という情報を持ったまま消え、
+	 * 残った条件ノードから次の文へ引く辺は偽になっていた。
+	 */
+	final private boolean nested;
+
 	public CFG(final ProgramElementInfo core, final CFGNodeFactory nodeFactory) {
+		this(core, nodeFactory, false);
+	}
+
+	private CFG(final ProgramElementInfo core, final CFGNodeFactory nodeFactory,
+			final boolean nested) {
 		Objects.requireNonNull(nodeFactory, "\"nodeFactory\" is null.");
 		this.core = core;
 		this.nodeFactory = nodeFactory;
+		this.nested = nested;
 		this.nodes = new TreeSet<>();
 		this.enterNode = null;
 		this.exitNodes = new TreeSet<>();
@@ -100,6 +116,7 @@ public class CFG {
 			final CFGNode<? extends ProgramElementInfo> node = iterator.next();
 			if (node instanceof CFGSwitchCaseNode) {
 
+				this.replaceExitNode(node);
 				for (final CFGEdge edge : node.getBackwardEdges()) {
 					final CFGNode<?> fromNode = edge.fromNode;
 
@@ -125,6 +142,10 @@ public class CFG {
 			final CFGNode<? extends ProgramElementInfo> node = iterator.next();
 			if (node instanceof CFGJumpStatementNode) {
 
+				// ループの最後の break はメソッドの出口でもある。ノードが消えた
+				// 後も出口の集合に残っていて、PDG はグラフに現れない出口を作って
+				// いた。
+				this.replaceExitNode(node);
 				for (final CFGNode<?> fromNode : node.getBackwardNodes()) {
 					for (final CFGNode<?> toNode : node.getForwardNodes()) {
 
@@ -257,7 +278,7 @@ public class CFG {
 					"CFG を組み立てられない要素です: " + this.core.getClass().getName());
 		}
 
-		if (null != this.core) {
+		if (!this.nested) {
 			this.removePseudoNodes();
 		}
 	}
@@ -306,7 +327,12 @@ public class CFG {
 		updaterCFGs.build();
 
 		this.enterNode = initializerCFGs.enterNode;
-		this.exitNodes.add(conditionNode);
+		// 条件のない for (;;) は条件から抜けることがない。出口は break だけで
+		// ある。以前は疑似ノードの条件も出口にしていて、疑似ノードが消える
+		// ときにその前のノードが出口として残った。
+		if (null != condition) {
+			this.exitNodes.add(conditionNode);
+		}
 		// 初期化式と更新式は式なので、break も continue も持ち込まない。
 		this.absorb(sequentialCFGs);
 		this.absorb(initializerCFGs);
@@ -350,10 +376,10 @@ public class CFG {
 		if (loop) {
 			this.exitNodes.add(conditionNode);
 		} else {
+			// 中身が空でも SequentialCFGs は疑似ノードを 1 個作るので、出口は
+			// それでよい。以前は条件そのものを出口に足していて、次の文への辺が
+			// 条件ノードからの辺の既定である偽になり、真の枝が消えていた。
 			this.exitNodes.addAll(sequentialCFGs.exitNodes);
-			if (0 == substatements.size()) {
-				this.exitNodes.add(conditionNode);
-			}
 		}
 
 		connect(conditionNode, sequentialCFGs.enterNode, true);
@@ -380,24 +406,17 @@ public class CFG {
 		final CFGNode<? extends ProgramElementInfo> conditionNode = this.nodeFactory
 				.makeControlNode(condition);
 
-		if (null != statement.getElseStatements()) {
-			final List<StatementInfo> elseStatements = statement
-					.getElseStatements();
-			final SequentialCFGs elseCFG = new SequentialCFGs(elseStatements);
-			elseCFG.build();
+		// else 節がなければ getElseStatements() は空のリストで (null には
+		// ならない)、SequentialCFGs は疑似ノードを 1 個作る。条件から偽の辺で
+		// そこへ進み、疑似ノードが消えるときに次の文へ繋がる。以前は中身が
+		// 空だと条件そのものを出口にしていた。
+		final SequentialCFGs elseCFG = new SequentialCFGs(
+				statement.getElseStatements());
+		elseCFG.build();
 
-			this.absorb(elseCFG);
-			this.exitNodes.addAll(elseCFG.exitNodes);
-			if (0 == elseStatements.size()) {
-				this.exitNodes.add(conditionNode);
-			}
-
-			connect(conditionNode, elseCFG.enterNode, false);
-		}
-
-		else {
-			this.exitNodes.add(conditionNode);
-		}
+		this.absorb(elseCFG);
+		this.exitNodes.addAll(elseCFG.exitNodes);
+		connect(conditionNode, elseCFG.enterNode, false);
 	}
 
 	private void buildSimpleBlockCFG(final BlockInfo statement) {
@@ -421,7 +440,7 @@ public class CFG {
 		final List<StatementInfo> substatements = statement.getStatements();
 		final List<CFG> sequentialCFGs = new ArrayList<>();
 		for (final StatementInfo substatement : substatements) {
-			final CFG subCFG = new CFG(substatement, this.nodeFactory);
+			final CFG subCFG = new CFG(substatement, this.nodeFactory, true);
 			subCFG.build();
 			sequentialCFGs.add(subCFG);
 			this.absorb(subCFG);
@@ -503,7 +522,7 @@ public class CFG {
 		sequentialCFGs.build();
 
 		final StatementInfo finallyBlock = statement.getFinallyStatement();
-		final CFG finallyCFG = new CFG(finallyBlock, this.nodeFactory);
+		final CFG finallyCFG = new CFG(finallyBlock, this.nodeFactory, true);
 		finallyCFG.build();
 
 		this.enterNode = sequentialCFGs.enterNode;
@@ -515,7 +534,7 @@ public class CFG {
 		for (final StatementInfo catchStatement : statement
 				.getCatchStatements()) {
 
-			final CFG catchCFG = new CFG(catchStatement, this.nodeFactory);
+			final CFG catchCFG = new CFG(catchStatement, this.nodeFactory, true);
 			catchCFG.build();
 
 			// catch 節の中の break と continue も、外側のループが行き先を
@@ -584,6 +603,13 @@ public class CFG {
 		CFGEdge.makeEdge(from, to, control).connect();
 	}
 
+	/** node が出口なら、その前のノードたちを代わりの出口にする。 */
+	private void replaceExitNode(final CFGNode<? extends ProgramElementInfo> node) {
+		if (this.exitNodes.remove(node)) {
+			this.exitNodes.addAll(node.getBackwardNodes());
+		}
+	}
+
 	private void removePseudoNodes() {
 
 		final Iterator<CFGNode<? extends ProgramElementInfo>> iterator = this.nodes
@@ -604,24 +630,24 @@ public class CFG {
 					}
 				}
 
-				if (this.exitNodes.contains(node)) {
-					this.exitNodes.addAll(node.getBackwardNodes());
-					this.exitNodes.remove(node);
-				}
+				this.replaceExitNode(node);
 
-				final SortedSet<CFGNode<? extends ProgramElementInfo>> backwardNodes = node
-						.getBackwardNodes();
+				final SortedSet<CFGEdge> backwardEdges = node.getBackwardEdges();
 				final SortedSet<CFGNode<? extends ProgramElementInfo>> forwardNodes = node
 						.getForwardNodes();
-				for (final CFGNode<? extends ProgramElementInfo> backwardNode : backwardNodes) {
-					backwardNode.removeForwardNode(node);
-				}
-				for (final CFGNode<? extends ProgramElementInfo> forwardNode : forwardNodes) {
-					forwardNode.removeBackwardNode(node);
-				}
-				for (final CFGNode<? extends ProgramElementInfo> backwardNode : backwardNodes) {
+				node.remove();
+
+				// 条件ノードから来た辺は真偽を持つので、それを引き継いで繋ぎ直す。
+				// 以前はノードだけを見て繋いでいたので、条件ノードからの辺は
+				// 既定の偽になり、if (c) {} の真の枝が偽の辺として現れていた。
+				for (final CFGEdge backwardEdge : backwardEdges) {
 					for (final CFGNode<? extends ProgramElementInfo> forwardNode : forwardNodes) {
-						connect(backwardNode, forwardNode);
+						if (backwardEdge instanceof CFGControlEdge controlEdge) {
+							connect(controlEdge.fromNode, forwardNode,
+									controlEdge.control);
+						} else {
+							connect(backwardEdge.fromNode, forwardNode);
+						}
 					}
 				}
 			}
@@ -684,7 +710,7 @@ public class CFG {
 
 		SequentialCFGs(final List<? extends ProgramElementInfo> elements) {
 
-			super(null, CFG.this.nodeFactory);
+			super(null, CFG.this.nodeFactory, true);
 			this.elements = elements;
 		}
 
@@ -696,7 +722,7 @@ public class CFG {
 
 			final LinkedList<CFG> sequentialCFGs = new LinkedList<>();
 			for (final ProgramElementInfo element : this.elements) {
-				final CFG blockCFG = new CFG(element, CFG.this.nodeFactory);
+				final CFG blockCFG = new CFG(element, CFG.this.nodeFactory, true);
 				blockCFG.build();
 				if (!blockCFG.isEmpty()) {
 					sequentialCFGs.add(blockCFG);
@@ -710,7 +736,7 @@ public class CFG {
 				}
 			}
 			if (0 == sequentialCFGs.size()) {
-				final CFG pseudoCFG = new CFG(null, CFG.this.nodeFactory);
+				final CFG pseudoCFG = new CFG(null, CFG.this.nodeFactory, true);
 				pseudoCFG.build();
 				sequentialCFGs.add(pseudoCFG);
 			}
