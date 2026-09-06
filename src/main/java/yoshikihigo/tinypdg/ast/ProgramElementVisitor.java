@@ -128,6 +128,30 @@ abstract class ProgramElementVisitor extends ASTVisitor {
 		return drained;
 	}
 
+	/**
+	 * body を、外側の switch 式の yield から切り離して実行する。
+	 *
+	 * <p>前に出せない switch 式のアーム、ラムダの本体、メソッドの本体が
+	 * これである。その中の yield は、外側で脱糖中の switch 式の一時変数への
+	 * 代入ではない。空の行き先を積んでおくと、yield の visit はそれを
+	 * 「脱糖していない」と読む。yieldConverted も外側のものなので、body が
+	 * 触った形跡を消して返す。
+	 *
+	 * <p>以前はどちらも漏れていた。入れ子の switch 式の yield が外側の一時
+	 * 変数への代入になり、その式やラムダを含む文が外側の一時変数を定義する
+	 * ことになっていた。外側のアームには余計な break も付いた。
+	 */
+	void isolatedFromYield(final Runnable body) {
+		this.yieldTargets.push("");
+		final boolean converted = this.yieldConverted;
+		try {
+			body.run();
+		} finally {
+			this.yieldConverted = converted;
+			this.yieldTargets.pop();
+		}
+	}
+
 	/** スタック上で最も内側にあるブロックを返す。 */
 	ProgramElementInfo nearestBlock() {
 		for (final ProgramElementInfo element : this.stack) {

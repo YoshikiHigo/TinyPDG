@@ -236,9 +236,11 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 				isStatic ? "<clinit>" : "<init>", startLine, endLine);
 		this.stack.push(initializer);
 
-		final ProgramElementInfo body = this.visitChild(node.getBody());
-		initializer.setStatement((StatementInfo) body);
-		initializer.setText((isStatic ? "static " : "") + body.getText());
+		this.isolatedFromYield(() -> {
+			final ProgramElementInfo body = this.visitChild(node.getBody());
+			initializer.setStatement((StatementInfo) body);
+			initializer.setText((isStatic ? "static " : "") + body.getText());
+		});
 
 		return false;
 	}
@@ -316,9 +318,13 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 		text.append(")");
 
 		if (null != node.getBody()) {
-			final ProgramElementInfo body = this.visitChild(node.getBody());
-			method.setStatement((StatementInfo) body);
-			text.append(body.getText());
+			// 匿名クラスのメソッドは switch 式のアームの中にもある。外側で
+			// 脱糖中の switch 式の yield は、メソッドの本体には届かない。
+			this.isolatedFromYield(() -> {
+				final ProgramElementInfo body = this.visitChild(node.getBody());
+				method.setStatement((StatementInfo) body);
+				text.append(body.getText());
+			});
 		}
 		method.setText(text.toString());
 

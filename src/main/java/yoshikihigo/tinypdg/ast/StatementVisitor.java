@@ -105,7 +105,10 @@ abstract class StatementVisitor extends ExpressionVisitor {
 					yieldStatement.setCategory(StatementInfo.CATEGORY.Expression);
 					yieldStatement.addExpression(expression);
 					text.append(expression.getText());
-				} else if (this.yieldTargets.isEmpty()) {
+				} else if (this.yieldTargets.isEmpty()
+						|| this.yieldTargets.peek().isEmpty()) {
+					// 脱糖中の switch 式の中にいない。空の行き先は、外側の脱糖
+					// から切り離された範囲 (isolatedFromYield) の印である。
 					yieldStatement.addExpression(expression);
 					text.append("yield ");
 					text.append(expression.getText());

@@ -122,6 +122,8 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		text.append(") {");
 		text.append(System.lineSeparator());
 
+		// 入れ子の switch 式が中にあっても、外側の yieldConverted を壊さない。
+		final boolean outerConverted = this.yieldConverted;
 		this.yieldTargets.push(target);
 		for (final Object o : node.statements()) {
 			this.yieldConverted = false;
@@ -159,7 +161,7 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				text.append(System.lineSeparator());
 			}
 		}
-		this.yieldConverted = false;
+		this.yieldConverted = outerConverted;
 		this.yieldTargets.pop();
 
 		text.append("}");
@@ -195,10 +197,12 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		final BlockStatementInfo scratch = new BlockStatementInfo(this.nearestBlock(),
 				StatementInfo.CATEGORY.SimpleBlock, startLine, endLine);
 		this.stack.push(scratch);
-		for (final Object o : node.statements()) {
-			final ProgramElementInfo statement = this.visitChild((ASTNode) o);
-			switchExpression.addExpression(statement);
-		}
+		this.isolatedFromYield(() -> {
+			for (final Object o : node.statements()) {
+				final ProgramElementInfo statement = this.visitChild((ASTNode) o);
+				switchExpression.addExpression(statement);
+			}
+		});
 		this.stack.pop();
 
 		switchExpression.setText(flatten(node));
@@ -351,40 +355,44 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		}
 		signature.append(") -> ");
 
-		final ASTNode body = node.getBody();
-		if (body instanceof Block) {
-			final ProgramElementInfo statement = this.visitChild(body);
-			lambda.setStatement((StatementInfo) statement);
-			signature.append(statement.getText());
+		// ラムダの本体は別のメソッドである。外側で脱糖中の switch 式の yield は
+		// ここまで届かない。
+		this.isolatedFromYield(() -> {
+			final ASTNode body = node.getBody();
+			if (body instanceof Block) {
+				final ProgramElementInfo statement = this.visitChild(body);
+				lambda.setStatement((StatementInfo) statement);
+				signature.append(statement.getText());
 
-		} else {
-			// 式本体のラムダ。x -> expr は return expr; と同じ意味なので
-			// return 文に組み替える。通常のメソッドは本体が必ずブロックであり、
-			// PDG の構築もそれを前提にしているため、ブロックで包んでおく。
-			final int bodyStart = this.getStartLineNumber(body);
-			final int bodyEnd = this.getEndLineNumber(body);
+			} else {
+				// 式本体のラムダ。x -> expr は return expr; と同じ意味なので
+				// return 文に組み替える。通常のメソッドは本体が必ずブロックであり、
+				// PDG の構築もそれを前提にしているため、ブロックで包んでおく。
+				final int bodyStart = this.getStartLineNumber(body);
+				final int bodyEnd = this.getEndLineNumber(body);
 
-			final BlockStatementInfo block = new BlockStatementInfo(lambda,
-					StatementInfo.CATEGORY.SimpleBlock, bodyStart, bodyEnd);
-			this.stack.push(block);
+				final BlockStatementInfo block = new BlockStatementInfo(lambda,
+						StatementInfo.CATEGORY.SimpleBlock, bodyStart, bodyEnd);
+				this.stack.push(block);
 
-			final SimpleStatementInfo returnStatement = new SimpleStatementInfo(block,
-					StatementInfo.CATEGORY.Return, bodyStart, bodyEnd);
-			this.stack.push(returnStatement);
+				final SimpleStatementInfo returnStatement = new SimpleStatementInfo(block,
+						StatementInfo.CATEGORY.Return, bodyStart, bodyEnd);
+				this.stack.push(returnStatement);
 
-			final ProgramElementInfo expression = this.visitChild(body);
-			returnStatement.addExpression(expression);
-			returnStatement.setText("return " + expression.getText() + ";");
+				final ProgramElementInfo expression = this.visitChild(body);
+				returnStatement.addExpression(expression);
+				returnStatement.setText("return " + expression.getText() + ";");
 
-			this.stack.pop();
-			block.addStatement(returnStatement);
-			block.setText("{" + System.lineSeparator() + returnStatement.getText()
-					+ System.lineSeparator() + "}");
+				this.stack.pop();
+				block.addStatement(returnStatement);
+				block.setText("{" + System.lineSeparator() + returnStatement.getText()
+						+ System.lineSeparator() + "}");
 
-			this.stack.pop();
-			lambda.setStatement(block);
-			signature.append(block.getText());
-		}
+				this.stack.pop();
+				lambda.setStatement(block);
+				signature.append(block.getText());
+			}
+		});
 
 		lambda.setText(signature.toString());
 
