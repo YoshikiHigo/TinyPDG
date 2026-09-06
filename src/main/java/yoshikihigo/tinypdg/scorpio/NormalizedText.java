@@ -229,8 +229,12 @@ public class NormalizedText {
 		case Cast -> "(" + normalized(children.get(0)) + ")"
 				+ normalized(children.get(1));
 
-		// 型の後に引数が並ぶ。型の名前は字面のまま。
-		case ClassInstanceCreation -> "new " + raw(children.get(0).getText())
+		// 型の後に引数が並ぶ。型の名前は字面のまま。outer.new Inner() の
+		// outer は修飾子に入っている。
+		case ClassInstanceCreation -> (null != qualifier
+				? normalized(qualifier) + "."
+				: "")
+				+ "new " + raw(children.get(0).getText())
 				+ "(" + join(rest(children), ",") + ")";
 
 		case ConstructorInvocation -> "this(" + join(children, ",") + ")";

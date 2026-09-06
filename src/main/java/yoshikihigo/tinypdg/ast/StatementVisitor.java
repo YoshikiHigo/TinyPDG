@@ -548,6 +548,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			if (null != node.getElseStatement()) {
 				final StatementInfo elseBody = this.visitBody(node.getElseStatement());
 				ifBlock.setElseStatement(elseBody);
+				text.append(" else ");
 				text.append(elseBody.getText());
 			}
 
