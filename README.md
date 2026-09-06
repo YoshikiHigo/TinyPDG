@@ -56,7 +56,7 @@ false, and a loop condition depends on itself. `-S` switches a tool to
 the older rule that follows the syntactic nesting only, for comparison
 with earlier results. The CFG output also contains dashed `exception`
 edges from a try body to its catch and finally blocks; they contribute
-to data dependences but not to execution dependences.
+to data dependences only, not to control or execution dependences.
 
 `-j <version>` sets the Java version assumed when parsing (`8`, `11`,
 `17`, `21`, `25`, ...). It defaults to 25. Use it when analysing sources
