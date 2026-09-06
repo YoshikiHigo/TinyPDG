@@ -1,0 +1,193 @@
+# sample: lang50_patternnames
+
+## CFG caseC <28...36>
+nodes:
+  0: [enter,normal] double a = 0.0; <29>
+  1: [control] shape <30>
+  2: [normal] case Circle(double r) when r > min -> <31>
+  3: [normal] a = r * r; <31>
+  4: [normal] case Circle c -> <32>
+  5: [normal] a = c.radius(); <32>
+  6: [normal] case Square s -> <33>
+  7: [normal] a = s.side(); <33>
+  8: [exit,normal] return a; <35>
+edges:
+  0 -> 1 []
+  1 -> 2 [true]
+  1 -> 4 [true]
+  1 -> 6 [true]
+  2 -> 3 []
+  3 -> 8 [jump]
+  4 -> 5 []
+  5 -> 8 [jump]
+  6 -> 7 []
+  7 -> 8 [jump]
+
+## PDG caseC <28...36>
+nodes:
+  0: [parameter] final Shape shape <28>
+  1: [parameter] final double min <28>
+  2: [normal] double a = 0.0; <29>
+  3: [control] shape <30>
+  4: [normal] case Circle(double r) when r > min -> <31>
+  5: [normal] a = r * r; <31>
+  6: [normal] case Circle c -> <32>
+  7: [normal] a = c.radius(); <32>
+  8: [normal] case Square s -> <33>
+  9: [normal] a = s.side(); <33>
+  10: [exit] return a; <35>
+  11: [enter,control] Enter <28...36>
+edges:
+  0 -> 3 [data: shape]
+  1 -> 4 [data: min]
+  2 -> 3 [execution: ]
+  3 -> 4 [control: true]
+  3 -> 4 [execution: ]
+  3 -> 5 [control: true]
+  3 -> 6 [control: true]
+  3 -> 6 [execution: ]
+  3 -> 7 [control: true]
+  3 -> 8 [control: true]
+  3 -> 8 [execution: ]
+  3 -> 9 [control: true]
+  4 -> 5 [data: r]
+  4 -> 5 [execution: ]
+  5 -> 10 [data: a]
+  5 -> 10 [execution: ]
+  6 -> 7 [data: c]
+  6 -> 7 [execution: ]
+  7 -> 10 [data: a]
+  7 -> 10 [execution: ]
+  8 -> 9 [data: s]
+  8 -> 9 [execution: ]
+  9 -> 10 [data: a]
+  9 -> 10 [execution: ]
+  11 -> 0 [control: true]
+  11 -> 1 [control: true]
+  11 -> 2 [control: true]
+  11 -> 2 [execution: ]
+  11 -> 3 [control: true]
+  11 -> 10 [control: true]
+
+## CFG caseD <38...46>
+nodes:
+  0: [enter,normal] double a = 0.0; <39>
+  1: [control] shape <40>
+  2: [normal] case Circle(double q) when q > min -> <41>
+  3: [normal] a = q * q; <41>
+  4: [normal] case Circle d -> <42>
+  5: [normal] a = d.radius(); <42>
+  6: [normal] case Square t -> <43>
+  7: [normal] a = t.side(); <43>
+  8: [exit,normal] return a; <45>
+edges:
+  0 -> 1 []
+  1 -> 2 [true]
+  1 -> 4 [true]
+  1 -> 6 [true]
+  2 -> 3 []
+  3 -> 8 [jump]
+  4 -> 5 []
+  5 -> 8 [jump]
+  6 -> 7 []
+  7 -> 8 [jump]
+
+## PDG caseD <38...46>
+nodes:
+  0: [parameter] final Shape shape <38>
+  1: [parameter] final double min <38>
+  2: [normal] double a = 0.0; <39>
+  3: [control] shape <40>
+  4: [normal] case Circle(double q) when q > min -> <41>
+  5: [normal] a = q * q; <41>
+  6: [normal] case Circle d -> <42>
+  7: [normal] a = d.radius(); <42>
+  8: [normal] case Square t -> <43>
+  9: [normal] a = t.side(); <43>
+  10: [exit] return a; <45>
+  11: [enter,control] Enter <38...46>
+edges:
+  0 -> 3 [data: shape]
+  1 -> 4 [data: min]
+  2 -> 3 [execution: ]
+  3 -> 4 [control: true]
+  3 -> 4 [execution: ]
+  3 -> 5 [control: true]
+  3 -> 6 [control: true]
+  3 -> 6 [execution: ]
+  3 -> 7 [control: true]
+  3 -> 8 [control: true]
+  3 -> 8 [execution: ]
+  3 -> 9 [control: true]
+  4 -> 5 [data: q]
+  4 -> 5 [execution: ]
+  5 -> 10 [data: a]
+  5 -> 10 [execution: ]
+  6 -> 7 [data: d]
+  6 -> 7 [execution: ]
+  7 -> 10 [data: a]
+  7 -> 10 [execution: ]
+  8 -> 9 [data: t]
+  8 -> 9 [execution: ]
+  9 -> 10 [data: a]
+  9 -> 10 [execution: ]
+  11 -> 0 [control: true]
+  11 -> 1 [control: true]
+  11 -> 2 [control: true]
+  11 -> 2 [execution: ]
+  11 -> 3 [control: true]
+  11 -> 10 [control: true]
+
+## CFG withS <14...19>
+nodes:
+  0: [enter,control] o instanceof String s && !s.isEmpty() <15>
+  1: [exit,normal] return s.length(); <16>
+  2: [exit,normal] return 0; <18>
+edges:
+  0 -> 1 [true]
+  0 -> 2 [false]
+
+## PDG withS <14...19>
+nodes:
+  0: [parameter] final Object o <14>
+  1: [control] o instanceof String s && !s.isEmpty() <15>
+  2: [exit] return s.length(); <16>
+  3: [exit] return 0; <18>
+  4: [enter,control] Enter <14...19>
+edges:
+  0 -> 1 [data: o]
+  1 -> 2 [control: true]
+  1 -> 2 [data: s]
+  1 -> 2 [execution: ]
+  1 -> 3 [control: false]
+  1 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 1 [control: true]
+  4 -> 1 [execution: ]
+
+## CFG withT <21...26>
+nodes:
+  0: [enter,control] o instanceof String t && !t.isEmpty() <22>
+  1: [exit,normal] return t.length(); <23>
+  2: [exit,normal] return 0; <25>
+edges:
+  0 -> 1 [true]
+  0 -> 2 [false]
+
+## PDG withT <21...26>
+nodes:
+  0: [parameter] final Object o <21>
+  1: [control] o instanceof String t && !t.isEmpty() <22>
+  2: [exit] return t.length(); <23>
+  3: [exit] return 0; <25>
+  4: [enter,control] Enter <21...26>
+edges:
+  0 -> 1 [data: o]
+  1 -> 2 [control: true]
+  1 -> 2 [data: t]
+  1 -> 2 [execution: ]
+  1 -> 3 [control: false]
+  1 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 1 [control: true]
+  4 -> 1 [execution: ]

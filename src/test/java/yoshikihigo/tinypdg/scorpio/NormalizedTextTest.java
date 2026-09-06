@@ -209,6 +209,17 @@ class NormalizedTextTest {
 	}
 
 	@Test
+	void normalizesPatternVariables() {
+		// 束縛する名前だけが違えば、正規化したテキストは同じになる。
+		assertEquals(normalizedTexts("lang50_patternnames", "withS"),
+				normalizedTexts("lang50_patternnames", "withT"));
+		assertEquals(normalizedTexts("lang50_patternnames", "caseC"),
+				normalizedTexts("lang50_patternnames", "caseD"));
+		assertContains(normalizedTexts("lang50_patternnames", "withS"),
+				"$1 instanceof String $2 && !$2.isEmpty()");
+	}
+
+	@Test
 	void keepsACharacterLiteralQuoteApart() {
 		// 文字リテラル '"' の引用符 1 つで、次のリテラルまでを 1 つの印に
 		// まとめてしまっていた。
