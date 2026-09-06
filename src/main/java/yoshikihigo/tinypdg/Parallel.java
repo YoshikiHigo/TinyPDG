@@ -1,7 +1,11 @@
 package yoshikihigo.tinypdg;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
@@ -28,6 +32,9 @@ public final class Parallel {
 	/**
 	 * 0 以上 count 未満の添字を threads 本のスレッドで分担して処理し、全てが
 	 * 終わるまで待つ。どの添字がどのスレッドに渡るかは実行ごとに変わる。
+	 *
+	 * @throws TinyPDGException いずれかのスレッドの処理が例外や Error で
+	 *                          終わった場合。元の例外が原因として付く
 	 */
 	public static void forEach(final int count, final int threads,
 			final IntConsumer work) {
@@ -44,7 +51,13 @@ public final class Parallel {
 	 * クローンの検出が、スレッドごとに見つけたペアを集めて終わりにまとめて
 	 * 重複を落とすのに使う。
 	 *
+	 * <p>スレッドの失敗は呼び出し元へ伝える。以前は execute で投げて close で
+	 * 待つだけだったので、work が例外や Error で死ぬとそのスレッドの残りの添字
+	 * と finish が飛び、forEach は何もなかったように戻っていた (issue #16)。
+	 *
 	 * @param <S> スレッドごとの状態
+	 * @throws TinyPDGException いずれかのスレッドの処理が例外や Error で
+	 *                          終わった場合。元の例外が原因として付く
 	 */
 	public static <S> void forEach(final int count, final int threads,
 			final Supplier<S> newState, final ObjIntConsumer<S> work,
@@ -56,19 +69,31 @@ public final class Parallel {
 		}
 
 		final AtomicInteger next = new AtomicInteger(0);
+		final List<Future<?>> futures = new ArrayList<>();
 
 		// close() が全タスクの終了を待つ。
-		try (final ExecutorService pool = Executors
-				.newFixedThreadPool(threads)) {
+		try (final ExecutorService pool = Executors.newFixedThreadPool(threads)) {
 			for (int i = 0; i < threads; i++) {
-				pool.execute(() -> {
+				futures.add(pool.submit(() -> {
 					final S state = newState.get();
 					for (int index = next.getAndIncrement(); index < count; index = next
 							.getAndIncrement()) {
 						work.accept(state, index);
 					}
 					finish.accept(state);
-				});
+				}));
+			}
+
+			for (final Future<?> future : futures) {
+				try {
+					future.get();
+				} catch (final InterruptedException e) {
+					Thread.currentThread().interrupt();
+					throw new TinyPDGException("並行処理が中断されました。", e);
+				} catch (final ExecutionException e) {
+					throw new TinyPDGException(
+							"並行処理のスレッドが失敗しました。", e.getCause());
+				}
 			}
 		}
 	}

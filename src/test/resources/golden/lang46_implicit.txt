@@ -1,0 +1,36 @@
+# sample: lang46_implicit
+
+## CFG helper <6...8>
+nodes:
+  0: [enter,exit,normal] return n * 2; <7>
+edges:
+
+## PDG helper <6...8>
+nodes:
+  0: [parameter] final int n <6>
+  1: [exit] return n * 2; <7>
+  2: [enter,control] Enter <6...8>
+edges:
+  0 -> 1 [data: n]
+  2 -> 0 [control: true]
+  2 -> 1 [control: true]
+  2 -> 1 [execution: ]
+
+## CFG main <1...4>
+nodes:
+  0: [enter,normal] final int total = helper(3); <2>
+  1: [exit,normal] System.out.println(total); <3>
+edges:
+  0 -> 1 []
+
+## PDG main <1...4>
+nodes:
+  0: [normal] final int total = helper(3); <2>
+  1: [exit] System.out.println(total); <3>
+  2: [enter,control] Enter <1...4>
+edges:
+  0 -> 1 [data: total]
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]

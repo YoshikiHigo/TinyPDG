@@ -1,8 +1,11 @@
 package yoshikihigo.tinypdg;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.commons.cli.CommandLine;
+import org.eclipse.jdt.core.JavaCore;
 import org.apache.commons.cli.Option;
 
 import yoshikihigo.tinypdg.ast.JavaAstFactory;
@@ -109,16 +112,50 @@ public final class CommandLineTools {
 		return target;
 	}
 
-	/** {@code -j} の値。省略時は {@link JavaAstFactory#DEFAULT_JAVA_VERSION}。 */
+	/**
+	 * {@code -j} の値。省略時は {@link JavaAstFactory#DEFAULT_JAVA_VERSION}。
+	 *
+	 * @throws TinyPDGException JDT が知らないバージョンが指定された場合。
+	 *                          JavaCore.setComplianceOptions は知らない文字列を
+	 *                          黙って無視するので、以前は綴りを間違えると Java 1.8
+	 *                          として解析され、新しい構文のファイルが全て構文
+	 *                          エラー扱いで飛ばされていた (issue #19)
+	 */
 	public static String javaVersion(final CommandLine cmd) {
-		return cmd.hasOption("j") ? cmd.getOptionValue("j")
-				: JavaAstFactory.DEFAULT_JAVA_VERSION;
+		if (!cmd.hasOption("j")) {
+			return JavaAstFactory.DEFAULT_JAVA_VERSION;
+		}
+		final String version = cmd.getOptionValue("j");
+		// 空の表に適用して何か入ったかで、知っているバージョンかを確かめる。
+		final Map<String, String> probe = new HashMap<>();
+		JavaCore.setComplianceOptions(version, probe);
+		if (probe.isEmpty()) {
+			throw new TinyPDGException(
+					"-j に指定された Java のバージョンを JDT が知りません: " + version);
+		}
+		return version;
 	}
 
-	/** {@code -t} の値。省略時は 1。 */
+	/**
+	 * {@code -t} の値。省略時は 1。
+	 *
+	 * @throws TinyPDGException 整数でない値や 1 未満の値が指定された場合
+	 */
 	public static int threads(final CommandLine cmd) {
-		return cmd.hasOption("t") ? Integer.parseInt(cmd.getOptionValue("t"))
-				: 1;
+		if (!cmd.hasOption("t")) {
+			return 1;
+		}
+		final String value = cmd.getOptionValue("t");
+		final int threads;
+		try {
+			threads = Integer.parseInt(value);
+		} catch (final NumberFormatException e) {
+			throw new TinyPDGException("-t には整数を指定してください: " + value, e);
+		}
+		if (threads < 1) {
+			throw new TinyPDGException("-t には 1 以上の値を指定してください: " + value);
+		}
+		return threads;
 	}
 
 	/**

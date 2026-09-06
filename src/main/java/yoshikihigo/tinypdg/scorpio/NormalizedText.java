@@ -62,15 +62,14 @@ public class NormalizedText {
 				break;
 			}
 
-			endIndex = normalizedText.indexOf("$$", startIndex + 1);
-			final int doubleQuotationStartIndex = normalizedText.indexOf("\"", startIndex);
-			final int doubleQuotationEndIndex = normalizedText.indexOf("\"", doubleQuotationStartIndex + 1);
-
-			if (doubleQuotationStartIndex < endIndex && endIndex < doubleQuotationEndIndex) {
-				endIndex = normalizedText.indexOf("$$", doubleQuotationEndIndex + 1);
+			// 印の中身と地の文のドル記号は DOLLAR に置き換えてあるので、次の $$
+			// は必ず閉じる印である。以前は引用符を数えて文字列リテラルの中の $$
+			// を避けようとしていたが、文字リテラル '"' の引用符 1 つで数が狂い、
+			// 次のリテラルまでが 1 つの印にまとめられていた (issue #23)。
+			endIndex = normalizedText.indexOf("$$", startIndex + 2);
+			if (endIndex < 0) {
+				throw new TinyPDGException("印が閉じていません: " + text);
 			}
-
-			assert 0 < endIndex : "invalid state.";
 
 			final String target = normalizedText.substring(startIndex,
 					endIndex + 1);
@@ -229,8 +228,12 @@ public class NormalizedText {
 		case Cast -> "(" + normalized(children.get(0)) + ")"
 				+ normalized(children.get(1));
 
-		// 型の後に引数が並ぶ。型の名前は字面のまま。
-		case ClassInstanceCreation -> "new " + raw(children.get(0).getText())
+		// 型の後に引数が並ぶ。型の名前は字面のまま。outer.new Inner() の
+		// outer は修飾子に入っている。
+		case ClassInstanceCreation -> (null != qualifier
+				? normalized(qualifier) + "."
+				: "")
+				+ "new " + raw(children.get(0).getText())
 				+ "(" + join(rest(children), ",") + ")";
 
 		case ConstructorInvocation -> "this(" + join(children, ",") + ")";
@@ -312,8 +315,8 @@ public class NormalizedText {
 		case ForeachHeader -> normalized(children.get(0)) + " : "
 				+ normalized(children.get(1));
 
-		// 字面を持たない。
-		case TypeLiteral -> "";
+		// クラスリテラルは定数であって変数ではない。字面のまま使う。
+		case TypeLiteral -> raw(expression.getText());
 		};
 	}
 

@@ -2,12 +2,14 @@ package yoshikihigo.tinypdg.prelement;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -37,7 +39,7 @@ public class ElementPredictor {
 
 			try (final DAO dao = new DAO(database, false);
 					final BufferedReader in = new BufferedReader(
-							new InputStreamReader(System.in))) {
+							new InputStreamReader(System.in, consoleCharset()))) {
 				while (true) {
 					System.out.println("input an element for prediction");
 					System.out.print("> ");
@@ -64,8 +66,30 @@ public class ElementPredictor {
 	}
 
 	/**
-	 * 3 種類の依存の頻度を、予測される要素 (ハッシュ) ごとに 1 つにまとめ、
-	 * 支持度の合計が大きいものから並べて返す。
+	 * 標準入力の文字コード。
+	 *
+	 * <p>コンソールがあればその文字コード、なければ stdin.encoding、それも
+	 * なければ既定の文字コード。以前は既定の文字コード (UTF-8) で読んでいて、
+	 * Windows のコンソール (ms932) から入れた日本語が化けていた (issue #28)。
+	 */
+	private static Charset consoleCharset() {
+		if (null != System.console()) {
+			return System.console().charset();
+		}
+		final String encoding = System.getProperty("stdin.encoding");
+		if (null != encoding) {
+			try {
+				return Charset.forName(encoding);
+			} catch (final IllegalArgumentException e) {
+				// 知らない名前なら既定へ。
+			}
+		}
+		return Charset.defaultCharset();
+	}
+
+	/**
+	 * 3 種類の依存の頻度を、予測される要素 (正規化テキスト) ごとに 1 つに
+	 * まとめ、支持度の合計が大きいものから並べて返す。
 	 *
 	 * <p>以前は種類ごとに 3 つのループがあり、それぞれが残りの種類の一覧から
 	 * 同じハッシュを探して取り除いていた。同じ手順が 3 回、少しずつ短く
@@ -74,27 +98,25 @@ public class ElementPredictor {
 	public static List<CombinationalFrequency> getPredictedElements(
 			final DAO dao, final String baseText) {
 
-		final int fromhash = baseText.hashCode();
-
 		// 出会った順を保つ。合計が同じ要素の並びは、制御依存にあるもの、
 		// データ依存だけのもの、実行依存だけのもの、の順になる。
-		final Map<Integer, EnumMap<PDGEdge.TYPE, Frequency>> byHash = new LinkedHashMap<>();
+		final Map<String, EnumMap<PDGEdge.TYPE, Frequency>> byText = new LinkedHashMap<>();
 		for (final PDGEdge.TYPE type : PDGEdge.TYPE.values()) {
-			for (final Frequency frequency : dao.getFrequencies(type, fromhash)) {
-				byHash.computeIfAbsent(frequency.hash,
-						h -> new EnumMap<>(PDGEdge.TYPE.class))
+			for (final Frequency frequency : dao.getFrequencies(type, baseText)) {
+				byText.computeIfAbsent(frequency.text,
+						t -> new EnumMap<>(PDGEdge.TYPE.class))
 						.put(type, frequency);
 			}
 		}
 
 		final List<CombinationalFrequency> frequencies = new ArrayList<>();
-		for (final EnumMap<PDGEdge.TYPE, Frequency> ofHash : byHash.values()) {
-			// EnumMap は定数の順に並ぶので、先頭は最初に見つかった種類のもの。
-			final Frequency first = ofHash.values().iterator().next();
-			frequencies.add(new CombinationalFrequency(first.hash, first.text,
-					ofHash.get(PDGEdge.TYPE.CONTROL),
-					ofHash.get(PDGEdge.TYPE.DATA),
-					ofHash.get(PDGEdge.TYPE.EXECUTION)));
+		for (final Entry<String, EnumMap<PDGEdge.TYPE, Frequency>> entry : byText
+				.entrySet()) {
+			final EnumMap<PDGEdge.TYPE, Frequency> ofText = entry.getValue();
+			frequencies.add(new CombinationalFrequency(entry.getKey(),
+					ofText.get(PDGEdge.TYPE.CONTROL),
+					ofText.get(PDGEdge.TYPE.DATA),
+					ofText.get(PDGEdge.TYPE.EXECUTION)));
 		}
 
 		// 支持度の合計が大きいものから。

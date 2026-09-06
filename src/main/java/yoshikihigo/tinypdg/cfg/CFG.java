@@ -760,6 +760,13 @@ public class CFG {
 						final CFGNode<?> from = backwardEdge.fromNode;
 						final CFGNode<?> to = forwardEdge.toNode;
 						if (backwardEdge instanceof CFGExceptionEdge
+								&& forwardEdge instanceof CFGExceptionEdge) {
+							// 例外辺で届いた先から出る例外辺は繋がない。finally の
+							// 先頭にある try の入口へ例外が届いても、その try の
+							// catch へ直接進むわけではない (issue #31)。
+							continue;
+						}
+						if (backwardEdge instanceof CFGExceptionEdge
 								|| forwardEdge instanceof CFGExceptionEdge) {
 							connectException(from, to);
 						} else if (backwardEdge instanceof CFGControlEdge controlEdge) {

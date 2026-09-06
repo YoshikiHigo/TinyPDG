@@ -1,0 +1,36 @@
+# sample: lang49_quotechar
+
+## CFG isOther <9...11>
+nodes:
+  0: [enter,exit,normal] return c == '"' || d == "y".charAt(0); <10>
+edges:
+
+## PDG isOther <9...11>
+nodes:
+  0: [parameter] final char c <9>
+  1: [parameter] final char d <9>
+  2: [exit] return c == '"' || d == "y".charAt(0); <10>
+  3: [enter,control] Enter <9...11>
+edges:
+  0 -> 2 [data: c]
+  1 -> 2 [data: d]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 2 [control: true]
+  3 -> 2 [execution: ]
+
+## CFG isQuote <5...7>
+nodes:
+  0: [enter,exit,normal] return c == '"' || c == "x".charAt(0); <6>
+edges:
+
+## PDG isQuote <5...7>
+nodes:
+  0: [parameter] final char c <5>
+  1: [exit] return c == '"' || c == "x".charAt(0); <6>
+  2: [enter,control] Enter <5...7>
+edges:
+  0 -> 1 [data: c]
+  2 -> 0 [control: true]
+  2 -> 1 [control: true]
+  2 -> 1 [execution: ]

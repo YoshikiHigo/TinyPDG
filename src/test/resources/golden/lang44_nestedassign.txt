@@ -1,0 +1,82 @@
+# sample: lang44_nestedassign
+
+## CFG inIndex <17...20>
+nodes:
+  0: [enter,normal] a[i++] += 1; <18>
+  1: [exit,normal] return i; <19>
+edges:
+  0 -> 1 []
+
+## PDG inIndex <17...20>
+nodes:
+  0: [parameter] final int[] a <17>
+  1: [parameter] int i <17>
+  2: [normal] a[i++] += 1; <18>
+  3: [exit] return i; <19>
+  4: [enter,control] Enter <17...20>
+edges:
+  0 -> 2 [data: a]
+  1 -> 2 [data: i]
+  2 -> 3 [data: i]
+  2 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 1 [control: true]
+  4 -> 2 [control: true]
+  4 -> 2 [execution: ]
+  4 -> 3 [control: true]
+
+## CFG inInitializer <5...9>
+nodes:
+  0: [enter,normal] int y; <6>
+  1: [normal] int x = (y = y0) + 1; <7>
+  2: [exit,normal] return x + y; <8>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+
+## PDG inInitializer <5...9>
+nodes:
+  0: [parameter] final int y0 <5>
+  1: [normal] int y; <6>
+  2: [normal] int x = (y = y0) + 1; <7>
+  3: [exit] return x + y; <8>
+  4: [enter,control] Enter <5...9>
+edges:
+  0 -> 2 [data: y0]
+  1 -> 2 [execution: ]
+  2 -> 3 [data: x]
+  2 -> 3 [data: y]
+  2 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 1 [control: true]
+  4 -> 1 [execution: ]
+  4 -> 2 [control: true]
+  4 -> 3 [control: true]
+
+## CFG inTernary <11...15>
+nodes:
+  0: [enter,normal] int y; <12>
+  1: [normal] int x = c? (y = 1): (y = 2); <13>
+  2: [exit,normal] return x + y; <14>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+
+## PDG inTernary <11...15>
+nodes:
+  0: [parameter] final boolean c <11>
+  1: [normal] int y; <12>
+  2: [normal] int x = c? (y = 1): (y = 2); <13>
+  3: [exit] return x + y; <14>
+  4: [enter,control] Enter <11...15>
+edges:
+  0 -> 2 [data: c]
+  1 -> 2 [execution: ]
+  2 -> 3 [data: x]
+  2 -> 3 [data: y]
+  2 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 1 [control: true]
+  4 -> 1 [execution: ]
+  4 -> 2 [control: true]
+  4 -> 3 [control: true]

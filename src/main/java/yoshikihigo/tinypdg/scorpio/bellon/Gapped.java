@@ -30,7 +30,8 @@ public class Gapped {
 
 			String line;
 			while (null != (line = reader.readLine())) {
-				final StringTokenizer tokenizer = new StringTokenizer(line);
+				// 欄はタブ区切り。空白で切るとパスに空白があるだけで崩れる。
+				final StringTokenizer tokenizer = new StringTokenizer(line, "\t");
 				final String leftPath = tokenizer.nextToken();
 				final String leftStartLine = tokenizer.nextToken();
 				final String leftEndLine = tokenizer.nextToken();

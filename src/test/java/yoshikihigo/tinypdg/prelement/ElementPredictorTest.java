@@ -27,21 +27,20 @@ class ElementPredictorTest {
 
 		final String database = workDir.resolve("test.db").toString();
 		final String base = "int a = 10;";
-		final int from = base.hashCode();
 
 		try (final DAO writer = new DAO(database, true)) {
-			// hash 10 は制御 2 とデータ 5 で合計 7、hash 20 はデータ 1、
-			// hash 30 と 40 は実行依存だけで 3 と 9。
-			writer.addToFrequencies(PDGEdge.TYPE.CONTROL, from,
-					new Frequency(0.5f, 2, 10, "a"));
-			writer.addToFrequencies(PDGEdge.TYPE.DATA, from,
-					new Frequency(0.5f, 5, 10, "a"));
-			writer.addToFrequencies(PDGEdge.TYPE.DATA, from,
-					new Frequency(0.5f, 1, 20, "b"));
-			writer.addToFrequencies(PDGEdge.TYPE.EXECUTION, from,
-					new Frequency(0.5f, 3, 30, "c"));
-			writer.addToFrequencies(PDGEdge.TYPE.EXECUTION, from,
-					new Frequency(0.5f, 9, 40, "d"));
+			// a は制御 2 とデータ 5 で合計 7、b はデータ 1、
+			// c と d は実行依存だけで 3 と 9。
+			writer.addToFrequencies(PDGEdge.TYPE.CONTROL, base,
+					new Frequency(0.5f, 2, "a"));
+			writer.addToFrequencies(PDGEdge.TYPE.DATA, base,
+					new Frequency(0.5f, 5, "a"));
+			writer.addToFrequencies(PDGEdge.TYPE.DATA, base,
+					new Frequency(0.5f, 1, "b"));
+			writer.addToFrequencies(PDGEdge.TYPE.EXECUTION, base,
+					new Frequency(0.5f, 3, "c"));
+			writer.addToFrequencies(PDGEdge.TYPE.EXECUTION, base,
+					new Frequency(0.5f, 9, "d"));
 		}
 
 		try (final DAO reader = new DAO(database, false)) {
@@ -53,8 +52,8 @@ class ElementPredictorTest {
 							.map(CombinationalFrequency::getTotalSupport)
 							.toList(),
 					"支持度の合計の降順に並ぶこと");
-			assertEquals(List.of(40, 10, 30, 20),
-					predicted.stream().map(f -> f.hash).toList());
+			assertEquals(List.of("d", "a", "c", "b"),
+					predicted.stream().map(f -> f.text).toList());
 		}
 	}
 }
