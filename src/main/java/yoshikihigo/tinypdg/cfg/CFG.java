@@ -316,7 +316,10 @@ public class CFG {
 		}
 
 		this.connectCFGBreakStatementNode(statement);
-		this.connectCFGContinueStatementNode(statement, conditionNode);
+		// continue は更新式を実行してから条件へ戻る。以前は条件へ直接繋いで
+		// いて、continue の経路では i++ が実行されないことになっていた。
+		// 更新式がなければ enterNode は疑似ノードで、消えるときに条件へ繋がる。
+		this.connectCFGContinueStatementNode(statement, updaterCFGs.enterNode);
 	}
 
 	private void buildConditionalBlockCFG(
