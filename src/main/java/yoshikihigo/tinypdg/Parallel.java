@@ -6,7 +6,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
@@ -29,25 +28,6 @@ public final class Parallel {
 
 	private Parallel() {
 	}
-
-	/**
-	 * 作業スレッドのスタックの大きさ。
-	 *
-	 * <p>Scorpio の Slicing.perform は実行依存の連鎖の長さだけ再帰するので、
-	 * 数千文のメソッドでは既定のスタックが足りなかった。
-	 */
-	private static final long STACK_SIZE = 256L * 1024 * 1024;
-
-	private static final ThreadFactory WORKERS = new ThreadFactory() {
-
-		private final AtomicInteger count = new AtomicInteger();
-
-		@Override
-		public Thread newThread(final Runnable task) {
-			return new Thread(null, task,
-					"tinypdg-worker-" + this.count.incrementAndGet(), STACK_SIZE);
-		}
-	};
 
 	/**
 	 * 0 以上 count 未満の添字を threads 本のスレッドで分担して処理し、全てが
@@ -92,8 +72,7 @@ public final class Parallel {
 		final List<Future<?>> futures = new ArrayList<>();
 
 		// close() が全タスクの終了を待つ。
-		try (final ExecutorService pool = Executors.newFixedThreadPool(threads,
-				WORKERS)) {
+		try (final ExecutorService pool = Executors.newFixedThreadPool(threads)) {
 			for (int i = 0; i < threads; i++) {
 				futures.add(pool.submit(() -> {
 					final S state = newState.get();
