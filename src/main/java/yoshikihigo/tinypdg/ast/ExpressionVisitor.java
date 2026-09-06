@@ -129,6 +129,14 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 			this.yieldConverted = false;
 			final StatementInfo statement = (StatementInfo) this.visitChild((ASTNode) o);
 
+			// アームの式の中にあった switch 式は、脱糖されてこのアームの前に出る。
+			for (final StatementInfo pending : this.drainPendingStatements()) {
+				pending.setOwnerBlock(switchBlock);
+				switchBlock.addStatement(pending);
+				text.append(pending.getText());
+				text.append(System.lineSeparator());
+			}
+
 			if (statement instanceof BlockStatementInfo arm
 					&& StatementInfo.CATEGORY.SimpleBlock == statement
 							.getCategory()) {

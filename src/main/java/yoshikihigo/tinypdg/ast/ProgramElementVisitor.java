@@ -19,6 +19,7 @@ import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.LambdaExpression;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.SwitchExpression;
+import org.eclipse.jdt.core.dom.SwitchStatement;
 import org.eclipse.jdt.core.dom.TryStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import yoshikihigo.tinypdg.pe.BlockInfo;
@@ -210,8 +211,14 @@ abstract class ProgramElementVisitor extends ASTVisitor {
 						&& child == ((EnhancedForStatement) parent).getExpression()) {
 					return false;
 				}
-				// 挿入先のブロックが要る。
-				return parent.getParent() instanceof Block;
+				// 挿入先が要る。ブロックのほか、switch 文と switch 式のアームも
+				// 受け入れる。case X -> expr; の expr の中の switch 式は、その
+				// アームの前に出る。以前はアームの中では前に出せず、1 個の
+				// 不透明な式になっていた。
+				final ASTNode grandparent = parent.getParent();
+				return grandparent instanceof Block
+						|| grandparent instanceof SwitchStatement
+						|| grandparent instanceof SwitchExpression;
 			}
 		}
 		return false;

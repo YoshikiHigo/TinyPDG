@@ -4,15 +4,22 @@
 nodes:
   0: [normal] final int r = $switch1; <8...14>
   1: [enter,control] a <8>
-  2: [normal] $switch1 = switch (b) { case 1 -> yield 10; default ->yield 20; }; <9...12>
-  3: [normal] $switch1 = 0; <13>
-  4: [exit,normal] return r; <15>
+  2: [normal] $switch1 = $switch2; <9...12>
+  3: [control] b <9>
+  4: [normal] $switch2 = 10; <10>
+  5: [normal] $switch2 = 20; <11>
+  6: [normal] $switch1 = 0; <13>
+  7: [exit,normal] return r; <15>
 edges:
-  0 -> 4 []
-  1 -> 2 [true]
+  0 -> 7 []
   1 -> 3 [true]
+  1 -> 6 [true]
   2 -> 0 [jump]
-  3 -> 0 [jump]
+  3 -> 4 [true]
+  3 -> 5 [true]
+  4 -> 2 [jump]
+  5 -> 2 [jump]
+  6 -> 0 [jump]
 
 ## PDG inArm <7...16>
 nodes:
@@ -20,38 +27,50 @@ nodes:
   1: [parameter] final int b <7>
   2: [normal] final int r = $switch1; <8...14>
   3: [control] a <8>
-  4: [normal] $switch1 = switch (b) { case 1 -> yield 10; default ->yield 20; }; <9...12>
-  5: [normal] $switch1 = 0; <13>
-  6: [exit] return r; <15>
-  7: [enter,control] Enter <7...16>
+  4: [normal] $switch1 = $switch2; <9...12>
+  5: [control] b <9>
+  6: [normal] $switch2 = 10; <10>
+  7: [normal] $switch2 = 20; <11>
+  8: [normal] $switch1 = 0; <13>
+  9: [exit] return r; <15>
+  10: [enter,control] Enter <7...16>
 edges:
   0 -> 3 [data: a]
-  1 -> 4 [data: b]
-  2 -> 6 [data: r]
-  2 -> 6 [execution: ]
+  1 -> 5 [data: b]
+  2 -> 9 [data: r]
+  2 -> 9 [execution: ]
   3 -> 4 [control: true]
-  3 -> 4 [execution: ]
   3 -> 5 [control: true]
   3 -> 5 [execution: ]
+  3 -> 8 [control: true]
+  3 -> 8 [execution: ]
   4 -> 2 [data: $switch1]
   4 -> 2 [execution: ]
-  5 -> 2 [data: $switch1]
-  5 -> 2 [execution: ]
-  7 -> 0 [control: true]
-  7 -> 1 [control: true]
-  7 -> 2 [control: true]
-  7 -> 3 [control: true]
-  7 -> 3 [execution: ]
-  7 -> 6 [control: true]
+  5 -> 6 [control: true]
+  5 -> 6 [execution: ]
+  5 -> 7 [control: true]
+  5 -> 7 [execution: ]
+  6 -> 4 [data: $switch2]
+  6 -> 4 [execution: ]
+  7 -> 4 [data: $switch2]
+  7 -> 4 [execution: ]
+  8 -> 2 [data: $switch1]
+  8 -> 2 [execution: ]
+  10 -> 0 [control: true]
+  10 -> 1 [control: true]
+  10 -> 2 [control: true]
+  10 -> 3 [control: true]
+  10 -> 3 [execution: ]
+  10 -> 9 [control: true]
 
-## CFG inLambda <29...41>
+## CFG inLambda <41...53>
 nodes:
-  0: [normal] final int r = $switch3; <30...39>
-  1: [enter,control] a <30>
-  2: [normal] final IntUnaryOperator f = x -> switch (b) { case 1 -> yield x; default ->yield -x; }; <32...35>
-  3: [normal] $switch3 = f.applyAsInt(10); <36>
-  4: [normal] $switch3 = 0; <38>
-  5: [exit,normal] return r; <40>
+  0: [normal] final int r = $switch5; <42...51>
+  1: [enter,control] a <42>
+  2: [normal] final IntUnaryOperator f = x -> switch (b) { case 1 -> yield x; default ->yield -x; }; <44...47>
+  3: [normal] $switch5 = f.applyAsInt(10); <48>
+  4: [normal] $switch5 = 0; <50>
+  5: [exit,normal] return r; <52>
 edges:
   0 -> 5 []
   1 -> 2 [true]
@@ -60,17 +79,17 @@ edges:
   3 -> 0 [jump]
   4 -> 0 [jump]
 
-## PDG inLambda <29...41>
+## PDG inLambda <41...53>
 nodes:
-  0: [parameter] final int a <29>
-  1: [parameter] final int b <29>
-  2: [normal] final int r = $switch3; <30...39>
-  3: [control] a <30>
-  4: [normal] final IntUnaryOperator f = x -> switch (b) { case 1 -> yield x; default ->yield -x; }; <32...35>
-  5: [normal] $switch3 = f.applyAsInt(10); <36>
-  6: [normal] $switch3 = 0; <38>
-  7: [exit] return r; <40>
-  8: [enter,control] Enter <29...41>
+  0: [parameter] final int a <41>
+  1: [parameter] final int b <41>
+  2: [normal] final int r = $switch5; <42...51>
+  3: [control] a <42>
+  4: [normal] final IntUnaryOperator f = x -> switch (b) { case 1 -> yield x; default ->yield -x; }; <44...47>
+  5: [normal] $switch5 = f.applyAsInt(10); <48>
+  6: [normal] $switch5 = 0; <50>
+  7: [exit] return r; <52>
+  8: [enter,control] Enter <41...53>
 edges:
   0 -> 3 [data: a]
   1 -> 4 [data: b]
@@ -83,9 +102,9 @@ edges:
   3 -> 6 [execution: ]
   4 -> 5 [data: f]
   4 -> 5 [execution: ]
-  5 -> 2 [data: $switch3]
+  5 -> 2 [data: $switch5]
   5 -> 2 [execution: ]
-  6 -> 2 [data: $switch3]
+  6 -> 2 [data: $switch5]
   6 -> 2 [execution: ]
   8 -> 0 [control: true]
   8 -> 1 [control: true]
@@ -94,12 +113,74 @@ edges:
   8 -> 3 [execution: ]
   8 -> 7 [control: true]
 
+## CFG inStatementArm <29...39>
+nodes:
+  0: [enter,normal] int r = 0; <30>
+  1: [control] a <31>
+  2: [normal] r = $switch4; <32...35>
+  3: [control] b <32>
+  4: [normal] $switch4 = 10; <33>
+  5: [normal] $switch4 = 20; <34>
+  6: [normal] r = -1; <36>
+  7: [exit,normal] return r; <38>
+edges:
+  0 -> 1 []
+  1 -> 3 [true]
+  1 -> 6 [true]
+  2 -> 7 [jump]
+  3 -> 4 [true]
+  3 -> 5 [true]
+  4 -> 2 [jump]
+  5 -> 2 [jump]
+  6 -> 7 [jump]
+
+## PDG inStatementArm <29...39>
+nodes:
+  0: [parameter] final int a <29>
+  1: [parameter] final int b <29>
+  2: [normal] int r = 0; <30>
+  3: [control] a <31>
+  4: [normal] r = $switch4; <32...35>
+  5: [control] b <32>
+  6: [normal] $switch4 = 10; <33>
+  7: [normal] $switch4 = 20; <34>
+  8: [normal] r = -1; <36>
+  9: [exit] return r; <38>
+  10: [enter,control] Enter <29...39>
+edges:
+  0 -> 3 [data: a]
+  1 -> 5 [data: b]
+  2 -> 3 [execution: ]
+  3 -> 4 [control: true]
+  3 -> 5 [control: true]
+  3 -> 5 [execution: ]
+  3 -> 8 [control: true]
+  3 -> 8 [execution: ]
+  4 -> 9 [data: r]
+  4 -> 9 [execution: ]
+  5 -> 6 [control: true]
+  5 -> 6 [execution: ]
+  5 -> 7 [control: true]
+  5 -> 7 [execution: ]
+  6 -> 4 [data: $switch4]
+  6 -> 4 [execution: ]
+  7 -> 4 [data: $switch4]
+  7 -> 4 [execution: ]
+  8 -> 9 [data: r]
+  8 -> 9 [execution: ]
+  10 -> 0 [control: true]
+  10 -> 1 [control: true]
+  10 -> 2 [control: true]
+  10 -> 2 [execution: ]
+  10 -> 3 [control: true]
+  10 -> 9 [control: true]
+
 ## CFG inTernary <18...27>
 nodes:
-  0: [normal] final int r = $switch2; <19...25>
+  0: [normal] final int r = $switch3; <19...25>
   1: [enter,control] a <19>
-  2: [normal] $switch2 = c? switch (b) { case 1 -> yield 10; default ->yield 20; }: 30; <20...23>
-  3: [normal] $switch2 = 0; <24>
+  2: [normal] $switch3 = c? switch (b) { case 1 -> yield 10; default ->yield 20; }: 30; <20...23>
+  3: [normal] $switch3 = 0; <24>
   4: [exit,normal] return r; <26>
 edges:
   0 -> 4 []
@@ -113,10 +194,10 @@ nodes:
   0: [parameter] final int a <18>
   1: [parameter] final int b <18>
   2: [parameter] final boolean c <18>
-  3: [normal] final int r = $switch2; <19...25>
+  3: [normal] final int r = $switch3; <19...25>
   4: [control] a <19>
-  5: [normal] $switch2 = c? switch (b) { case 1 -> yield 10; default ->yield 20; }: 30; <20...23>
-  6: [normal] $switch2 = 0; <24>
+  5: [normal] $switch3 = c? switch (b) { case 1 -> yield 10; default ->yield 20; }: 30; <20...23>
+  6: [normal] $switch3 = 0; <24>
   7: [exit] return r; <26>
   8: [enter,control] Enter <18...27>
 edges:
@@ -129,9 +210,9 @@ edges:
   4 -> 5 [execution: ]
   4 -> 6 [control: true]
   4 -> 6 [execution: ]
-  5 -> 3 [data: $switch2]
+  5 -> 3 [data: $switch3]
   5 -> 3 [execution: ]
-  6 -> 3 [data: $switch2]
+  6 -> 3 [data: $switch3]
   6 -> 3 [execution: ]
   8 -> 0 [control: true]
   8 -> 1 [control: true]
@@ -141,16 +222,16 @@ edges:
   8 -> 4 [execution: ]
   8 -> 7 [control: true]
 
-## CFG lambda$32 <32...35>
+## CFG lambda$44 <44...47>
 nodes:
-  0: [enter,exit,normal] return switch (b) { case 1 -> yield x; default ->yield -x; }; <32...35>
+  0: [enter,exit,normal] return switch (b) { case 1 -> yield x; default ->yield -x; }; <44...47>
 edges:
 
-## PDG lambda$32 <32...35>
+## PDG lambda$44 <44...47>
 nodes:
-  0: [parameter] x <32>
-  1: [exit] return switch (b) { case 1 -> yield x; default ->yield -x; }; <32...35>
-  2: [enter,control] Enter <32...35>
+  0: [parameter] x <44>
+  1: [exit] return switch (b) { case 1 -> yield x; default ->yield -x; }; <44...47>
+  2: [enter,control] Enter <44...47>
 edges:
   0 -> 1 [data: x]
   2 -> 0 [control: true]

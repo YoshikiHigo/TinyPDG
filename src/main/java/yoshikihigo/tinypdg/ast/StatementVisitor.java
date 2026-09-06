@@ -583,6 +583,14 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			boolean arrowArm = false;
 			for (final Object o : node.statements()) {
 				final StatementInfo statement = (StatementInfo) this.visitChild((ASTNode) o);
+
+				// アームの式の中にあった switch 式は、脱糖されてこのアームの前に出る。
+				for (final StatementInfo pending : this.drainPendingStatements()) {
+					pending.setOwnerBlock(switchBlock);
+					switchBlock.addStatement(pending);
+					text.append(pending.getText());
+					text.append(System.lineSeparator());
+				}
 				// 複数の変数を宣言する文は変数ごとの文に分かれ、SimpleBlock に
 				// 包まれて届く。ブロック形式のアームも同じ形で届く。中身を並べる。
 				final List<StatementInfo> inner = BlockStatementInfo.flatten(statement);

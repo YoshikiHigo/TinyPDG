@@ -26,6 +26,18 @@ public class Lang33NestedSwitchExpr {
 		return r;
 	}
 
+	int inStatementArm(final int a, final int b) {
+		int r = 0;
+		switch (a) {
+		case 1 -> r = switch (b) {
+			case 1 -> 10;
+			default -> 20;
+			};
+		default -> r = -1;
+		}
+		return r;
+	}
+
 	int inLambda(final int a, final int b) {
 		final int r = switch (a) {
 		case 1 -> {
