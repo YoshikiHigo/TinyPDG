@@ -255,15 +255,18 @@ public final class CloneDetection {
 
 	/**
 	 * 片方がもう片方の大部分を含むペアがあれば、小さい方を落とす。
+	 *
+	 * <p>以前は先に並んだ方しか落とさず、後に並んだ方が小さいときは何も
+	 * 落とさなかった。どちらが残るかが並び順で決まっていた (issue #27)。
 	 */
 	private void removeDuplicates(final SortedSet<ClonePairInfo> clonepairs) {
 		final ClonePairInfo[] pairs = clonepairs.toArray(new ClonePairInfo[0]);
 		for (int i = 0; i < pairs.length; i++) {
 			for (int j = i + 1; j < pairs.length; j++) {
 				if (this.sameOnOkValue(pairs[i], pairs[j], 0.7f)) {
-					if (pairs[i].size() <= pairs[j].size()) {
-						clonepairs.remove(pairs[i]);
-					}
+					clonepairs.remove(pairs[i].size() <= pairs[j].size()
+							? pairs[i]
+							: pairs[j]);
 				}
 			}
 		}
