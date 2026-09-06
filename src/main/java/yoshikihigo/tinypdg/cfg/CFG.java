@@ -201,12 +201,21 @@ public class CFG {
 						(ConditionalStatementInfo) coreStatement, true);
 				yield true;
 			}
+			// ブロックは中身を並べたものである。ここへ来るのは、ラベル付きの
+			// ブロック、finally ブロック、空のブロックで、それ以外は visitor が
+			// 親の並びに平らにしている。以前は 1 個の不透明なノードだったので、
+			// finally の中の依存が見えず、ラベルへの break は行き先を失っていた。
+			case SimpleBlock -> {
+				this.buildSimpleBlockCFG((BlockStatementInfo) coreStatement);
+				this.connectCFGBreakStatementNode(coreStatement, false);
+				yield true;
+			}
 			// 型宣言は制御フローを持たない。ノードも作らない。
 			case TypeDeclaration -> true;
 			case Assert, Break, Case,
 					Continue, Empty, Expression,
-					Return, SimpleBlock, Throw,
-					VariableDeclaration, Yield, Unsupported -> false;
+					Return, Throw, VariableDeclaration,
+					Yield, Unsupported -> false;
 			};
 
 			if (!expanded) {
@@ -272,7 +281,7 @@ public class CFG {
 		}
 		connect(conditionNode, sequentialCFGs.enterNode, true);
 
-		this.connectCFGBreakStatementNode(statement);
+		this.connectCFGBreakStatementNode(statement, true);
 		// do-while の continue は条件の評価へ飛ぶ。以前は本体の先頭へ戻して
 		// いて、条件を通らずにもう一周することになっていた。
 		this.connectCFGContinueStatementNode(statement, conditionNode);
@@ -317,7 +326,7 @@ public class CFG {
 			connect(updaterExitNode, conditionNode);
 		}
 
-		this.connectCFGBreakStatementNode(statement);
+		this.connectCFGBreakStatementNode(statement, true);
 		// continue は更新式を実行してから条件へ戻る。以前は条件へ直接繋いで
 		// いて、continue の経路では i++ が実行されないことになっていた。
 		// 更新式がなければ enterNode は疑似ノードで、消えるときに条件へ繋がる。
@@ -358,7 +367,7 @@ public class CFG {
 				}
 			}
 
-			this.connectCFGBreakStatementNode(statement);
+			this.connectCFGBreakStatementNode(statement, true);
 			this.connectCFGContinueStatementNode(statement, conditionNode);
 		}
 	}
@@ -484,7 +493,7 @@ public class CFG {
 			this.exitNodes.add(conditionNode);
 		}
 
-		this.connectCFGBreakStatementNode(statement);
+		this.connectCFGBreakStatementNode(statement, true);
 	}
 
 	private void buildTryBlockCFG(final TryStatementInfo statement) {
@@ -619,26 +628,26 @@ public class CFG {
 		}
 	}
 
-	private void connectCFGBreakStatementNode(final StatementInfo statement) {
+	/**
+	 * まだ行き先の決まっていない break のうち、この文で終わるものを出口にする。
+	 *
+	 * @param acceptsUnlabeled ラベルのない break もこの文で終わるか。ループと
+	 *                         switch では真。ラベル付きのブロックは、ラベルで
+	 *                         名指しされた break しか受けないので偽
+	 */
+	private void connectCFGBreakStatementNode(final StatementInfo statement,
+			final boolean acceptsUnlabeled) {
 
 		final Iterator<CFGBreakStatementNode> iterator = this.unhandledBreakStatementNodes
 				.iterator();
 		while (iterator.hasNext()) {
 			final CFGBreakStatementNode node = iterator.next();
-			final StatementInfo breakStatement = node.core;
-			final String label = breakStatement.getJumpToLabel();
-
-			if (null == label) {
+			final String label = node.core.getJumpToLabel();
+			final boolean endsHere = null == label ? acceptsUnlabeled
+					: label.equals(statement.getLabel());
+			if (endsHere) {
 				this.exitNodes.add(node);
 				iterator.remove();
-			}
-
-			else {
-
-				if (label.equals(statement.getLabel())) {
-					this.exitNodes.add(node);
-					iterator.remove();
-				}
 			}
 		}
 	}

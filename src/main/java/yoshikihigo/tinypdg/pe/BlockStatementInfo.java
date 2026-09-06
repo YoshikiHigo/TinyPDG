@@ -69,7 +69,10 @@ public sealed class BlockStatementInfo extends StatementInfo implements
 	 * 1 個の不透明なノードになってしまう。
 	 *
 	 * <p>ただし中身が空のブロックはそのまま抱える。取り出すと何も残らず、
-	 * 本体があったこと自体が消えてしまう。
+	 * 本体があったこと自体が消えてしまう。ラベルの付いたブロック
+	 * {@code L: { ... break L; }} もそのまま抱える。取り出すとラベルが消え、
+	 * break の行き先がなくなる。CFG はブロックを展開し、ラベルへの break を
+	 * その出口にする。
 	 *
 	 * <p>visitor も、文の並びを受け取るところでこれを使う。複数の変数を
 	 * 宣言する文は変数ごとの文に分かれ、SimpleBlock に包まれて届く。
@@ -77,6 +80,7 @@ public sealed class BlockStatementInfo extends StatementInfo implements
 	public static List<StatementInfo> flatten(final StatementInfo body) {
 		if (body instanceof BlockStatementInfo block
 				&& CATEGORY.SimpleBlock == body.getCategory()
+				&& null == body.getLabel()
 				&& !block.getStatements().isEmpty()) {
 			return List.copyOf(block.getStatements());
 		}

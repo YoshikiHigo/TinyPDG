@@ -122,7 +122,7 @@ nodes:
   0: [enter,normal] int r = 0; <33>
   1: [normal] r = a + 1; <35>
   2: [normal] return r; <36>
-  3: [exit,normal] {\nr = 0;\n} <37...39>
+  3: [exit,normal] r = 0; <38>
 edges:
   0 -> 1 []
   1 -> 2 []
@@ -134,7 +134,7 @@ nodes:
   1: [normal] int r = 0; <33>
   2: [normal] r = a + 1; <35>
   3: [normal] return r; <36>
-  4: [exit] {\nr = 0;\n} <37...39>
+  4: [exit] r = 0; <38>
   5: [enter,control] Enter <32...40>
 edges:
   0 -> 2 [data: a]
