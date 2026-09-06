@@ -301,8 +301,8 @@ public class NormalizedText {
 		case ForeachHeader -> normalized(children.get(0)) + " : "
 				+ normalized(children.get(1));
 
-		// 字面を持たない。
-		case TypeLiteral -> "";
+		// クラスリテラルは定数であって変数ではない。字面のまま使う。
+		case TypeLiteral -> raw(expression.getText());
 		};
 	}
 
