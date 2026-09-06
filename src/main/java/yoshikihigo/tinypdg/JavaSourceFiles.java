@@ -42,9 +42,10 @@ public final class JavaSourceFiles {
 	 * その後 walkFileTree の FileSystemLoopException に頼ったが、それは
 	 * 祖先へ戻る循環しか報せず、別名は 2 度集めていた。
 	 *
-	 * <p>同じ実体に複数の名前で届くときは、名前順に辿って最初に届いた名前で
-	 * 報告する。ディレクトリの中身は名前順に見るので、どの名前になるかは
-	 * ファイルシステムの列挙順に依らない。
+	 * <p>同じ実体に複数の名前で届くときは、名前順に辿って最初に届いた .java の
+	 * 名前で報告する。ディレクトリの中身は名前順に見るので、どの名前になるかは
+	 * ファイルシステムの列挙順に依らない。.java でない名前 (A.txt -> Z.java)
+	 * は集めないし、実体を見たことにもしない。
 	 *
 	 * @param file 対象のファイルまたはディレクトリ
 	 * @return 見つかった .java ファイル。パス順
@@ -75,47 +76,58 @@ public final class JavaSourceFiles {
 	}
 
 	/**
-	 * path とその下を集める。visited には見た実体のパスが溜まる。
+	 * path とその下を集める。visited には見たディレクトリと集めた .java の
+	 * 実体のパスが溜まる。
 	 */
 	private static void collect(final Path path, final Set<Path> visited,
 			final List<File> files) throws IOException {
 
-		final Path real;
-		try {
-			real = path.toRealPath();
-		} catch (final IOException e) {
-			// 壊れたリンクなど、実体を辿れないパス。1 つのために全体を止めない。
-			System.err.println("警告: 実体を辿れないので飛ばします: " + path
-					+ " (" + e + ")");
-			return;
-		}
-
-		if (!visited.add(real)) {
-			if (Files.isDirectory(path)) {
+		if (Files.isDirectory(path)) {
+			final Path real = realPath(path);
+			if (null == real) {
+				return;
+			}
+			if (!visited.add(real)) {
 				System.err.println("警告: 既に見たディレクトリへのリンクを飛ばします: "
 						+ path);
+				return;
 			}
-			return;
-		}
+			final List<Path> children;
+			try (Stream<Path> stream = Files.list(path)) {
+				children = stream.sorted().toList();
+			}
+			for (final Path child : children) {
+				collect(child, visited, files);
+			}
 
-		if (Files.isRegularFile(path)) {
-			if (path.getFileName().toString().endsWith(".java")) {
+		} else if (Files.isRegularFile(path)) {
+			// 拡張子を見てから実体を覚える。逆の順だと、Z.java と同じ実体を指す
+			// 名前順で先の A.txt が Z.java を「既に見た」ことにし、A.txt は名前
+			// のせいで集めないので、Java ソースが 1 つも集まらなかった。
+			if (!path.getFileName().toString().endsWith(".java")) {
+				return;
+			}
+			final Path real = realPath(path);
+			if (null != real && visited.add(real)) {
 				files.add(path.toFile());
 			}
-			return;
-		}
 
-		if (!Files.isDirectory(path)) {
-			// 名前付きパイプなど。ソースファイルではあり得ない。
-			return;
+		} else if (path.getFileName().toString().endsWith(".java")) {
+			// 壊れたリンクなど。ソースに見える名前だけ知らせる。
+			System.err.println("警告: ファイルでもディレクトリでもないので飛ばします: "
+					+ path);
 		}
+	}
 
-		final List<Path> children;
-		try (Stream<Path> stream = Files.list(path)) {
-			children = stream.sorted().toList();
-		}
-		for (final Path child : children) {
-			collect(child, visited, files);
+	/** path の実体のパス。辿れなければ警告して null。 */
+	private static Path realPath(final Path path) {
+		try {
+			return path.toRealPath();
+		} catch (final IOException e) {
+			// 壊れたリンクなど。1 つのために全体を止めない。
+			System.err.println("警告: 実体を辿れないので飛ばします: " + path + " ("
+					+ e + ")");
+			return null;
 		}
 	}
 }

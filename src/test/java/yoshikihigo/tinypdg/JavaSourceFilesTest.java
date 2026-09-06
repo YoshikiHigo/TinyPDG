@@ -79,6 +79,24 @@ class JavaSourceFilesTest {
 	}
 
 	@Test
+	void collectsAJavaFileWhoseAliasHasAnotherExtension(@TempDir final Path root) throws Exception {
+		// A.txt -> Z.java は名前順で Z.java より先に届く。以前はここで実体を
+		// 「見た」ことにし、名前のせいで集めもせず、Z.java を重複として飛ばして
+		// いたので、Java ソースが 1 つも集まらなかった。
+		final Path source = root.resolve("Z.java");
+		Files.writeString(source, "class Z {}");
+		final Path alias = root.resolve("A.txt");
+		linkFile(alias, source);
+
+		try {
+			assertEquals(List.of(source.toFile()), JavaSourceFiles.collect(root.toFile()),
+					"拡張子の違う別名が Java ソースを隠さないこと");
+		} finally {
+			Files.delete(alias);
+		}
+	}
+
+	@Test
 	void rejectsAPathThatIsNeitherFileNorDirectory(@TempDir final Path root) {
 		// 以前は assert false で弾こうとしていたが、表明は既定で無効なので
 		// 実際には素通りし、解析対象 0 件の正常終了に見えていた。
@@ -107,5 +125,17 @@ class JavaSourceFilesTest {
 			}
 		}
 		Assumptions.abort("neither symbolic links nor junctions are available");
+	}
+
+	/**
+	 * link から target のファイルへのシンボリックリンクを作る。ジャンクションは
+	 * ディレクトリにしか使えないので、リンクを作れない環境ではテストを飛ばす。
+	 */
+	private static void linkFile(final Path link, final Path target) {
+		try {
+			Files.createSymbolicLink(link, target);
+		} catch (final IOException | UnsupportedOperationException e) {
+			Assumptions.abort("symbolic links are not available: " + e);
+		}
 	}
 }
