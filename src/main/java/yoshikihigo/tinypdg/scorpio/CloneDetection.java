@@ -7,6 +7,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.IntFunction;
@@ -34,6 +35,9 @@ public final class CloneDetection {
 	final private SortedMap<PDG, SortedMap<PDGEdge, Integer>> mapPDGToPDGEdges;
 	final private int SIZE_THRESHOLD;
 
+	/** この検出での辺の比較回数。 */
+	final private AtomicLong comparisons = new AtomicLong();
+
 	/**
 	 * PDG の対と単体を走査してクローンペアを集める。
 	 *
@@ -41,17 +45,16 @@ public final class CloneDetection {
 	 * 重複を落としてから合流させる。重複の判定はスレッドの手元にあるペア
 	 * 同士で行うので、どのペアが同じスレッドに渡るかで結果が変わりうる。
 	 * 以前からそうである。
+	 *
+	 * @return この検出での辺の比較回数
 	 */
-	static void detect(final PDGPairInfo[] pdgpairs, final PDG[] pdgs,
+	static long detect(final PDGPairInfo[] pdgpairs, final PDG[] pdgs,
 			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mapPDGToPDGNodes,
 			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mapPDGToPDGEdges,
 			final SortedSet<ClonePairInfo> clonepairs,
 			final int SIZE_THRESHOLD, final int threads) {
 
 		Objects.requireNonNull(clonepairs, "\"clonepairs\" is null.");
-
-		// 比較回数は 1 回の検出についての数である。
-		Slicing.resetNumberOfComparison();
 
 		final CloneDetection detection = new CloneDetection(pdgpairs, pdgs,
 				mapPDGToPDGNodes, mapPDGToPDGEdges, SIZE_THRESHOLD);
@@ -64,6 +67,8 @@ public final class CloneDetection {
 					detection.removeDuplicates(found);
 					clonepairs.addAll(found);
 				});
+
+		return detection.comparisons.get();
 	}
 
 	private CloneDetection(final PDGPairInfo[] pdgpairs, final PDG[] pdgs,
@@ -74,7 +79,12 @@ public final class CloneDetection {
 		Objects.requireNonNull(pdgs, "\"pdgs\" is null.");
 		Objects.requireNonNull(mapPDGToPDGNodes, "\"mapPDGToPDGNodes\"");
 		Objects.requireNonNull(mapPDGToPDGEdges, "\"mapPDGToPDGEdges\" is null.");
-		assert 0 < SIZE_THRESHOLD : "\"THRESHOLD\" must be greater than 0.";
+		// 表明ではなく例外で止める。表明は既定で無効なので、以前は 0 や負の
+		// 値がそのまま通っていた。
+		if (SIZE_THRESHOLD < 1) {
+			throw new IllegalArgumentException(
+					"SIZE_THRESHOLD must be at least 1: " + SIZE_THRESHOLD);
+		}
 		this.pdgpairs = pdgpairs;
 		this.pdgs = pdgs;
 		this.mapPDGToPDGNodes = mapPDGToPDGNodes;
@@ -187,7 +197,7 @@ public final class CloneDetection {
 					final Slicing slicing = new Slicing(pdgA.unit.path,
 							pdgB.unit.path, edgeA.fromNode, edgeB.fromNode,
 							mappingPDGNodeToPDGNodes, mappingPDGEdgeToPDGEdges,
-							checkedNodepairs);
+							checkedNodepairs, this.comparisons);
 					final ClonePairInfo clonepair = slicing.perform();
 					if (this.SIZE_THRESHOLD <= clonepair.size()) {
 						clonepairs.add(clonepair);

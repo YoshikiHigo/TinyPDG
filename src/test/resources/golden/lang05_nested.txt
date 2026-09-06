@@ -42,7 +42,7 @@ edges:
 nodes:
   0: [enter,normal] final Inner inner = new Inner(); <15>
   1: [normal] inner.value = 5; <16>
-  2: [normal] final Runnable r = new Runnable(){\n@Override public void run(){\nint local = inner.value;\nSystem.out.println(local);\n}}; <17...23>
+  2: [normal] final Runnable r = new Runnable(){\n@Override public void run(){\nint local = inner.value;\nSystem.out.println(local);\n}\n}; <17...23>
   3: [normal] r.run(); <24>
   4: [exit,normal] return inner.get(); <25>
 edges:
@@ -55,7 +55,7 @@ edges:
 nodes:
   0: [normal] final Inner inner = new Inner(); <15>
   1: [normal] inner.value = 5; <16>
-  2: [normal] final Runnable r = new Runnable(){\n@Override public void run(){\nint local = inner.value;\nSystem.out.println(local);\n}}; <17...23>
+  2: [normal] final Runnable r = new Runnable(){\n@Override public void run(){\nint local = inner.value;\nSystem.out.println(local);\n}\n}; <17...23>
   3: [normal] r.run(); <24>
   4: [exit] return inner.get(); <25>
   5: [enter,control] Enter <14...26>

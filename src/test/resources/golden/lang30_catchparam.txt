@@ -1,0 +1,42 @@
+# sample: lang30_catchparam
+
+## CFG message <5...13>
+nodes:
+  0: [enter,normal] String m = "ok"; <6>
+  1: [normal] r.run(); <8>
+  2: [control] final RuntimeException e <9>
+  3: [normal] m = e.getMessage(); <10>
+  4: [exit,normal] return m; <12>
+edges:
+  0 -> 1 []
+  0 -> 2 [exception]
+  1 -> 2 [exception]
+  1 -> 4 []
+  2 -> 3 [true]
+  3 -> 4 []
+
+## PDG message <5...13>
+nodes:
+  0: [parameter] final Runnable r <5>
+  1: [normal] String m = "ok"; <6>
+  2: [normal] r.run(); <8>
+  3: [control] final RuntimeException e <9>
+  4: [normal] m = e.getMessage(); <10>
+  5: [exit] return m; <12>
+  6: [enter,control] Enter <5...13>
+edges:
+  0 -> 2 [data: r]
+  1 -> 2 [execution: ]
+  1 -> 5 [data: m]
+  2 -> 5 [execution: ]
+  3 -> 4 [control: true]
+  3 -> 4 [data: e]
+  3 -> 4 [execution: ]
+  4 -> 5 [data: m]
+  4 -> 5 [execution: ]
+  6 -> 0 [control: true]
+  6 -> 1 [control: true]
+  6 -> 1 [execution: ]
+  6 -> 2 [control: true]
+  6 -> 3 [control: true]
+  6 -> 5 [control: true]

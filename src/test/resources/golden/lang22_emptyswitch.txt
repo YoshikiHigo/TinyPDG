@@ -1,0 +1,23 @@
+# sample: lang22_emptyswitch
+
+## CFG empty <5...9>
+nodes:
+  0: [enter,control] x <6>
+  1: [exit,normal] return x; <8>
+edges:
+  0 -> 1 [false]
+
+## PDG empty <5...9>
+nodes:
+  0: [parameter] final int x <5>
+  1: [control] x <6>
+  2: [exit] return x; <8>
+  3: [enter,control] Enter <5...9>
+edges:
+  0 -> 1 [data: x]
+  0 -> 2 [data: x]
+  1 -> 2 [execution: ]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 1 [execution: ]
+  3 -> 2 [control: true]

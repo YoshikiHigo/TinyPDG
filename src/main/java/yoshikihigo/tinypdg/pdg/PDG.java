@@ -1,6 +1,8 @@
 package yoshikihigo.tinypdg.pdg;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -10,6 +12,8 @@ import java.util.TreeSet;
 
 import yoshikihigo.tinypdg.cfg.CFG;
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
+import yoshikihigo.tinypdg.cfg.edge.CFGExceptionEdge;
+import yoshikihigo.tinypdg.cfg.node.CFGControlNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.pdg.edge.PDGControlDependenceEdge;
@@ -29,6 +33,7 @@ import yoshikihigo.tinypdg.pe.ConditionalStatementInfo;
 import yoshikihigo.tinypdg.pe.ForStatementInfo;
 import yoshikihigo.tinypdg.pe.IfStatementInfo;
 import yoshikihigo.tinypdg.pe.StatementInfo;
+import yoshikihigo.tinypdg.pe.TryStatementInfo;
 import yoshikihigo.tinypdg.pe.VariableInfo;
 
 public class PDG implements Comparable<PDG> {
@@ -56,6 +61,12 @@ public class PDG implements Comparable<PDG> {
 	private SortedSet<CFGNode<?>> cfgNodes;
 
 	/**
+	 * 構文による制御依存を、まだ制御依存を持たないノードにだけ張るか。
+	 * 後支配の計算が届かなかったノードを補うときに真にする。
+	 */
+	private boolean onlyOrphans;
+
+	/**
 	 * PDG に何を含めるか。
 	 *
 	 * <p>以前はコンストラクタの引数として並んでいた。真偽値が 3 つ続くので、
@@ -71,14 +82,18 @@ public class PDG implements Comparable<PDG> {
 	 * @param execution         実行依存の辺を作るか
 	 * @param dataDistance      データ依存を作る行数の上限
 	 * @param executionDistance 実行依存を作る行数の上限
+	 * @param controlDependence 制御依存の決め方
 	 */
 	public record Dependences(boolean control, boolean data, boolean execution,
-			int dataDistance, int executionDistance) {
+			int dataDistance, int executionDistance,
+			ControlDependence controlDependence) {
 
-		/** 3 種類すべてを、距離の制限なしで作る。 */
+		/** 3 種類すべてを、距離の制限なしで作る。制御依存は後支配から。 */
 		public static final Dependences ALL = new Dependences(true, true, true);
 
 		public Dependences {
+			Objects.requireNonNull(controlDependence,
+					"\"controlDependence\" is null.");
 			if (dataDistance < 1 || executionDistance < 1) {
 				throw new IllegalArgumentException(
 						"距離は 1 以上でなければならない: data=" + dataDistance
@@ -86,12 +101,43 @@ public class PDG implements Comparable<PDG> {
 			}
 		}
 
-		/** 距離を制限せずに作る。 */
+		/** 距離を制限せずに作る。制御依存は後支配から。 */
 		public Dependences(final boolean control, final boolean data,
 				final boolean execution) {
 			this(control, data, execution, Integer.MAX_VALUE,
 					Integer.MAX_VALUE);
 		}
+
+		/** 制御依存は後支配から。 */
+		public Dependences(final boolean control, final boolean data,
+				final boolean execution, final int dataDistance,
+				final int executionDistance) {
+			this(control, data, execution, dataDistance, executionDistance,
+					ControlDependence.POST_DOMINANCE);
+		}
+
+		/** 制御依存を文の入れ子で決める設定にしたもの。 */
+		public Dependences withStructuralControl() {
+			return new Dependences(this.control, this.data, this.execution,
+					this.dataDistance, this.executionDistance,
+					ControlDependence.STRUCTURAL);
+		}
+	}
+
+	/** 制御依存の決め方。 */
+	public enum ControlDependence {
+		/**
+		 * CFG の後支配から計算する。Ferrante らの古典的な定義で、break や
+		 * return が作る依存も拾う。{@code if (c) return; x = 1;} の
+		 * {@code x = 1} は c に偽で依存する。既定。
+		 */
+		POST_DOMINANCE,
+		/**
+		 * 文の入れ子で決める。条件の本体は条件に、最上位の文は入口に依存し、
+		 * ジャンプは考慮しない。以前の唯一の決め方で、過去の結果との比較の
+		 * ために残してある。
+		 */
+		STRUCTURAL
 	}
 
 	public PDG(final MethodInfo unit, final PDGNodeFactory pdgNodeFactory,
@@ -187,20 +233,31 @@ public class PDG implements Comparable<PDG> {
 		return nodes;
 	}
 
-	private void collectFrom(final PDGNode<?> node,
+	/**
+	 * startNode と、辺で繋がっているノードを全て nodes に集める。
+	 *
+	 * <p>再帰ではなく作業リストで巡る。長いメソッドではグラフの経路の長さの
+	 * ぶんだけ再帰が深くなり、StackOverflowError になっていた。このクラスの
+	 * 他の巡回も同じ形にしてある。
+	 */
+	private void collectFrom(final PDGNode<?> startNode,
 			final SortedSet<PDGNode<?>> nodes) {
 
-		Objects.requireNonNull(node, "\"node\" is null.");
+		Objects.requireNonNull(startNode, "\"startNode\" is null.");
 
-		if (!nodes.add(node)) {
-			return;
-		}
-
-		for (final PDGEdge edge : node.getBackwardEdges()) {
-			this.collectFrom(edge.fromNode, nodes);
-		}
-		for (final PDGEdge edge : node.getForwardEdges()) {
-			this.collectFrom(edge.toNode, nodes);
+		final Deque<PDGNode<?>> worklist = new ArrayDeque<>();
+		worklist.push(startNode);
+		while (!worklist.isEmpty()) {
+			final PDGNode<?> node = worklist.pop();
+			if (!nodes.add(node)) {
+				continue;
+			}
+			for (final PDGEdge edge : node.getBackwardEdges()) {
+				worklist.push(edge.fromNode);
+			}
+			for (final PDGEdge edge : node.getForwardEdges()) {
+				worklist.push(edge.toNode);
+			}
 		}
 	}
 
@@ -228,7 +285,16 @@ public class PDG implements Comparable<PDG> {
 		this.cfgNodes = this.cfg.getAllNodes();
 
 		if (this.dependences.control()) {
-			this.buildControlDependence(this.enterNode, unit);
+			switch (this.dependences.controlDependence()) {
+			case POST_DOMINANCE -> {
+				this.buildPostDominanceControlDependence();
+				// 入口から辿れないノード (catch 節の条件と、その本体の先頭、
+				// return の後の到達不能な文) には後支配の計算が辺を張らない。
+				// それらだけ文の入れ子で決める。
+				this.buildStructuralControlDependence(true);
+			}
+			case STRUCTURAL -> this.buildStructuralControlDependence(false);
+			}
 			for (final PDGParameterNode parameterNode : this.parameterNodes) {
 				new PDGControlDependenceEdge(this.enterNode, parameterNode, true).connect();
 			}
@@ -246,8 +312,7 @@ public class PDG implements Comparable<PDG> {
 			for (final PDGParameterNode parameterNode : this.parameterNodes) {
 				if (!this.cfg.isEmpty()) {
 					this.buildDataDependence(this.cfg.getEnterNode(),
-							parameterNode, parameterNode.core.name,
-							new HashSet<>());
+							parameterNode, parameterNode.core.name);
 				}
 			}
 		}
@@ -274,38 +339,47 @@ public class PDG implements Comparable<PDG> {
 		}
 	}
 
-	private void buildDependence(final CFGNode<?> cfgNode,
+	/** startNode から到達できる CFG のノードそれぞれについて、依存の辺を張る。 */
+	private void buildDependence(final CFGNode<?> startNode,
 			final Set<CFGNode<?>> checkedNodes) {
 
-		Objects.requireNonNull(cfgNode, "\"cfgNode\" is null.");
+		Objects.requireNonNull(startNode, "\"startNode\" is null.");
 		Objects.requireNonNull(checkedNodes, "\"checkedNodes\" is null.");
 
-		if (checkedNodes.contains(cfgNode)) {
-			return;
-		} else {
-			checkedNodes.add(cfgNode);
+		final Deque<CFGNode<?>> worklist = new ArrayDeque<>();
+		worklist.push(startNode);
+		while (!worklist.isEmpty()) {
+			final CFGNode<?> cfgNode = worklist.pop();
+			if (!checkedNodes.add(cfgNode)) {
+				continue;
+			}
+			this.buildDependenceOf(cfgNode);
+			pushReversed(worklist, cfgNode.getForwardNodes());
 		}
+	}
+
+	/** 1 つのノードから出る依存の辺を張る。 */
+	private void buildDependenceOf(final CFGNode<?> cfgNode) {
 
 		final PDGNode<?> pdgNode = this.pdgNodeFactory.makeNode(cfgNode);
 		if (this.dependences.data()) {
 			for (final String variable : pdgNode.core.getAssignedVariables()) {
-				for (final CFGEdge edge : cfgNode.getForwardEdges()) {
-					final Set<CFGNode<?>> checkedNodesForDefinedVariables = new HashSet<>();
-					this.buildDataDependence(edge.toNode, pdgNode, variable,
-							checkedNodesForDefinedVariables);
+				for (final CFGNode<?> forwardNode : cfgNode.getForwardNodes()) {
+					this.buildDataDependence(forwardNode, pdgNode, variable);
 				}
 			}
 		}
-		if (this.dependences.control()) {
-			if (pdgNode instanceof PDGControlNode) {
-				final ProgramElementInfo condition = ((PDGControlNode) pdgNode).core;
-				this.buildControlDependence((PDGControlNode) pdgNode,
-						condition.getOwnerConditionalBlock());
-			}
-		}
-
 		if (this.dependences.execution()) {
-			for (final CFGNode<?> toCFGNode : cfgNode.getForwardNodes()) {
+			// 例外辺は「直後に実行される」とは読まない。may の辺なので、実行依存
+			// に使うと try 本体の各文に後続が増え、連続するノードの併合も切れる。
+			// データ依存は例外辺も辿る (buildDataDependence)。
+			final SortedSet<CFGNode<? extends ProgramElementInfo>> successors = new TreeSet<>();
+			for (final CFGEdge edge : cfgNode.getForwardEdges()) {
+				if (!(edge instanceof CFGExceptionEdge)) {
+					successors.add(edge.toNode);
+				}
+			}
+			for (final CFGNode<?> toCFGNode : successors) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNode(toCFGNode);
 				final int distance = Math.abs(toPDGNode.core.startLine
@@ -316,52 +390,115 @@ public class PDG implements Comparable<PDG> {
 
 			}
 		}
+	}
 
-		for (final CFGNode<?> forwardNode : cfgNode.getForwardNodes()) {
-			this.buildDependence(forwardNode, checkedNodes);
+	/** 先頭の要素が最初に取り出されるように、逆順に積む。 */
+	private static void pushReversed(final Deque<CFGNode<?>> worklist,
+			final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes) {
+		final List<CFGNode<?>> list = new ArrayList<>(nodes);
+		for (int index = list.size() - 1; 0 <= index; index--) {
+			worklist.push(list.get(index));
 		}
 	}
 
-	private void buildDataDependence(final CFGNode<?> cfgNode,
-			final PDGNode<?> fromPDGNode, final String variable,
-			final Set<CFGNode<?>> checkedCFGNodes) {
+	/**
+	 * fromPDGNode が variable を定義した後、startNode から先でその値を読む
+	 * ノードへデータ依存の辺を張る。variable を定義し直すノードで止まる。
+	 */
+	private void buildDataDependence(final CFGNode<?> startNode,
+			final PDGNode<?> fromPDGNode, final String variable) {
 
-		Objects.requireNonNull(cfgNode, "\"cfgNode\" is null.");
+		Objects.requireNonNull(startNode, "\"startNode\" is null.");
 		Objects.requireNonNull(fromPDGNode, "\"fromPDGNode\" is null.");
 		Objects.requireNonNull(variable, "\"variable\" is null.");
-		Objects.requireNonNull(checkedCFGNodes, "\"checkedCFGNodes\" is null.");
 
-		if (checkedCFGNodes.contains(cfgNode)) {
-			return;
-		} else {
-			checkedCFGNodes.add(cfgNode);
-		}
-
-		if (cfgNode.core.getReferencedVariables().contains(variable)) {
-
-			final PDGNode<?> toPDGNode = this.pdgNodeFactory.makeNode(cfgNode);
-			final int distance = Math.abs(toPDGNode.core.startLine
-					- fromPDGNode.core.startLine) + 1;
-			if (distance <= this.dependences.dataDistance()) {
-				new PDGDataDependenceEdge(fromPDGNode, toPDGNode, variable).connect();
+		final Set<CFGNode<?>> checkedCFGNodes = new HashSet<>();
+		final Deque<CFGNode<?>> worklist = new ArrayDeque<>();
+		worklist.push(startNode);
+		while (!worklist.isEmpty()) {
+			final CFGNode<?> cfgNode = worklist.pop();
+			if (!checkedCFGNodes.add(cfgNode)) {
+				continue;
 			}
-		}
 
-		if (cfgNode.core.getAssignedVariables().contains(variable)) {
-			return;
-		}
+			if (cfgNode.core.getReferencedVariables().contains(variable)) {
+				final PDGNode<?> toPDGNode = this.pdgNodeFactory.makeNode(cfgNode);
+				final int distance = Math.abs(toPDGNode.core.startLine
+						- fromPDGNode.core.startLine) + 1;
+				if (distance <= this.dependences.dataDistance()) {
+					new PDGDataDependenceEdge(fromPDGNode, toPDGNode, variable).connect();
+				}
+			}
 
-		for (final CFGNode<?> forwardNode : cfgNode.getForwardNodes()) {
-			this.buildDataDependence(forwardNode, fromPDGNode, variable,
-					checkedCFGNodes);
+			if (cfgNode.core.getAssignedVariables().contains(variable)) {
+				continue;
+			}
+
+			pushReversed(worklist, cfgNode.getForwardNodes());
 		}
 	}
 
-	private void buildControlDependence(final PDGControlNode fromPDGNode,
-			final BlockInfo block) {
+	/** 後支配から制御依存を張る。 */
+	private void buildPostDominanceControlDependence() {
+		for (final PostDominanceControlDependence.Dependence dependence : PostDominanceControlDependence
+				.compute(this.cfg)) {
+			final PDGControlNode fromPDGNode = null == dependence.from()
+					? this.enterNode
+					: (PDGControlNode) this.pdgNodeFactory.makeNode(dependence.from());
+			final PDGNode<?> toPDGNode = this.pdgNodeFactory.makeNode(dependence.to());
+			new PDGControlDependenceEdge(fromPDGNode, toPDGNode,
+					dependence.control()).connect();
+		}
+	}
+
+	/**
+	 * 文の入れ子から制御依存を張る。入口から本体の最上位の文へ、各条件ノード
+	 * からその本体の文へ。
+	 *
+	 * @param onlyOrphans 真なら、まだ制御依存を持たないノードにだけ辺を張る。
+	 *                    後支配の計算が届かなかったノードを補うときに使う
+	 */
+	private void buildStructuralControlDependence(final boolean onlyOrphans) {
+		this.onlyOrphans = onlyOrphans;
+		this.buildControlDependenceInside(this.enterNode, this.unit, true);
+		for (final CFGNode<?> cfgNode : this.cfgNodes) {
+			if (cfgNode instanceof CFGControlNode) {
+				final PDGControlNode controlNode = (PDGControlNode) this.pdgNodeFactory
+						.makeNode(cfgNode);
+				this.buildControlDependenceInside(controlNode,
+						controlNode.core.getOwnerConditionalBlock(), true);
+			}
+		}
+		this.onlyOrphans = false;
+	}
+
+	/**
+	 * 構文による制御依存の辺を張る。onlyOrphans なら、既に制御依存を持つ相手
+	 * には張らない。
+	 */
+	private void connectControl(final PDGControlNode fromPDGNode,
+			final PDGNode<?> toPDGNode, final boolean type) {
+		if (this.onlyOrphans && toPDGNode.getBackwardEdges().stream()
+				.anyMatch(edge -> edge instanceof PDGControlDependenceEdge)) {
+			return;
+		}
+		new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
+	}
+
+	/**
+	 * ブロックの中身を fromPDGNode に制御依存させる。
+	 *
+	 * @param type fromPDGNode の条件がこの値のときに中身が実行される。条件
+	 *             ノード自身の本体なら真、if の else の中なら偽。条件を持た
+	 *             ないブロック (try、synchronized、ラベル付きブロック) が else
+	 *             の中にあれば、その中身も偽で依存する。以前はここで真に
+	 *             戻していた
+	 */
+	private void buildControlDependenceInside(final PDGControlNode fromPDGNode,
+			final BlockInfo block, final boolean type) {
 
 		for (final StatementInfo statement : block.getStatements()) {
-			this.buildControlDependence(fromPDGNode, statement, true);
+			this.buildControlDependence(fromPDGNode, statement, type);
 		}
 
 		if (block instanceof IfStatementInfo ifStatement) {
@@ -371,11 +508,26 @@ public class PDG implements Comparable<PDG> {
 			}
 		}
 
+		// catch 節と finally ブロックは、try 本体と同じ相手に依存する。catch
+		// の条件ノード (例外の宣言) が相手になり、その本体は条件ノードの側で
+		// 張る。以前はどちらも見ておらず、catch の条件ノードにも finally の中
+		// の文にも制御依存の辺が 1 本もなかった。
+		if (block instanceof TryStatementInfo tryStatement) {
+			for (final StatementInfo catchStatement : tryStatement
+					.getCatchStatements()) {
+				this.buildControlDependence(fromPDGNode, catchStatement, type);
+			}
+			final StatementInfo finallyStatement = tryStatement.getFinallyStatement();
+			if (null != finallyStatement) {
+				this.buildControlDependence(fromPDGNode, finallyStatement, type);
+			}
+		}
+
 		if (block instanceof ForStatementInfo forStatement) {
 			for (final ProgramElementInfo updater : forStatement.getUpdaters()) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNormalNode(updater);
-				new PDGControlDependenceEdge(fromPDGNode, toPDGNode, true).connect();
+				this.connectControl(fromPDGNode, toPDGNode, type);
 			}
 		}
 	}
@@ -396,9 +548,9 @@ public class PDG implements Comparable<PDG> {
 			if (null != condition) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeControlNode(condition);
-				new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
+				this.connectControl(fromPDGNode, toPDGNode, type);
 			} else {
-				this.buildControlDependence(fromPDGNode, block);
+				this.buildControlDependenceInside(fromPDGNode, block, type);
 			}
 
 			if (block instanceof ForStatementInfo forStatement) {
@@ -406,7 +558,7 @@ public class PDG implements Comparable<PDG> {
 						.getInitializers()) {
 					final PDGNode<?> toPDGNode = this.pdgNodeFactory
 							.makeNormalNode(initializer);
-					new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
+					this.connectControl(fromPDGNode, toPDGNode, type);
 				}
 			}
 
@@ -443,7 +595,7 @@ public class PDG implements Comparable<PDG> {
 		if ((null != cfgNode) && (this.cfgNodes.contains(cfgNode))) {
 			final PDGNode<?> toPDGNode = this.pdgNodeFactory
 					.makeNormalNode(statement);
-			new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
+			this.connectControl(fromPDGNode, toPDGNode, type);
 		}
 	}
 }

@@ -1,0 +1,137 @@
+# sample: lang36_exhaustive
+
+## CFG classicStatement <35...46>
+nodes:
+  0: [enter,normal] int r = 0; <36>
+  1: [control] c <37>
+  2: [normal] r = 1; <39>
+  3: [normal] r = 2; <42>
+  4: [exit,normal] return r; <45>
+edges:
+  0 -> 1 []
+  1 -> 2 [true]
+  1 -> 3 [true]
+  1 -> 4 [false]
+  2 -> 4 [jump]
+  3 -> 4 [jump]
+
+## PDG classicStatement <35...46>
+nodes:
+  0: [parameter] final Color c <35>
+  1: [normal] int r = 0; <36>
+  2: [control] c <37>
+  3: [normal] r = 1; <39>
+  4: [normal] r = 2; <42>
+  5: [exit] return r; <45>
+  6: [enter,control] Enter <35...46>
+edges:
+  0 -> 2 [data: c]
+  1 -> 2 [execution: ]
+  1 -> 5 [data: r]
+  2 -> 3 [control: true]
+  2 -> 3 [execution: ]
+  2 -> 4 [control: true]
+  2 -> 4 [execution: ]
+  2 -> 5 [execution: ]
+  3 -> 5 [data: r]
+  3 -> 5 [execution: ]
+  4 -> 5 [data: r]
+  4 -> 5 [execution: ]
+  6 -> 0 [control: true]
+  6 -> 1 [control: true]
+  6 -> 1 [execution: ]
+  6 -> 2 [control: true]
+  6 -> 5 [control: true]
+
+## CFG expression <18...24>
+nodes:
+  0: [normal] final int r = $switch1; <19...22>
+  1: [enter,control] c <19>
+  2: [normal] $switch1 = 1; <20>
+  3: [normal] $switch1 = 2; <21>
+  4: [exit,normal] return r; <23>
+edges:
+  0 -> 4 []
+  1 -> 2 [true]
+  1 -> 3 [true]
+  2 -> 0 [jump]
+  3 -> 0 [jump]
+
+## PDG expression <18...24>
+nodes:
+  0: [parameter] final Color c <18>
+  1: [normal] final int r = $switch1; <19...22>
+  2: [control] c <19>
+  3: [normal] $switch1 = 1; <20>
+  4: [normal] $switch1 = 2; <21>
+  5: [exit] return r; <23>
+  6: [enter,control] Enter <18...24>
+edges:
+  0 -> 2 [data: c]
+  1 -> 5 [data: r]
+  1 -> 5 [execution: ]
+  2 -> 3 [control: true]
+  2 -> 3 [execution: ]
+  2 -> 4 [control: true]
+  2 -> 4 [execution: ]
+  3 -> 1 [data: $switch1]
+  3 -> 1 [execution: ]
+  4 -> 1 [data: $switch1]
+  4 -> 1 [execution: ]
+  6 -> 0 [control: true]
+  6 -> 1 [control: true]
+  6 -> 2 [control: true]
+  6 -> 2 [execution: ]
+  6 -> 5 [control: true]
+
+## CFG patternStatement <26...33>
+nodes:
+  0: [enter,normal] double a = 0.0; <27>
+  1: [control] shape <28>
+  2: [normal] case Circle circle -> <29>
+  3: [normal] a = circle.radius(); <29>
+  4: [normal] case Square square -> <30>
+  5: [normal] a = square.side(); <30>
+  6: [exit,normal] return a; <32>
+edges:
+  0 -> 1 []
+  1 -> 2 [true]
+  1 -> 4 [true]
+  2 -> 3 []
+  3 -> 6 [jump]
+  4 -> 5 []
+  5 -> 6 [jump]
+
+## PDG patternStatement <26...33>
+nodes:
+  0: [parameter] final Shape shape <26>
+  1: [normal] double a = 0.0; <27>
+  2: [control] shape <28>
+  3: [normal] case Circle circle -> <29>
+  4: [normal] a = circle.radius(); <29>
+  5: [normal] case Square square -> <30>
+  6: [normal] a = square.side(); <30>
+  7: [exit] return a; <32>
+  8: [enter,control] Enter <26...33>
+edges:
+  0 -> 2 [data: shape]
+  1 -> 2 [execution: ]
+  2 -> 3 [control: true]
+  2 -> 3 [execution: ]
+  2 -> 4 [control: true]
+  2 -> 5 [control: true]
+  2 -> 5 [execution: ]
+  2 -> 6 [control: true]
+  3 -> 4 [data: circle]
+  3 -> 4 [execution: ]
+  4 -> 7 [data: a]
+  4 -> 7 [execution: ]
+  5 -> 6 [data: square]
+  5 -> 6 [execution: ]
+  6 -> 7 [data: a]
+  6 -> 7 [execution: ]
+  8 -> 0 [control: true]
+  8 -> 1 [control: true]
+  8 -> 1 [execution: ]
+  8 -> 2 [control: true]
+  8 -> 7 [control: true]

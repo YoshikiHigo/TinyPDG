@@ -38,9 +38,20 @@ public class NormalizedText {
 		return normalize(new NormalizedText(element).getText());
 	}
 
+	/**
+	 * 印の中身と地の文に現れるドル記号を、印と見分けるために置き換える文字。
+	 *
+	 * <p>識別子には {@code a$$b} のようにドル記号を続けて書けるし、文字列
+	 * リテラルや解釈できない構文の字面には何でも入る。以前は {@code $$$} を
+	 * {@code $$} に縮めるだけで、{@code $$} を含む識別子があると normalize が
+	 * 範囲外アクセスで落ちていた。ソース由来のドル記号はここで私用領域の
+	 * 文字にしておき、番号への置き換えが終わってから戻す。
+	 */
+	private static final String DOLLAR = "\uE000";
+
 	public static String normalize(final String text) {
 
-		StringBuilder normalizedText = new StringBuilder(resolveDuplicatedMarkingTokens(text));
+		final StringBuilder normalizedText = new StringBuilder(text);
 		final Map<String, String> mapper = new HashMap<>();
 
 		int startIndex = 0;
@@ -72,24 +83,7 @@ public class NormalizedText {
 			startIndex++;
 		}
 
-		return normalizedText.toString();
-	}
-
-	private static String resolveDuplicatedMarkingTokens(final String text) {
-		if (!text.contains("$$$")) {
-			return text;
-		}
-
-		String result = text;
-		while (result.contains("$$$")) {
-			result = result.replace("$$$", "$$");
-		}
-
-		if (result.isEmpty()) {
-			result = text;
-		}
-
-		return result;
+		return normalizedText.toString().replace(DOLLAR, "$");
 	}
 
 	public final ProgramElementInfo core;
@@ -128,18 +122,23 @@ public class NormalizedText {
 		return elements.subList(1, elements.size());
 	}
 
+	/** ソースの字面をそのまま入れる。ドル記号は印と区別できる文字にする。 */
+	private static String raw(final String text) {
+		return text.replace("$", DOLLAR);
+	}
+
 	/** 識別子やリテラルに印を付ける。normalize が番号に置き換える。 */
 	private static String marked(final String text) {
-		return "$$" + text + "$$";
+		return "$$" + raw(text) + "$$";
 	}
 
 	private static String textOf(final ProgramElementInfo element) {
 		return switch (element) {
 		case StatementInfo statement -> textOf(statement);
 		case ExpressionInfo expression -> textOf(expression);
-		case TypeInfo type -> type.getText();
-		case OperatorInfo operator -> operator.getText();
-		case VariableInfo variable -> variable.type.getText() + " "
+		case TypeInfo type -> raw(type.getText());
+		case OperatorInfo operator -> raw(operator.getText());
+		case VariableInfo variable -> raw(variable.type.getText()) + " "
 				+ marked(variable.name);
 		default -> throw new TinyPDGException(
 				"正規化できない要素です: " + element.getClass().getName());
@@ -183,7 +182,7 @@ public class NormalizedText {
 		case Throw -> "throw " + normalized(expressions.get(0)) + ";";
 
 		case TypeDeclaration -> "class "
-				+ ((ClassInfo) expressions.get(0)).name + "{}";
+				+ raw(((ClassInfo) expressions.get(0)).name) + "{}";
 
 		// 型の後に、宣言の断片をカンマで並べる。
 		case VariableDeclaration -> normalized(expressions.get(0)) + " "
@@ -194,7 +193,7 @@ public class NormalizedText {
 
 		// 解釈できない構文は、ソース断片をそのまま持っている。
 		// 正規化はできないが、落とすと中身が消えてしまう。
-		case Unsupported -> statement.getText();
+		case Unsupported -> raw(statement.getText());
 
 		// 中身は子の要素として別に正規化される。文そのものは何も足さない。
 		case Catch, Do, For,
@@ -231,7 +230,7 @@ public class NormalizedText {
 				+ normalized(children.get(1));
 
 		// 型の後に引数が並ぶ。型の名前は字面のまま。
-		case ClassInstanceCreation -> "new " + children.get(0).getText()
+		case ClassInstanceCreation -> "new " + raw(children.get(0).getText())
 				+ "(" + join(rest(children), ",") + ")";
 
 		case ConstructorInvocation -> "this(" + join(children, ",") + ")";
@@ -243,7 +242,7 @@ public class NormalizedText {
 		case Infix -> join(children, " ");
 
 		case Instanceof -> normalized(children.get(0)) + " instanceof "
-				+ children.get(1).getText();
+				+ raw(children.get(1).getText());
 
 		case MethodEnter -> "METHODENTER";
 
@@ -251,7 +250,7 @@ public class NormalizedText {
 		case MethodInvocation -> (null != qualifier
 				? normalized(qualifier) + "."
 				: "")
-				+ children.get(0).getText()
+				+ raw(children.get(0).getText())
 				+ "(" + join(rest(children), ",") + ")";
 
 		case Null -> "null";
@@ -273,7 +272,7 @@ public class NormalizedText {
 		case SuperFieldAccess -> "super." + normalized(children.get(0));
 
 		// MethodInvocation と同じく、メソッド名は正規化しない。
-		case SuperMethodInvocation -> "super." + children.get(0).getText()
+		case SuperMethodInvocation -> "super." + raw(children.get(0).getText())
 				+ "(" + join(rest(children), ",") + ")";
 
 		case This -> "this";
@@ -283,8 +282,8 @@ public class NormalizedText {
 				+ normalized(children.get(2));
 
 		// 型の後に、宣言の断片をカンマで並べる。文の VariableDeclaration と同じ。
-		case VariableDeclarationExpression -> children.get(0).getText() + " "
-				+ join(rest(children), ",");
+		case VariableDeclarationExpression -> raw(children.get(0).getText())
+				+ " " + join(rest(children), ",");
 
 		case VariableDeclarationFragment -> normalized(children.get(0))
 				+ (1 < children.size()
@@ -293,7 +292,7 @@ public class NormalizedText {
 
 		// 本体は別の解析単位になっているか、そもそも本体を持たない。
 		// 解釈できない構文も同じで、字面をそのまま使う。
-		case Lambda, MethodReference, Unsupported -> expression.getText();
+		case Lambda, MethodReference, Unsupported -> raw(expression.getText());
 
 		// 子を順に正規化して並べる。
 		case SwitchExpression, Pattern -> join(children, " ");
@@ -339,7 +338,7 @@ public class NormalizedText {
 
 		final StringBuilder text = new StringBuilder();
 		text.append("new ");
-		text.append(elementType);
+		text.append(raw(elementType));
 		for (final ProgramElementInfo dimension : dimensions) {
 			text.append("[");
 			text.append(normalized(dimension));

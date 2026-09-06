@@ -6,6 +6,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 
 import yoshikihigo.tinypdg.ast.JavaAstFactory;
+import yoshikihigo.tinypdg.pdg.PDG;
 
 /**
  * コマンドラインツールが共有する、オプションの定義と読み取り、経過時間の表示。
@@ -69,6 +70,21 @@ public final class CommandLineTools {
 		return option;
 	}
 
+	/** {@code -S}: 制御依存を後支配ではなく文の入れ子で決める。 */
+	public static Option structuralOption() {
+		final Option option = new Option("S", "structural", false,
+				"decide control dependence by syntactic nesting instead of post-dominance");
+		option.setRequired(false);
+		return option;
+	}
+
+	/** {@code -S} が指定されていれば、制御依存を文の入れ子で決める設定にする。 */
+	public static PDG.Dependences withControlOption(final CommandLine cmd,
+			final PDG.Dependences dependences) {
+		return cmd.hasOption("S") ? dependences.withStructuralControl()
+				: dependences;
+	}
+
 	/** on か off を取るオプション。省略時は on。 */
 	public static Option onOffOption(final String letter, final String name,
 			final String description) {
@@ -103,6 +119,30 @@ public final class CommandLineTools {
 	public static int threads(final CommandLine cmd) {
 		return cmd.hasOption("t") ? Integer.parseInt(cmd.getOptionValue("t"))
 				: 1;
+	}
+
+	/**
+	 * {@code -s} の値。省略時は defaultValue。
+	 *
+	 * @throws TinyPDGException 整数でない値や 1 未満の値が指定された場合。
+	 *                          以前は CloneDetection の表明だけが見ていて、
+	 *                          表明は既定で無効なので 0 や負の値が素通りしていた
+	 */
+	public static int size(final CommandLine cmd, final int defaultValue) {
+		if (!cmd.hasOption("s")) {
+			return defaultValue;
+		}
+		final String value = cmd.getOptionValue("s");
+		final int size;
+		try {
+			size = Integer.parseInt(value);
+		} catch (final NumberFormatException e) {
+			throw new TinyPDGException("-s には整数を指定してください: " + value, e);
+		}
+		if (size < 1) {
+			throw new TinyPDGException("-s には 1 以上の値を指定してください: " + value);
+		}
+		return size;
 	}
 
 	/**

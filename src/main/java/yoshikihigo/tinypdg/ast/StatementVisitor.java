@@ -7,6 +7,7 @@ import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.AssertStatement;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BreakStatement;
+import org.eclipse.jdt.core.dom.CaseDefaultExpression;
 import org.eclipse.jdt.core.dom.CatchClause;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ConstructorInvocation;
@@ -19,6 +20,8 @@ import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.ForStatement;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.LabeledStatement;
+import org.eclipse.jdt.core.dom.NullLiteral;
+import org.eclipse.jdt.core.dom.Pattern;
 import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
@@ -95,7 +98,19 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			if (null != node.getExpression()) {
 				final ProgramElementInfo expression = this.visitChild(node.getExpression());
 
-				if (this.yieldTargets.isEmpty()) {
+				if (node.isImplicit()
+						&& node.getParent() instanceof SwitchStatement) {
+					// switch 文の矢印形式のアーム case 1 -> r = 10; を、JDT は
+					// 暗黙の yield 文として渡してくる。switch 文に値はないので、
+					// これはただの式文である。yield のままだと制御依存の相手に
+					// ならず、テキストにも yield が付いていた。
+					yieldStatement.setCategory(StatementInfo.CATEGORY.Expression);
+					yieldStatement.addExpression(expression);
+					text.append(expression.getText());
+				} else if (this.yieldTargets.isEmpty()
+						|| this.yieldTargets.peek().isEmpty()) {
+					// 脱糖中の switch 式の中にいない。空の行き先は、外側の脱糖
+					// から切り離された範囲 (isolatedFromYield) の印である。
 					yieldStatement.addExpression(expression);
 					text.append("yield ");
 					text.append(expression.getText());
@@ -389,7 +404,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 					StatementInfo.CATEGORY.Do, startLine, endLine);
 			this.stack.push(doBlock);
 
-			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
+			final StatementInfo body = this.visitBody(node.getBody());
 			doBlock.setStatement(body);
 
 			final ProgramElementInfo condition = this.visitChild(node.getExpression());
@@ -436,7 +451,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			foreachBlock.setCondition(header);
 			header.setOwnerConditionalBlock(foreachBlock);
 
-			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
+			final StatementInfo body = this.visitBody(node.getBody());
 			foreachBlock.setStatement(body);
 
 			final StringBuilder text = new StringBuilder();
@@ -494,7 +509,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 
 			text.append(")");
 
-			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
+			final StatementInfo body = this.visitBody(node.getBody());
 			forBlock.setStatement(body);
 			text.append(body.getText());
 			forBlock.setText(text.toString());
@@ -525,13 +540,13 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			text.append(") ");
 
 			if (null != node.getThenStatement()) {
-				final StatementInfo thenBody = (StatementInfo) this.visitChild(node.getThenStatement());
+				final StatementInfo thenBody = this.visitBody(node.getThenStatement());
 				ifBlock.setStatement(thenBody);
 				text.append(thenBody.getText());
 			}
 
 			if (null != node.getElseStatement()) {
-				final StatementInfo elseBody = (StatementInfo) this.visitChild(node.getElseStatement());
+				final StatementInfo elseBody = this.visitBody(node.getElseStatement());
 				ifBlock.setElseStatement(elseBody);
 				text.append(elseBody.getText());
 			}
@@ -564,22 +579,82 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			text.append(") {");
 			text.append(System.lineSeparator());
 
+			// 矢印形式 case X -> ... のアームは次のアームへ流れない。CFG は
+			// コロン形式の並びとして組むので、アームの文の後ろに break を置いて
+			// 同じ形にする。文がそれ自身で switch から出るなら要らない。
+			boolean arrowArm = false;
 			for (final Object o : node.statements()) {
 				final StatementInfo statement = (StatementInfo) this.visitChild((ASTNode) o);
-				// 複数の変数を宣言する文は変数ごとの文に分かれ、SimpleBlock に
-				// 包まれて届く。中身を並べる。
-				for (final StatementInfo inner : BlockStatementInfo.flatten(statement)) {
-					inner.setOwnerBlock(switchBlock);
-					switchBlock.addStatement(inner);
-					text.append(inner.getText());
+
+				// アームの式の中にあった switch 式は、脱糖されてこのアームの前に出る。
+				for (final StatementInfo pending : this.drainPendingStatements()) {
+					pending.setOwnerBlock(switchBlock);
+					switchBlock.addStatement(pending);
+					text.append(pending.getText());
 					text.append(System.lineSeparator());
 				}
+				// 複数の変数を宣言する文は変数ごとの文に分かれ、SimpleBlock に
+				// 包まれて届く。ブロック形式のアームも同じ形で届く。中身を並べる。
+				final List<StatementInfo> inner = BlockStatementInfo.flatten(statement);
+				for (final StatementInfo s : inner) {
+					s.setOwnerBlock(switchBlock);
+					switchBlock.addStatement(s);
+					text.append(s.getText());
+					text.append(System.lineSeparator());
+				}
+
+				if (o instanceof SwitchCase switchCase) {
+					arrowArm = switchCase.isSwitchLabeledRule();
+				} else if (arrowArm) {
+					final StatementInfo last = inner.get(inner.size() - 1);
+					if (!leavesTheSwitch(last)) {
+						final SimpleStatementInfo jump = new SimpleStatementInfo(
+								switchBlock, StatementInfo.CATEGORY.Break,
+								last.startLine, last.endLine);
+						jump.setText("break;");
+						switchBlock.addStatement(jump);
+						text.append(jump.getText());
+						text.append(System.lineSeparator());
+					}
+					arrowArm = false;
+				}
 			}
+
+			// パターンか null をラベルに持つ switch 文には、コンパイラが網羅性を
+			// 要求する。default がなくても素通りの経路はない。
+			switchBlock.setExhaustive(hasPatternOrNullLabel(node));
 
 			switchBlock.setText(text.toString());
 		}
 
 		return false;
+	}
+
+	/** ラベルにパターンか null を含む switch 文か。 */
+	private static boolean hasPatternOrNullLabel(final SwitchStatement node) {
+		for (final Object o : node.statements()) {
+			if (o instanceof SwitchCase switchCase) {
+				for (final Object label : switchCase.expressions()) {
+					if (label instanceof Pattern || label instanceof NullLiteral) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+
+	/** その文自身で switch の外へ出るか。break を置く必要がない。 */
+	private static boolean leavesTheSwitch(final StatementInfo statement) {
+		return switch (statement.getCategory()) {
+		case Break, Continue, Return, Throw -> true;
+		case Assert, Case, Catch,
+				Do, Empty, Expression,
+				For, Foreach, If,
+				SimpleBlock, Switch, Synchronized,
+				Try, TypeDeclaration, VariableDeclaration,
+				While, Yield, Unsupported -> false;
+		};
 	}
 
 	@Override
@@ -599,7 +674,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			synchronizedBlock.setCondition(condition);
 			condition.setOwnerConditionalBlock(synchronizedBlock);
 
-			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
+			final StatementInfo body = this.visitBody(node.getBody());
 			synchronizedBlock.setStatement(body);
 
 			final StringBuilder text = new StringBuilder();
@@ -742,7 +817,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			whileBlock.setCondition(condition);
 			condition.setOwnerConditionalBlock(whileBlock);
 
-			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
+			final StatementInfo body = this.visitBody(node.getBody());
 			whileBlock.setStatement(body);
 
 			final StringBuilder text = new StringBuilder();
@@ -772,14 +847,33 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			// JLS14 以降、switch ラベルは複数の式を持ちうる (case 1, 2, 3:)。
 			// 旧 API の getExpression() は JLS14 以降の AST では実際のラベルを
 			// 返さず、空の SimpleName を遅延生成して返してしまうため使えない。
-			final List<?> expressions = node.expressions();
-			if (expressions.isEmpty()) {
+			//
+			// case null, default -> の default は式ではなく印である。default を
+			// 含む case は、ラベルの式を持たない case として持つ。CFG は
+			// 「式のない case」を default と見て、素通りする経路の有無を決める。
+			final List<Object> labels = new ArrayList<>();
+			boolean isDefault = node.expressions().isEmpty();
+			for (final Object o : node.expressions()) {
+				if (o instanceof CaseDefaultExpression) {
+					isDefault = true;
+				} else {
+					labels.add(o);
+				}
+			}
+
+			final List<ProgramElementInfo> labelExpressions = this.visitChildren(labels);
+			if (!isDefault) {
+				labelExpressions.forEach(switchCase::addExpression);
+			}
+
+			if (labelExpressions.isEmpty()) {
 				text.append("default");
 			} else {
 				text.append("case ");
-				final List<ProgramElementInfo> labels = this.visitChildren(expressions);
-				labels.forEach(switchCase::addExpression);
-				text.append(joinTexts(labels, ", "));
+				text.append(joinTexts(labelExpressions, ", "));
+				if (isDefault) {
+					text.append(", default");
+				}
 			}
 
 			// case X -> ... の矢印形式か、従来の case X: 形式か。
@@ -863,6 +957,43 @@ abstract class StatementVisitor extends ExpressionVisitor {
 		return false;
 	}
 
+	/**
+	 * 文の本体を訪問する。本体の式の中の switch 式が脱糖されて前に出ていれば、
+	 * それらと本体をブロックに包んで返す。
+	 *
+	 * <p>{@code if (c) r = switch (b) {...};} のように波括弧のない本体では、
+	 * 脱糖した switch 文をこの本体の前に置きたい。本体はブロックではないので、
+	 * 待ち行列を取り出す visit(Block) を通らない。ここで取り出し、
+	 * {@code if (c) { switch 文; r = $switch1; }} と書いたのと同じ形にする。
+	 * ブロックの本体では待ち行列は空で、本体をそのまま返す。
+	 */
+	private StatementInfo visitBody(final ASTNode body) {
+
+		final StatementInfo statement = (StatementInfo) this.visitChild(body);
+		final List<StatementInfo> pending = this.drainPendingStatements();
+		if (pending.isEmpty()) {
+			return statement;
+		}
+
+		final BlockStatementInfo block = new BlockStatementInfo(this.stack.peek(),
+				StatementInfo.CATEGORY.SimpleBlock, pending.get(0).startLine,
+				statement.endLine);
+		final StringBuilder text = new StringBuilder();
+		text.append("{");
+		text.append(System.lineSeparator());
+		final List<StatementInfo> contents = new ArrayList<>(pending);
+		contents.addAll(BlockStatementInfo.flatten(statement));
+		for (final StatementInfo inner : contents) {
+			inner.setOwnerBlock(block);
+			block.addStatement(inner);
+			text.append(inner.getText());
+			text.append(System.lineSeparator());
+		}
+		text.append("}");
+		block.setText(text.toString());
+		return block;
+	}
+
 	@Override
 	public boolean visit(final Block node) {
 
@@ -926,7 +1057,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			exception.setOwnerConditionalBlock(catchBlock);
 			catchBlock.setCondition(exception);
 
-			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
+			final StatementInfo body = this.visitBody(node.getBody());
 			catchBlock.setStatement(body);
 
 			final StringBuilder text = new StringBuilder();

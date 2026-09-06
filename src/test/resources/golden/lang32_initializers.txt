@@ -1,0 +1,109 @@
+# sample: lang32_initializers
+
+## CFG <clinit>$12 <12...14>
+nodes:
+  0: [enter,exit,normal] counter = counter * 2; <13>
+edges:
+
+## PDG <clinit>$12 <12...14>
+nodes:
+  0: [exit] counter = counter * 2; <13>
+  1: [enter,control] Enter <12...14>
+edges:
+  1 -> 0 [control: true]
+  1 -> 0 [execution: ]
+
+## CFG <init>$16 <16...18>
+nodes:
+  0: [enter,exit,normal] this.instanceField = this.instanceField + 1; <17>
+edges:
+
+## PDG <init>$16 <16...18>
+nodes:
+  0: [exit] this.instanceField = this.instanceField + 1; <17>
+  1: [enter,control] Enter <16...18>
+edges:
+  1 -> 0 [control: true]
+  1 -> 0 [execution: ]
+
+## CFG <init>$39 <39...42>
+nodes:
+  0: [enter,normal] add(1); <40>
+  1: [exit,normal] add(2); <41>
+edges:
+  0 -> 1 []
+
+## PDG <init>$39 <39...42>
+nodes:
+  0: [normal] add(1); <40>
+  1: [exit] add(2); <41>
+  2: [enter,control] Enter <39...42>
+edges:
+  0 -> 1 [execution: ]
+  2 -> 0 [control: true]
+  2 -> 0 [execution: ]
+  2 -> 1 [control: true]
+
+## CFG apply <22...25>
+nodes:
+  0: [enter,exit,normal] return a + b; <24>
+edges:
+
+## PDG apply <22...25>
+nodes:
+  0: [parameter] final int a <23>
+  1: [parameter] final int b <23>
+  2: [exit] return a + b; <24>
+  3: [enter,control] Enter <22...25>
+edges:
+  0 -> 2 [data: a]
+  1 -> 2 [data: b]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 2 [control: true]
+  3 -> 2 [execution: ]
+
+## CFG apply <28...31>
+nodes:
+  0: [enter,exit,normal] return a - b; <30>
+edges:
+
+## PDG apply <28...31>
+nodes:
+  0: [parameter] final int a <29>
+  1: [parameter] final int b <29>
+  2: [exit] return a - b; <30>
+  3: [enter,control] Enter <28...31>
+edges:
+  0 -> 2 [data: a]
+  1 -> 2 [data: b]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 2 [control: true]
+  3 -> 2 [execution: ]
+
+## CFG apply <34...34>
+nodes:
+edges:
+
+## PDG apply <34...34>
+nodes:
+  0: [parameter] int a <34>
+  1: [parameter] int b <34>
+  2: [enter,control] Enter <34>
+edges:
+  2 -> 0 [control: true]
+  2 -> 1 [control: true]
+
+## CFG doubleBrace <37...44>
+nodes:
+  0: [enter,exit,normal] return new ArrayList<Integer>(){\n{\nadd(1);\nadd(2);\n}\n}; <38...43>
+edges:
+
+## PDG doubleBrace <37...44>
+nodes:
+  0: [exit] return new ArrayList<Integer>(){\n{\nadd(1);\nadd(2);\n}\n}; <38...43>
+  1: [enter,control] Enter <37...44>
+edges:
+  1 -> 0 [control: true]
+  1 -> 0 [execution: ]

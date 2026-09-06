@@ -59,7 +59,10 @@ public class ExpressionInfo extends ProgramElementInfo {
 		VariableDeclarationFragment,
 		MethodEnter,
 
-		/** ラムダ式。本体は独立した MethodInfo として切り出される。 */
+		/**
+		 * ラムダ式。本体は独立した MethodInfo として切り出され、この式の唯一の
+		 * 子になる。囲む文は、本体が捕捉した変数を読み書きしていると見る。
+		 */
 		Lambda,
 
 		/** メソッド参照 (String::length など)。 */
@@ -178,6 +181,29 @@ public class ExpressionInfo extends ProgramElementInfo {
 		};
 	}
 
+	/**
+	 * ラムダの本体が使う変数のうち、ラムダ自身の引数を除いたもの。
+	 *
+	 * <p>本体は独立した解析単位だが、囲む文から見れば、捕捉した変数を読み
+	 * 書きしているのはその文である。{@code values.forEach(v -> total[0] += v)}
+	 * は total を読み、書く。匿名クラスの本体と同じ扱いにする。本体の中で
+	 * 宣言した局所変数は引数のようには見分けられず残る。匿名クラスと同じ
+	 * 近似である。
+	 */
+	private SortedSet<String> capturedByLambda(
+			final Function<ProgramElementInfo, SortedSet<String>> collector) {
+
+		if (this.expressions.isEmpty()) {
+			return new TreeSet<>();
+		}
+		final MethodInfo body = (MethodInfo) this.expressions.get(0);
+		final SortedSet<String> variables = new TreeSet<>(collector.apply(body));
+		for (final VariableInfo parameter : body.getParameters()) {
+			variables.remove(parameter.name);
+		}
+		return variables;
+	}
+
 	/** 前置式の演算子が ++ か -- か。演算子は先頭の子である。 */
 	private boolean isIncrementOrDecrement() {
 		final String operator = this.expressions.get(0).getText();
@@ -269,6 +295,9 @@ public class ExpressionInfo extends ProgramElementInfo {
 					? targets(this.expressions.get(1))
 					: this.expressions.get(1).getAssignedVariables();
 
+		case Lambda ->
+			this.capturedByLambda(ProgramElementInfo::getAssignedVariables);
+
 		case ArrayAccess, ArrayCreation, ArrayInitializer,
 				Boolean, Cast, Character,
 				ClassInstanceCreation, ConstructorInvocation, FieldAccess,
@@ -277,7 +306,7 @@ public class ExpressionInfo extends ProgramElementInfo {
 				QualifiedName, SimpleName, String,
 				SuperConstructorInvocation, SuperFieldAccess, SuperMethodInvocation,
 				This, Trinomial, TypeLiteral,
-				VariableDeclarationExpression, MethodEnter, Lambda,
+				VariableDeclarationExpression, MethodEnter,
 				MethodReference, SwitchExpression, Pattern,
 				Unsupported ->
 			collectFromChildren(ProgramElementInfo::getAssignedVariables);
@@ -323,6 +352,9 @@ public class ExpressionInfo extends ProgramElementInfo {
 		case SimpleName ->
 			only(this.getText());
 
+		case Lambda ->
+			this.capturedByLambda(ProgramElementInfo::getReferencedVariables);
+
 		case ArrayAccess, ArrayCreation, ArrayInitializer,
 				Boolean, Cast, Character,
 				ClassInstanceCreation, ConstructorInvocation, FieldAccess,
@@ -331,7 +363,7 @@ public class ExpressionInfo extends ProgramElementInfo {
 				QualifiedName, String, SuperConstructorInvocation,
 				SuperFieldAccess, SuperMethodInvocation, This,
 				Trinomial, TypeLiteral, VariableDeclarationExpression,
-				MethodEnter, Lambda, MethodReference,
+				MethodEnter, MethodReference,
 				SwitchExpression, Pattern, Unsupported ->
 			collectFromChildren(ProgramElementInfo::getReferencedVariables);
 		};

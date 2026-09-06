@@ -28,6 +28,17 @@ public sealed class ConditionalStatementInfo extends BlockStatementInfo
 
 	private ProgramElementInfo condition;
 
+	/**
+	 * switch が網羅的だと構文から分かるか。switch にだけ意味がある。
+	 *
+	 * <p>switch 式と、パターンか null のラベルを持つ switch 文には、コンパイラが
+	 * 網羅性を要求する。default がなくても、どの case にも合わずに素通りする
+	 * 経路はない。従来型の switch 文は、enum の全定数を並べていても網羅的とは
+	 * 見ない。型を解決しないと定数が全てかどうか分からず、言語の意味としても、
+	 * 定数が増えれば素通りしうる。
+	 */
+	private boolean exhaustive;
+
 	public ConditionalStatementInfo(final ProgramElementInfo ownerBlock,
 			final CATEGORY category, final int startLine, final int endLine) {
 		this(ownerBlock, category, startLine, endLine, CATEGORIES);
@@ -38,6 +49,16 @@ public sealed class ConditionalStatementInfo extends BlockStatementInfo
 			final Set<CATEGORY> permittedCategories) {
 		super(ownerBlock, category, startLine, endLine, permittedCategories);
 		this.condition = null;
+		this.exhaustive = false;
+	}
+
+	public void setExhaustive(final boolean exhaustive) {
+		this.exhaustive = exhaustive;
+	}
+
+	/** @return switch が網羅的だと構文から分かるか。switch 以外では常に偽 */
+	public boolean isExhaustive() {
+		return this.exhaustive;
 	}
 
 	public void setCondition(final ProgramElementInfo condition) {

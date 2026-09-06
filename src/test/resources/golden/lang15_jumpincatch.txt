@@ -10,9 +10,11 @@ nodes:
 edges:
   0 -> 1 []
   1 -> 2 [true]
+  1 -> 3 [exception]
   1 -> 4 [false]
   2 -> 1 []
-  3 -> 4 [jump]
+  2 -> 3 [exception]
+  3 -> 4 [jump:true]
 
 ## PDG breakInCatch <5...15>
 nodes:
@@ -28,9 +30,11 @@ edges:
   1 -> 2 [execution: ]
   1 -> 3 [data: sum]
   1 -> 5 [data: sum]
+  2 -> 2 [control: true]
   2 -> 3 [control: true]
   2 -> 3 [data: value]
   2 -> 3 [execution: ]
+  2 -> 4 [control: true]
   2 -> 5 [execution: ]
   3 -> 2 [execution: ]
   3 -> 3 [data: sum]
@@ -45,18 +49,17 @@ edges:
 ## CFG check <30...35>
 nodes:
   0: [enter,control] value < 0 <31>
-  1: [normal] throw new IllegalArgumentException(); <32>
+  1: [exit,normal] throw new IllegalArgumentException(); <32>
   2: [exit,normal] return value; <34>
 edges:
   0 -> 1 [true]
   0 -> 2 [false]
-  1 -> 2 []
 
 ## PDG check <30...35>
 nodes:
   0: [parameter] final int value <30>
   1: [control] value < 0 <31>
-  2: [normal] throw new IllegalArgumentException(); <32>
+  2: [exit] throw new IllegalArgumentException(); <32>
   3: [exit] return value; <34>
   4: [enter,control] Enter <30...35>
 edges:
@@ -64,12 +67,11 @@ edges:
   0 -> 3 [data: value]
   1 -> 2 [control: true]
   1 -> 2 [execution: ]
+  1 -> 3 [control: false]
   1 -> 3 [execution: ]
-  2 -> 3 [execution: ]
   4 -> 0 [control: true]
   4 -> 1 [control: true]
   4 -> 1 [execution: ]
-  4 -> 3 [control: true]
 
 ## CFG continueInCatch <17...28>
 nodes:
@@ -82,9 +84,11 @@ nodes:
 edges:
   0 -> 1 []
   1 -> 2 [true]
+  1 -> 3 [exception]
   1 -> 5 [false]
+  2 -> 3 [exception]
   2 -> 4 []
-  3 -> 1 [jump]
+  3 -> 1 [jump:true]
   4 -> 1 []
 
 ## PDG continueInCatch <17...28>
@@ -102,13 +106,17 @@ edges:
   1 -> 2 [execution: ]
   1 -> 3 [data: sum]
   1 -> 6 [data: sum]
+  2 -> 2 [control: true]
   2 -> 3 [control: true]
   2 -> 3 [data: value]
   2 -> 3 [execution: ]
+  2 -> 4 [control: true]
   2 -> 5 [control: true]
   2 -> 6 [execution: ]
+  3 -> 3 [data: sum]
   3 -> 5 [data: sum]
   3 -> 5 [execution: ]
+  3 -> 6 [data: sum]
   4 -> 2 [execution: ]
   5 -> 2 [execution: ]
   5 -> 3 [data: sum]

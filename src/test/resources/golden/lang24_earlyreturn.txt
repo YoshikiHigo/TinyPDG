@@ -1,0 +1,153 @@
+# sample: lang24_earlyreturn
+
+## CFG guard <5...12>
+nodes:
+  0: [enter,normal] int b = 0; <6>
+  1: [control] c <7>
+  2: [exit,normal] return a; <8>
+  3: [normal] b = a + 1; <10>
+  4: [exit,normal] return b; <11>
+edges:
+  0 -> 1 []
+  1 -> 2 [true]
+  1 -> 3 [false]
+  3 -> 4 []
+
+## PDG guard <5...12>
+nodes:
+  0: [parameter] final boolean c <5>
+  1: [parameter] final int a <5>
+  2: [normal] int b = 0; <6>
+  3: [control] c <7>
+  4: [exit] return a; <8>
+  5: [normal] b = a + 1; <10>
+  6: [exit] return b; <11>
+  7: [enter,control] Enter <5...12>
+edges:
+  0 -> 3 [data: c]
+  1 -> 4 [data: a]
+  1 -> 5 [data: a]
+  2 -> 3 [execution: ]
+  3 -> 4 [control: true]
+  3 -> 4 [execution: ]
+  3 -> 5 [control: false]
+  3 -> 5 [execution: ]
+  3 -> 6 [control: false]
+  5 -> 6 [data: b]
+  5 -> 6 [execution: ]
+  7 -> 0 [control: true]
+  7 -> 1 [control: true]
+  7 -> 2 [control: true]
+  7 -> 2 [execution: ]
+  7 -> 3 [control: true]
+
+## CFG inLoop <14...23>
+nodes:
+  0: [enter,normal] int sum = 0; <15>
+  1: [control] final int x : xs <16>
+  2: [control] x < 0 <17>
+  3: [exit,normal] return -1; <18>
+  4: [normal] sum = sum + x; <20>
+  5: [exit,normal] return sum; <22>
+edges:
+  0 -> 1 []
+  1 -> 2 [true]
+  1 -> 5 [false]
+  2 -> 3 [true]
+  2 -> 4 [false]
+  4 -> 1 []
+
+## PDG inLoop <14...23>
+nodes:
+  0: [parameter] final int[] xs <14>
+  1: [normal] int sum = 0; <15>
+  2: [control] final int x : xs <16>
+  3: [control] x < 0 <17>
+  4: [exit] return -1; <18>
+  5: [normal] sum = sum + x; <20>
+  6: [exit] return sum; <22>
+  7: [enter,control] Enter <14...23>
+edges:
+  0 -> 2 [data: xs]
+  1 -> 2 [execution: ]
+  1 -> 5 [data: sum]
+  1 -> 6 [data: sum]
+  2 -> 3 [control: true]
+  2 -> 3 [data: x]
+  2 -> 3 [execution: ]
+  2 -> 5 [data: x]
+  2 -> 6 [control: false]
+  2 -> 6 [execution: ]
+  3 -> 2 [control: false]
+  3 -> 4 [control: true]
+  3 -> 4 [execution: ]
+  3 -> 5 [control: false]
+  3 -> 5 [execution: ]
+  5 -> 2 [execution: ]
+  5 -> 5 [data: sum]
+  5 -> 6 [data: sum]
+  7 -> 0 [control: true]
+  7 -> 1 [control: true]
+  7 -> 1 [execution: ]
+  7 -> 2 [control: true]
+
+## CFG thrower <25...30>
+nodes:
+  0: [enter,control] a < 0 <26>
+  1: [exit,normal] throw new IllegalArgumentException(); <27>
+  2: [exit,normal] return a; <29>
+edges:
+  0 -> 1 [true]
+  0 -> 2 [false]
+
+## PDG thrower <25...30>
+nodes:
+  0: [parameter] final int a <25>
+  1: [control] a < 0 <26>
+  2: [exit] throw new IllegalArgumentException(); <27>
+  3: [exit] return a; <29>
+  4: [enter,control] Enter <25...30>
+edges:
+  0 -> 1 [data: a]
+  0 -> 3 [data: a]
+  1 -> 2 [control: true]
+  1 -> 2 [execution: ]
+  1 -> 3 [control: false]
+  1 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 1 [control: true]
+  4 -> 1 [execution: ]
+
+## CFG viaFinally <32...40>
+nodes:
+  0: [enter,normal] int r = 0; <33>
+  1: [normal] r = a + 1; <35>
+  2: [normal] return r; <36>
+  3: [exit,normal] r = 0; <38>
+edges:
+  0 -> 1 []
+  0 -> 3 [exception]
+  1 -> 2 []
+  1 -> 3 [exception]
+  2 -> 3 []
+
+## PDG viaFinally <32...40>
+nodes:
+  0: [parameter] final int a <32>
+  1: [normal] int r = 0; <33>
+  2: [normal] r = a + 1; <35>
+  3: [normal] return r; <36>
+  4: [exit] r = 0; <38>
+  5: [enter,control] Enter <32...40>
+edges:
+  0 -> 2 [data: a]
+  1 -> 2 [execution: ]
+  2 -> 3 [data: r]
+  2 -> 3 [execution: ]
+  3 -> 4 [execution: ]
+  5 -> 0 [control: true]
+  5 -> 1 [control: true]
+  5 -> 1 [execution: ]
+  5 -> 2 [control: true]
+  5 -> 3 [control: true]
+  5 -> 4 [control: true]

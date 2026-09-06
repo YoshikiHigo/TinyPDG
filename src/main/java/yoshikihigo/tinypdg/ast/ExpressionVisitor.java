@@ -110,6 +110,9 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 
 		final ConditionalStatementInfo switchBlock = new ConditionalStatementInfo(this.nearestBlock(),
 				StatementInfo.CATEGORY.Switch, startLine, endLine);
+		// switch 式は網羅的でなければコンパイルが通らない。default がなくても
+		// 素通りする経路はない。
+		switchBlock.setExhaustive(true);
 		this.stack.push(switchBlock);
 
 		final ProgramElementInfo condition = this.visitChild(node.getExpression());
@@ -122,10 +125,20 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		text.append(") {");
 		text.append(System.lineSeparator());
 
+		// 入れ子の switch 式が中にあっても、外側の yieldConverted を壊さない。
+		final boolean outerConverted = this.yieldConverted;
 		this.yieldTargets.push(target);
 		for (final Object o : node.statements()) {
 			this.yieldConverted = false;
 			final StatementInfo statement = (StatementInfo) this.visitChild((ASTNode) o);
+
+			// アームの式の中にあった switch 式は、脱糖されてこのアームの前に出る。
+			for (final StatementInfo pending : this.drainPendingStatements()) {
+				pending.setOwnerBlock(switchBlock);
+				switchBlock.addStatement(pending);
+				text.append(pending.getText());
+				text.append(System.lineSeparator());
+			}
 
 			if (statement instanceof BlockStatementInfo arm
 					&& StatementInfo.CATEGORY.SimpleBlock == statement
@@ -159,7 +172,7 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				text.append(System.lineSeparator());
 			}
 		}
-		this.yieldConverted = false;
+		this.yieldConverted = outerConverted;
 		this.yieldTargets.pop();
 
 		text.append("}");
@@ -195,10 +208,12 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		final BlockStatementInfo scratch = new BlockStatementInfo(this.nearestBlock(),
 				StatementInfo.CATEGORY.SimpleBlock, startLine, endLine);
 		this.stack.push(scratch);
-		for (final Object o : node.statements()) {
-			final ProgramElementInfo statement = this.visitChild((ASTNode) o);
-			switchExpression.addExpression(statement);
-		}
+		this.isolatedFromYield(() -> {
+			for (final Object o : node.statements()) {
+				final ProgramElementInfo statement = this.visitChild((ASTNode) o);
+				switchExpression.addExpression(statement);
+			}
+		});
 		this.stack.pop();
 
 		switchExpression.setText(flatten(node));
@@ -351,49 +366,68 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		}
 		signature.append(") -> ");
 
-		final ASTNode body = node.getBody();
-		if (body instanceof Block) {
-			final ProgramElementInfo statement = this.visitChild(body);
-			lambda.setStatement((StatementInfo) statement);
-			signature.append(statement.getText());
+		// ラムダの本体は別のメソッドである。外側で脱糖中の switch 式の yield は
+		// ここまで届かない。
+		this.isolatedFromYield(() -> {
+			final ASTNode body = node.getBody();
+			if (body instanceof Block) {
+				final ProgramElementInfo statement = this.visitChild(body);
+				lambda.setStatement((StatementInfo) statement);
+				signature.append(statement.getText());
 
-		} else {
-			// 式本体のラムダ。x -> expr は return expr; と同じ意味なので
-			// return 文に組み替える。通常のメソッドは本体が必ずブロックであり、
-			// PDG の構築もそれを前提にしているため、ブロックで包んでおく。
-			final int bodyStart = this.getStartLineNumber(body);
-			final int bodyEnd = this.getEndLineNumber(body);
+			} else {
+				// 式本体のラムダ。x -> expr は return expr; と同じ意味なので
+				// return 文に組み替える。通常のメソッドは本体が必ずブロックであり、
+				// PDG の構築もそれを前提にしているため、ブロックで包んでおく。
+				final int bodyStart = this.getStartLineNumber(body);
+				final int bodyEnd = this.getEndLineNumber(body);
 
-			final BlockStatementInfo block = new BlockStatementInfo(lambda,
-					StatementInfo.CATEGORY.SimpleBlock, bodyStart, bodyEnd);
-			this.stack.push(block);
+				final BlockStatementInfo block = new BlockStatementInfo(lambda,
+						StatementInfo.CATEGORY.SimpleBlock, bodyStart, bodyEnd);
+				this.stack.push(block);
 
-			final SimpleStatementInfo returnStatement = new SimpleStatementInfo(block,
-					StatementInfo.CATEGORY.Return, bodyStart, bodyEnd);
-			this.stack.push(returnStatement);
+				final SimpleStatementInfo returnStatement = new SimpleStatementInfo(block,
+						StatementInfo.CATEGORY.Return, bodyStart, bodyEnd);
+				this.stack.push(returnStatement);
 
-			final ProgramElementInfo expression = this.visitChild(body);
-			returnStatement.addExpression(expression);
-			returnStatement.setText("return " + expression.getText() + ";");
+				final ProgramElementInfo expression = this.visitChild(body);
+				returnStatement.addExpression(expression);
+				returnStatement.setText("return " + expression.getText() + ";");
 
-			this.stack.pop();
-			block.addStatement(returnStatement);
-			block.setText("{" + System.lineSeparator() + returnStatement.getText()
-					+ System.lineSeparator() + "}");
+				this.stack.pop();
 
-			this.stack.pop();
-			lambda.setStatement(block);
-			signature.append(block.getText());
-		}
+				// 本体の式の中の switch 式は、脱糖されて return の前に出る。
+				final StringBuilder blockText = new StringBuilder();
+				blockText.append("{");
+				blockText.append(System.lineSeparator());
+				for (final StatementInfo pending : this.drainPendingStatements()) {
+					pending.setOwnerBlock(block);
+					block.addStatement(pending);
+					blockText.append(pending.getText());
+					blockText.append(System.lineSeparator());
+				}
+				block.addStatement(returnStatement);
+				blockText.append(returnStatement.getText());
+				blockText.append(System.lineSeparator());
+				blockText.append("}");
+				block.setText(blockText.toString());
+
+				this.stack.pop();
+				lambda.setStatement(block);
+				signature.append(block.getText());
+			}
+		});
 
 		lambda.setText(signature.toString());
 
 		this.stack.pop();
 		this.methods.add(lambda);
 
-		// 呼び出し元の式に残すのは、ラムダ 1 個ぶんの要素。
+		// 呼び出し元の式に残すのは、ラムダ 1 個ぶんの要素。本体を子として
+		// 持たせ、捕捉した変数を囲む文の参照・定義に数えられるようにする。
 		final ExpressionInfo reference = new ExpressionInfo(
 				ExpressionInfo.CATEGORY.Lambda, startLine, endLine);
+		reference.addExpression(lambda);
 		reference.setText(flatten(node));
 		this.stack.push(reference);
 

@@ -1,0 +1,176 @@
+# sample: lang38_finallyjumps
+
+## CFG breakThroughFinally <5...18>
+nodes:
+  0: [enter,normal] int count = 0; <6>
+  1: [control] final int v : values <7>
+  2: [control] v < 0 <9>
+  3: [normal] count = count + 1; <12>
+  4: [normal] count = count * 2; <14>
+  5: [exit,normal] return count; <17>
+edges:
+  0 -> 1 []
+  1 -> 2 [true]
+  1 -> 4 [exception]
+  1 -> 5 [false]
+  2 -> 3 [false]
+  2 -> 4 [exception]
+  2 -> 4 [jump:true]
+  3 -> 4 []
+  4 -> 1 []
+  4 -> 5 []
+
+## PDG breakThroughFinally <5...18>
+nodes:
+  0: [parameter] final int[] values <5>
+  1: [normal] int count = 0; <6>
+  2: [control] final int v : values <7>
+  3: [control] v < 0 <9>
+  4: [normal] count = count + 1; <12>
+  5: [normal] count = count * 2; <14>
+  6: [exit] return count; <17>
+  7: [enter,control] Enter <5...18>
+edges:
+  0 -> 2 [data: values]
+  1 -> 2 [execution: ]
+  1 -> 4 [data: count]
+  1 -> 5 [data: count]
+  1 -> 6 [data: count]
+  2 -> 2 [control: true]
+  2 -> 3 [control: true]
+  2 -> 3 [data: v]
+  2 -> 3 [execution: ]
+  2 -> 5 [control: true]
+  2 -> 6 [execution: ]
+  3 -> 4 [control: false]
+  3 -> 4 [execution: ]
+  3 -> 5 [execution: ]
+  4 -> 5 [data: count]
+  4 -> 5 [execution: ]
+  5 -> 2 [execution: ]
+  5 -> 4 [data: count]
+  5 -> 5 [data: count]
+  5 -> 6 [data: count]
+  5 -> 6 [execution: ]
+  7 -> 0 [control: true]
+  7 -> 1 [control: true]
+  7 -> 1 [execution: ]
+  7 -> 2 [control: true]
+  7 -> 6 [control: true]
+
+## CFG continueThroughFinally <20...33>
+nodes:
+  0: [enter,normal] int count = 0; <21>
+  1: [control] final int v : values <22>
+  2: [control] v < 0 <24>
+  3: [normal] count = count + 1; <27>
+  4: [normal] count = count * 2; <29>
+  5: [exit,normal] return count; <32>
+edges:
+  0 -> 1 []
+  1 -> 2 [true]
+  1 -> 4 [exception]
+  1 -> 5 [false]
+  2 -> 3 [false]
+  2 -> 4 [exception]
+  2 -> 4 [jump:true]
+  3 -> 4 []
+  4 -> 1 []
+
+## PDG continueThroughFinally <20...33>
+nodes:
+  0: [parameter] final int[] values <20>
+  1: [normal] int count = 0; <21>
+  2: [control] final int v : values <22>
+  3: [control] v < 0 <24>
+  4: [normal] count = count + 1; <27>
+  5: [normal] count = count * 2; <29>
+  6: [exit] return count; <32>
+  7: [enter,control] Enter <20...33>
+edges:
+  0 -> 2 [data: values]
+  1 -> 2 [execution: ]
+  1 -> 4 [data: count]
+  1 -> 5 [data: count]
+  1 -> 6 [data: count]
+  2 -> 2 [control: true]
+  2 -> 3 [control: true]
+  2 -> 3 [data: v]
+  2 -> 3 [execution: ]
+  2 -> 5 [control: true]
+  2 -> 6 [execution: ]
+  3 -> 4 [control: false]
+  3 -> 4 [execution: ]
+  3 -> 5 [execution: ]
+  4 -> 5 [data: count]
+  4 -> 5 [execution: ]
+  5 -> 2 [execution: ]
+  5 -> 4 [data: count]
+  5 -> 5 [data: count]
+  5 -> 6 [data: count]
+  7 -> 0 [control: true]
+  7 -> 1 [control: true]
+  7 -> 1 [execution: ]
+  7 -> 2 [control: true]
+  7 -> 6 [control: true]
+
+## CFG nestedFinally <35...50>
+nodes:
+  0: [enter,normal] int r = 0; <36>
+  1: [control] x > 0 <39>
+  2: [normal] return r; <40>
+  3: [normal] r = 1; <42>
+  4: [normal] r = r + 1; <44>
+  5: [exit,normal] r = r + 2; <47>
+  6: [exit,normal] return r; <49>
+edges:
+  0 -> 1 []
+  0 -> 4 [exception]
+  0 -> 5 [exception]
+  1 -> 2 [true]
+  1 -> 3 [false]
+  1 -> 4 [exception]
+  1 -> 5 [exception]
+  2 -> 4 []
+  2 -> 5 [exception]
+  3 -> 4 []
+  3 -> 5 [exception]
+  4 -> 5 []
+  5 -> 6 []
+
+## PDG nestedFinally <35...50>
+nodes:
+  0: [parameter] final int x <35>
+  1: [normal] int r = 0; <36>
+  2: [control] x > 0 <39>
+  3: [normal] return r; <40>
+  4: [normal] r = 1; <42>
+  5: [normal] r = r + 1; <44>
+  6: [exit] r = r + 2; <47>
+  7: [exit] return r; <49>
+  8: [enter,control] Enter <35...50>
+edges:
+  0 -> 2 [data: x]
+  1 -> 2 [execution: ]
+  1 -> 3 [data: r]
+  1 -> 5 [data: r]
+  1 -> 6 [data: r]
+  2 -> 3 [control: true]
+  2 -> 3 [execution: ]
+  2 -> 4 [control: false]
+  2 -> 4 [execution: ]
+  3 -> 5 [execution: ]
+  4 -> 5 [data: r]
+  4 -> 5 [execution: ]
+  4 -> 6 [data: r]
+  5 -> 6 [data: r]
+  5 -> 6 [execution: ]
+  6 -> 7 [data: r]
+  6 -> 7 [execution: ]
+  8 -> 0 [control: true]
+  8 -> 1 [control: true]
+  8 -> 1 [execution: ]
+  8 -> 2 [control: true]
+  8 -> 5 [control: true]
+  8 -> 6 [control: true]
+  8 -> 7 [control: true]

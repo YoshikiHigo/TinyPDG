@@ -1,0 +1,23 @@
+# sample: lang23_dollars
+
+## CFG dollars <5...8>
+nodes:
+  0: [enter,normal] int c$$ = a$$b + 1; <6>
+  1: [exit,normal] return c$$; <7>
+edges:
+  0 -> 1 []
+
+## PDG dollars <5...8>
+nodes:
+  0: [parameter] final int a$$b <5>
+  1: [normal] int c$$ = a$$b + 1; <6>
+  2: [exit] return c$$; <7>
+  3: [enter,control] Enter <5...8>
+edges:
+  0 -> 1 [data: a$$b]
+  1 -> 2 [data: c$$]
+  1 -> 2 [execution: ]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 1 [execution: ]
+  3 -> 2 [control: true]

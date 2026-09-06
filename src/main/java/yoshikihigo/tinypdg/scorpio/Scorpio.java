@@ -62,6 +62,8 @@ public class Scorpio {
 			options.addOption(CommandLineTools.onOffOption("M", "merging",
 					"merging consecutive similar nodes"));
 
+			options.addOption(CommandLineTools.structuralOption());
+
 			options.addOption(CommandLineTools.javaVersionOption());
 
 			final CommandLineParser parser = new DefaultParser();
@@ -70,8 +72,8 @@ public class Scorpio {
 			final File target = CommandLineTools.target(cmd);
 
 			final String output = cmd.getOptionValue("o");
-			final int SIZE_THRESHOLD = Integer
-					.parseInt(cmd.getOptionValue("s"));
+			// -s は必須なので、既定値が使われることはない。
+			final int SIZE_THRESHOLD = CommandLineTools.size(cmd, 1);
 			final int NUMBER_OF_THREADS = CommandLineTools.threads(cmd);
 
 			final boolean useOfControl = CommandLineTools.onOff(cmd, "C");
@@ -89,8 +91,9 @@ public class Scorpio {
 						.collectMethods(target, CommandLineTools.javaVersion(cmd));
 
 				final PDGGeneration.Options generation = new PDGGeneration.Options(
-						new PDG.Dependences(useOfControl, useOfData,
-								useOfExecution),
+						CommandLineTools.withControlOption(cmd,
+								new PDG.Dependences(useOfControl, useOfData,
+										useOfExecution)),
 						SIZE_THRESHOLD, NUMBER_OF_THREADS);
 				// ノードの併合は Scorpio 固有の処理なので、生成側には
 				// 「作り終えた PDG に何をするか」として渡す。
@@ -118,6 +121,7 @@ public class Scorpio {
 			System.out.print("detecting clone pairs ... ");
 			final SortedSet<ClonePairInfo> clonepairs = Collections
 					.synchronizedSortedSet(new TreeSet<>());
+			final long comparisons;
 			{
 				final List<PDGPairInfo> pdgpairs = new ArrayList<>();
 				for (int i = 0; i < pdgArray.length; i++) {
@@ -127,7 +131,7 @@ public class Scorpio {
 				}
 				final PDGPairInfo[] pdgpairArray = pdgpairs
 						.toArray(new PDGPairInfo[0]);
-				CloneDetection.detect(pdgpairArray, pdgArray,
+				comparisons = CloneDetection.detect(pdgpairArray, pdgArray,
 						mappingPDGToPDGNodes, mappingPDGToPDGEdges, clonepairs,
 						SIZE_THRESHOLD, NUMBER_OF_THREADS);
 			}
@@ -144,7 +148,7 @@ public class Scorpio {
 					+ CommandLineTools.formatElapsed(time5 - time1));
 
 			System.out.print("number of comparisons: ");
-			printNumberOfComparison(Slicing.getNumberOfComparison());
+			printNumberOfComparison(comparisons);
 
 		} catch (final Exception e) {
 			// 異常終了なので終了コードは非 0 にする。0 のままでは、

@@ -16,9 +16,11 @@ import org.eclipse.jdt.core.dom.EnhancedForStatement;
 import org.eclipse.jdt.core.dom.ForStatement;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.InfixExpression;
+import org.eclipse.jdt.core.dom.LabeledStatement;
 import org.eclipse.jdt.core.dom.LambdaExpression;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.SwitchExpression;
+import org.eclipse.jdt.core.dom.SwitchStatement;
 import org.eclipse.jdt.core.dom.TryStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import yoshikihigo.tinypdg.pe.BlockInfo;
@@ -128,6 +130,30 @@ abstract class ProgramElementVisitor extends ASTVisitor {
 		return drained;
 	}
 
+	/**
+	 * body を、外側の switch 式の yield から切り離して実行する。
+	 *
+	 * <p>前に出せない switch 式のアーム、ラムダの本体、メソッドの本体が
+	 * これである。その中の yield は、外側で脱糖中の switch 式の一時変数への
+	 * 代入ではない。空の行き先を積んでおくと、yield の visit はそれを
+	 * 「脱糖していない」と読む。yieldConverted も外側のものなので、body が
+	 * 触った形跡を消して返す。
+	 *
+	 * <p>以前はどちらも漏れていた。入れ子の switch 式の yield が外側の一時
+	 * 変数への代入になり、その式やラムダを含む文が外側の一時変数を定義する
+	 * ことになっていた。外側のアームには余計な break も付いた。
+	 */
+	void isolatedFromYield(final Runnable body) {
+		this.yieldTargets.push("");
+		final boolean converted = this.yieldConverted;
+		try {
+			body.run();
+		} finally {
+			this.yieldConverted = converted;
+			this.yieldTargets.pop();
+		}
+	}
+
 	/** スタック上で最も内側にあるブロックを返す。 */
 	ProgramElementInfo nearestBlock() {
 		for (final ProgramElementInfo element : this.stack) {
@@ -159,9 +185,15 @@ abstract class ProgramElementVisitor extends ASTVisitor {
 			if (parent instanceof ConditionalExpression) {
 				return false;
 			}
-			// 別の入れ子の内側からは外へ出せない。
-			if (parent instanceof LambdaExpression
-					|| parent instanceof SwitchExpression) {
+			// ラムダの式本体 (x -> expr) なら、本体を包む合成ブロックの return の
+			// 前へ出せる。ブロック本体なら、その中の文で先に止まっている。以前は
+			// ラムダの中では一律に出せず、1 個の不透明な式になっていた。
+			if (parent instanceof LambdaExpression lambda) {
+				return child == lambda.getBody();
+			}
+			// 別の switch 式のセレクタの中からは外へ出せない。アームの中なら、
+			// アームの文で先に止まっている。
+			if (parent instanceof SwitchExpression) {
 				return false;
 			}
 
@@ -186,9 +218,41 @@ abstract class ProgramElementVisitor extends ASTVisitor {
 						&& child == ((EnhancedForStatement) parent).getExpression()) {
 					return false;
 				}
-				// 挿入先のブロックが要る。
-				return parent.getParent() instanceof Block;
+				// 挿入先が要る。ブロックと、switch 文と switch 式のアームのほか、
+				// 波括弧なしで書かれた if、else、ループ、ラベル付き文の本体も
+				// 受け入れる。本体は 1 文のブロックと見なして、脱糖した switch 文を
+				// その前に置く。以前はこれらの中では前に出せず、1 個の不透明な
+				// 式になっていた。
+				final ASTNode grandparent = parent.getParent();
+				return grandparent instanceof Block
+						|| grandparent instanceof SwitchStatement
+						|| grandparent instanceof SwitchExpression
+						|| isBody(parent, grandparent);
 			}
+		}
+		return false;
+	}
+
+	/** statement が、波括弧なしで書かれた if、else、ループ、ラベル付き文の本体か。 */
+	private static boolean isBody(final ASTNode statement, final ASTNode owner) {
+		if (owner instanceof IfStatement s) {
+			return statement == s.getThenStatement()
+					|| statement == s.getElseStatement();
+		}
+		if (owner instanceof WhileStatement s) {
+			return statement == s.getBody();
+		}
+		if (owner instanceof DoStatement s) {
+			return statement == s.getBody();
+		}
+		if (owner instanceof ForStatement s) {
+			return statement == s.getBody();
+		}
+		if (owner instanceof EnhancedForStatement s) {
+			return statement == s.getBody();
+		}
+		if (owner instanceof LabeledStatement s) {
+			return statement == s.getBody();
 		}
 		return false;
 	}

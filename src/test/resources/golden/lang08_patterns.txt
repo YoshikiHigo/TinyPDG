@@ -110,7 +110,10 @@ nodes:
   5: [exit,normal] return total; <45>
 edges:
   0 -> 1 []
+  0 -> 3 [exception]
   1 -> 2 []
+  1 -> 3 [exception]
+  2 -> 3 [exception]
   2 -> 5 []
   3 -> 4 [true]
   4 -> 5 []
@@ -141,4 +144,5 @@ edges:
   7 -> 1 [execution: ]
   7 -> 2 [control: true]
   7 -> 3 [control: true]
+  7 -> 4 [control: true]
   7 -> 6 [control: true]
