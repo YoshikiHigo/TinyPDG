@@ -204,6 +204,28 @@ public class ExpressionInfo extends ProgramElementInfo {
 		return variables;
 	}
 
+	/**
+	 * メソッド呼び出しが読み書きする変数。レシーバ (修飾子) と引数から集める。
+	 *
+	 * <p>先頭の子はメソッド名で、変数ではない。以前は他の子と同じく SimpleName
+	 * として数えていたので、{@code s.length()} が変数 length を参照することに
+	 * なり、同名の局所変数があると偽のデータ依存が出た (issue #7)。正規化
+	 * テキストの側は元からメソッド名を変数扱いしていない。
+	 */
+	private SortedSet<String> collectFromInvocation(
+			final Function<ProgramElementInfo, SortedSet<String>> collector) {
+
+		final SortedSet<String> variables = new TreeSet<>();
+		if (null != this.qualifier) {
+			variables.addAll(collector.apply(this.qualifier));
+		}
+		for (final ProgramElementInfo argument : this.expressions.subList(1,
+				this.expressions.size())) {
+			variables.addAll(collector.apply(argument));
+		}
+		return variables;
+	}
+
 	/** 前置式の演算子が ++ か -- か。演算子は先頭の子である。 */
 	private boolean isIncrementOrDecrement() {
 		final String operator = this.expressions.get(0).getText();
@@ -298,15 +320,17 @@ public class ExpressionInfo extends ProgramElementInfo {
 		case Lambda ->
 			this.capturedByLambda(ProgramElementInfo::getAssignedVariables);
 
+		case MethodInvocation, SuperMethodInvocation ->
+			this.collectFromInvocation(ProgramElementInfo::getAssignedVariables);
+
 		case ArrayAccess, ArrayCreation, ArrayInitializer,
 				Boolean, Cast, Character,
 				ClassInstanceCreation, ConstructorInvocation, FieldAccess,
-				Infix, Instanceof, MethodInvocation,
-				Null, Number, Parenthesized,
-				QualifiedName, SimpleName, String,
-				SuperConstructorInvocation, SuperFieldAccess, SuperMethodInvocation,
-				This, Trinomial, TypeLiteral,
-				VariableDeclarationExpression, MethodEnter,
+				Infix, Instanceof, Null,
+				Number, Parenthesized, QualifiedName,
+				SimpleName, String, SuperConstructorInvocation,
+				SuperFieldAccess, This, Trinomial,
+				TypeLiteral, VariableDeclarationExpression, MethodEnter,
 				MethodReference, SwitchExpression, Pattern,
 				Unsupported ->
 			collectFromChildren(ProgramElementInfo::getAssignedVariables);
@@ -355,15 +379,17 @@ public class ExpressionInfo extends ProgramElementInfo {
 		case Lambda ->
 			this.capturedByLambda(ProgramElementInfo::getReferencedVariables);
 
+		case MethodInvocation, SuperMethodInvocation ->
+			this.collectFromInvocation(ProgramElementInfo::getReferencedVariables);
+
 		case ArrayAccess, ArrayCreation, ArrayInitializer,
 				Boolean, Cast, Character,
 				ClassInstanceCreation, ConstructorInvocation, FieldAccess,
-				Infix, Instanceof, MethodInvocation,
-				Null, Number, Parenthesized,
-				QualifiedName, String, SuperConstructorInvocation,
-				SuperFieldAccess, SuperMethodInvocation, This,
-				Trinomial, TypeLiteral, VariableDeclarationExpression,
-				MethodEnter, MethodReference,
+				Infix, Instanceof, Null,
+				Number, Parenthesized, QualifiedName,
+				String, SuperConstructorInvocation, SuperFieldAccess,
+				This, Trinomial, TypeLiteral,
+				VariableDeclarationExpression, MethodEnter, MethodReference,
 				SwitchExpression, Pattern, Unsupported ->
 			collectFromChildren(ProgramElementInfo::getReferencedVariables);
 		};
