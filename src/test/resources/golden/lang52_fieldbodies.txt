@@ -1,0 +1,118 @@
+# sample: lang52_fieldbodies
+
+## CFG Op <32...34>
+nodes:
+  0: [enter,exit,normal] this.operator = operator; <33>
+edges:
+
+## PDG Op <32...34>
+nodes:
+  0: [parameter] final IntBinaryOperator operator <32>
+  1: [exit] this.operator = operator; <33>
+  2: [enter,control] Enter <32...34>
+edges:
+  0 -> 1 [data: operator]
+  2 -> 0 [control: true]
+  2 -> 1 [control: true]
+  2 -> 1 [execution: ]
+
+## CFG apply <36...38>
+nodes:
+  0: [enter,exit,normal] return this.operator.applyAsInt(a,b); <37>
+edges:
+
+## PDG apply <36...38>
+nodes:
+  0: [parameter] final int a <36>
+  1: [parameter] final int b <36>
+  2: [exit] return this.operator.applyAsInt(a,b); <37>
+  3: [enter,control] Enter <36...38>
+edges:
+  0 -> 2 [data: a]
+  1 -> 2 [data: b]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 2 [control: true]
+  3 -> 2 [execution: ]
+
+## CFG applyAsInt <24...27>
+nodes:
+  0: [enter,exit,normal] return a - b; <26>
+edges:
+
+## PDG applyAsInt <24...27>
+nodes:
+  0: [parameter] final int a <25>
+  1: [parameter] final int b <25>
+  2: [exit] return a - b; <26>
+  3: [enter,control] Enter <24...27>
+edges:
+  0 -> 2 [data: a]
+  1 -> 2 [data: b]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 2 [control: true]
+  3 -> 2 [execution: ]
+
+## CFG compare <9...12>
+nodes:
+  0: [enter,exit,normal] return Integer.compare(a.length(),b.length()); <11>
+edges:
+
+## PDG compare <9...12>
+nodes:
+  0: [parameter] final String a <10>
+  1: [parameter] final String b <10>
+  2: [exit] return Integer.compare(a.length(),b.length()); <11>
+  3: [enter,control] Enter <9...12>
+edges:
+  0 -> 2 [data: a]
+  1 -> 2 [data: b]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 2 [control: true]
+  3 -> 2 [execution: ]
+
+## CFG lambda$15 <15...19>
+nodes:
+  0: [enter,normal] int n = 0; <16>
+  1: [normal] n = n + 1; <17>
+  2: [exit,normal] System.out.println(n); <18>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+
+## PDG lambda$15 <15...19>
+nodes:
+  0: [normal] int n = 0; <16>
+  1: [normal] n = n + 1; <17>
+  2: [exit] System.out.println(n); <18>
+  3: [enter,control] Enter <15...19>
+edges:
+  0 -> 1 [data: n]
+  0 -> 1 [execution: ]
+  1 -> 2 [data: n]
+  1 -> 2 [execution: ]
+  3 -> 0 [control: true]
+  3 -> 0 [execution: ]
+  3 -> 1 [control: true]
+  3 -> 2 [control: true]
+
+## CFG lambda$22 <22...22>
+nodes:
+  0: [enter,exit,normal] return a + b; <22>
+edges:
+
+## PDG lambda$22 <22...22>
+nodes:
+  0: [parameter] a <22>
+  1: [parameter] b <22>
+  2: [exit] return a + b; <22>
+  3: [enter,control] Enter <22>
+edges:
+  0 -> 2 [data: a]
+  1 -> 2 [data: b]
+  3 -> 0 [control: true]
+  3 -> 1 [control: true]
+  3 -> 2 [control: true]
+  3 -> 2 [execution: ]
