@@ -1,5 +1,6 @@
 package yoshikihigo.tinypdg.ast;
 
+import java.io.File;
 import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.List;
@@ -13,6 +14,7 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.EnumConstantDeclaration;
 import org.eclipse.jdt.core.dom.EnumDeclaration;
 import org.eclipse.jdt.core.dom.Expression;
+import org.eclipse.jdt.core.dom.ImplicitTypeDeclaration;
 import org.eclipse.jdt.core.dom.Initializer;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.Modifier;
@@ -143,6 +145,18 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 	}
 
 	/**
+	 * コンパクトソースファイル (JEP 512) の暗黙のクラス。クラス宣言を書かずに
+	 * トップレベルにメソッドを並べたもので、JDT は名前のない型宣言として渡す。
+	 * 以前は visit がなく、preVisit2 も何も積まないので、こうしたファイルは
+	 * 黙って 0 メソッドになっていた (issue #17)。
+	 */
+	@Override
+	public boolean visit(final ImplicitTypeDeclaration node) {
+		this.visitTypeDeclaration(node, "class ");
+		return false;
+	}
+
+	/**
 	 * 型宣言の中からメソッドとネストした型を拾う。
 	 *
 	 * <p>enum と record も型宣言なので、class や interface と同じ扱いをする。
@@ -159,13 +173,17 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 
 		final int startLine = this.getStartLineNumber(node);
 		final int endLine = this.getEndLineNumber(node);
-		final ClassInfo typeDeclaration = new ClassInfo(this.path, node
-				.getName().toString(), startLine, endLine);
+		// 暗黙のクラスには名前がない。コンパイラと同じくファイル名を使う。
+		final String name = node instanceof ImplicitTypeDeclaration
+				? this.implicitClassName()
+				: node.getName().toString();
+		final ClassInfo typeDeclaration = new ClassInfo(this.path, name,
+				startLine, endLine);
 		this.stack.push(typeDeclaration);
 
 		final StringBuilder text = new StringBuilder();
 		text.append(keyword);
-		text.append(node.getName().toString());
+		text.append(name);
 		text.append("{");
 		text.append(System.lineSeparator());
 
@@ -188,6 +206,13 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 
 		text.append("}");
 		typeDeclaration.setText(text.toString());
+	}
+
+	/** ファイル名から拡張子を除いたもの。暗黙のクラスの名前になる。 */
+	private String implicitClassName() {
+		final String fileName = new File(this.path).getName();
+		final int dot = fileName.lastIndexOf('.');
+		return dot < 0 ? fileName : fileName.substring(0, dot);
 	}
 
 	/**
