@@ -147,3 +147,4 @@ edges:
   5 -> 1 [execution: ]
   5 -> 2 [control: true]
   5 -> 3 [control: true]
+  5 -> 4 [control: true]

@@ -35,6 +35,8 @@ edges:
   6 -> 1 [control: true]
   6 -> 1 [execution: ]
   6 -> 2 [control: true]
+  6 -> 3 [control: true]
+  6 -> 4 [control: true]
   6 -> 5 [control: true]
 
 ## CFG labeledBlock <5...14>

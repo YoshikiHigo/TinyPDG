@@ -29,6 +29,7 @@ import yoshikihigo.tinypdg.pe.ConditionalStatementInfo;
 import yoshikihigo.tinypdg.pe.ForStatementInfo;
 import yoshikihigo.tinypdg.pe.IfStatementInfo;
 import yoshikihigo.tinypdg.pe.StatementInfo;
+import yoshikihigo.tinypdg.pe.TryStatementInfo;
 import yoshikihigo.tinypdg.pe.VariableInfo;
 
 public class PDG implements Comparable<PDG> {
@@ -228,7 +229,7 @@ public class PDG implements Comparable<PDG> {
 		this.cfgNodes = this.cfg.getAllNodes();
 
 		if (this.dependences.control()) {
-			this.buildControlDependence(this.enterNode, unit);
+			this.buildControlDependenceInside(this.enterNode, unit, true);
 			for (final PDGParameterNode parameterNode : this.parameterNodes) {
 				new PDGControlDependenceEdge(this.enterNode, parameterNode, true).connect();
 			}
@@ -299,8 +300,8 @@ public class PDG implements Comparable<PDG> {
 		if (this.dependences.control()) {
 			if (pdgNode instanceof PDGControlNode) {
 				final ProgramElementInfo condition = ((PDGControlNode) pdgNode).core;
-				this.buildControlDependence((PDGControlNode) pdgNode,
-						condition.getOwnerConditionalBlock());
+				this.buildControlDependenceInside((PDGControlNode) pdgNode,
+						condition.getOwnerConditionalBlock(), true);
 			}
 		}
 
@@ -357,11 +358,20 @@ public class PDG implements Comparable<PDG> {
 		}
 	}
 
-	private void buildControlDependence(final PDGControlNode fromPDGNode,
-			final BlockInfo block) {
+	/**
+	 * ブロックの中身を fromPDGNode に制御依存させる。
+	 *
+	 * @param type fromPDGNode の条件がこの値のときに中身が実行される。条件
+	 *             ノード自身の本体なら真、if の else の中なら偽。条件を持た
+	 *             ないブロック (try、synchronized、ラベル付きブロック) が else
+	 *             の中にあれば、その中身も偽で依存する。以前はここで真に
+	 *             戻していた
+	 */
+	private void buildControlDependenceInside(final PDGControlNode fromPDGNode,
+			final BlockInfo block, final boolean type) {
 
 		for (final StatementInfo statement : block.getStatements()) {
-			this.buildControlDependence(fromPDGNode, statement, true);
+			this.buildControlDependence(fromPDGNode, statement, type);
 		}
 
 		if (block instanceof IfStatementInfo ifStatement) {
@@ -371,11 +381,26 @@ public class PDG implements Comparable<PDG> {
 			}
 		}
 
+		// catch 節と finally ブロックは、try 本体と同じ相手に依存する。catch
+		// の条件ノード (例外の宣言) が相手になり、その本体は条件ノードの側で
+		// 張る。以前はどちらも見ておらず、catch の条件ノードにも finally の中
+		// の文にも制御依存の辺が 1 本もなかった。
+		if (block instanceof TryStatementInfo tryStatement) {
+			for (final StatementInfo catchStatement : tryStatement
+					.getCatchStatements()) {
+				this.buildControlDependence(fromPDGNode, catchStatement, type);
+			}
+			final StatementInfo finallyStatement = tryStatement.getFinallyStatement();
+			if (null != finallyStatement) {
+				this.buildControlDependence(fromPDGNode, finallyStatement, type);
+			}
+		}
+
 		if (block instanceof ForStatementInfo forStatement) {
 			for (final ProgramElementInfo updater : forStatement.getUpdaters()) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNormalNode(updater);
-				new PDGControlDependenceEdge(fromPDGNode, toPDGNode, true).connect();
+				new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
 			}
 		}
 	}
@@ -398,7 +423,7 @@ public class PDG implements Comparable<PDG> {
 						.makeControlNode(condition);
 				new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
 			} else {
-				this.buildControlDependence(fromPDGNode, block);
+				this.buildControlDependenceInside(fromPDGNode, block, type);
 			}
 
 			if (block instanceof ForStatementInfo forStatement) {

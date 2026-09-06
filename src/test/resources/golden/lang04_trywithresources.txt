@@ -57,4 +57,5 @@ edges:
   9 -> 2 [control: true]
   9 -> 3 [control: true]
   9 -> 4 [control: true]
+  9 -> 6 [control: true]
   9 -> 8 [control: true]

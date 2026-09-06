@@ -141,4 +141,5 @@ edges:
   7 -> 1 [execution: ]
   7 -> 2 [control: true]
   7 -> 3 [control: true]
+  7 -> 4 [control: true]
   7 -> 6 [control: true]

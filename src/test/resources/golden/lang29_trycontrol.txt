@@ -1,0 +1,61 @@
+# sample: lang29_trycontrol
+
+## CFG tryInElse <5...19>
+nodes:
+  0: [enter,normal] int r = 0; <6>
+  1: [control] c <7>
+  2: [normal] r = 1; <8>
+  3: [normal] r = x / 2; <11>
+  4: [control] final ArithmeticException e <12>
+  5: [normal] r = -1; <13>
+  6: [normal] r = r + 1; <15>
+  7: [exit,normal] return r; <18>
+edges:
+  0 -> 1 []
+  1 -> 2 [true]
+  1 -> 3 [false]
+  2 -> 7 []
+  3 -> 6 []
+  4 -> 5 [true]
+  5 -> 6 []
+  6 -> 7 []
+
+## PDG tryInElse <5...19>
+nodes:
+  0: [parameter] final boolean c <5>
+  1: [parameter] final int x <5>
+  2: [normal] int r = 0; <6>
+  3: [control] c <7>
+  4: [normal] r = 1; <8>
+  5: [normal] r = x / 2; <11>
+  6: [control] final ArithmeticException e <12>
+  7: [normal] r = -1; <13>
+  8: [normal] r = r + 1; <15>
+  9: [exit] return r; <18>
+  10: [enter,control] Enter <5...19>
+edges:
+  0 -> 3 [data: c]
+  1 -> 5 [data: x]
+  2 -> 3 [execution: ]
+  3 -> 4 [control: true]
+  3 -> 4 [execution: ]
+  3 -> 5 [control: false]
+  3 -> 5 [execution: ]
+  3 -> 6 [control: false]
+  3 -> 8 [control: false]
+  4 -> 9 [data: r]
+  4 -> 9 [execution: ]
+  5 -> 8 [data: r]
+  5 -> 8 [execution: ]
+  6 -> 7 [control: true]
+  6 -> 7 [execution: ]
+  7 -> 8 [data: r]
+  7 -> 8 [execution: ]
+  8 -> 9 [data: r]
+  8 -> 9 [execution: ]
+  10 -> 0 [control: true]
+  10 -> 1 [control: true]
+  10 -> 2 [control: true]
+  10 -> 2 [execution: ]
+  10 -> 3 [control: true]
+  10 -> 9 [control: true]
