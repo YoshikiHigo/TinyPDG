@@ -1,5 +1,31 @@
 # sample: lang02_initializer
 
+## CFG <clinit> <9...11>
+nodes:
+  0: [enter,exit,normal] counter = counter * 2; <10>
+edges:
+
+## PDG <clinit> <9...11>
+nodes:
+  0: [exit] counter = counter * 2; <10>
+  1: [enter,control] Enter <9...11>
+edges:
+  1 -> 0 [control: true]
+  1 -> 0 [execution: ]
+
+## CFG <init> <13...15>
+nodes:
+  0: [enter,exit,normal] this.instanceField = this.instanceField + 1; <14>
+edges:
+
+## PDG <init> <13...15>
+nodes:
+  0: [exit] this.instanceField = this.instanceField + 1; <14>
+  1: [enter,control] Enter <13...15>
+edges:
+  1 -> 0 [control: true]
+  1 -> 0 [execution: ]
+
 ## CFG method <17...20>
 nodes:
   0: [enter,normal] int a = this.instanceField; <18>

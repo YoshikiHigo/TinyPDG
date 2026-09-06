@@ -10,9 +10,12 @@ import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.AnnotationTypeDeclaration;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.EnumConstantDeclaration;
 import org.eclipse.jdt.core.dom.EnumDeclaration;
 import org.eclipse.jdt.core.dom.Expression;
+import org.eclipse.jdt.core.dom.Initializer;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.RecordDeclaration;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.Statement;
@@ -166,12 +169,42 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 		text.append("{");
 		text.append(System.lineSeparator());
 
-		for (final Object o : node.bodyDeclarations()) {
+		// enum の定数が本体を持てば (PLUS { ... })、それは匿名クラスである。
+		// 中のメソッドは匿名クラスの visit が this.methods に積む。
+		if (node instanceof EnumDeclaration enumDeclaration) {
+			for (final Object o : enumDeclaration.enumConstants()) {
+				final EnumConstantDeclaration constant = (EnumConstantDeclaration) o;
+				if (null != constant.getAnonymousClassDeclaration()) {
+					final ProgramElementInfo body = this.visitChild(
+							constant.getAnonymousClassDeclaration());
+					text.append(constant.getName().getIdentifier());
+					text.append(body.getText());
+					text.append(System.lineSeparator());
+				}
+			}
+		}
 
-			if (o instanceof MethodDeclaration) {
-				final ProgramElementInfo method = this.visitChild((ASTNode) o);
-				this.methods.add((MethodInfo) method);
-				typeDeclaration.addMethod((MethodInfo) method);
+		this.visitMembers(node.bodyDeclarations(), typeDeclaration, text);
+
+		text.append("}");
+		typeDeclaration.setText(text.toString());
+	}
+
+	/**
+	 * 型の本体からメソッド、初期化ブロック、ネストした型を拾う。
+	 *
+	 * <p>型宣言と匿名クラスの両方がここを通る。フィールドと、enum の定数の
+	 * 引数は式であって文の並びを持たないので拾わない。
+	 */
+	private void visitMembers(final List<?> members, final ClassInfo owner,
+			final StringBuilder text) {
+
+		for (final Object o : members) {
+
+			if (o instanceof MethodDeclaration || o instanceof Initializer) {
+				final MethodInfo method = (MethodInfo) this.visitChild((ASTNode) o);
+				this.methods.add(method);
+				owner.addMethod(method);
 				text.append(method.getText());
 				text.append(System.lineSeparator());
 
@@ -183,9 +216,31 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 				text.append(System.lineSeparator());
 			}
 		}
+	}
 
-		text.append("}");
-		typeDeclaration.setText(text.toString());
+	/**
+	 * 初期化ブロック。{@code static { ... }} と {@code { ... }} である。
+	 *
+	 * <p>本体を持つ点でメソッドと同じなので、1 つの解析単位にする。名前は
+	 * JVM に倣って static なら {@code <clinit>}、そうでなければ {@code <init>}
+	 * とする。ソースのメソッド名とは衝突しない。以前は素通りしていて、
+	 * 初期化ブロックの中のコードは誰からも見えなかった。
+	 */
+	@Override
+	public boolean visit(final Initializer node) {
+
+		final int startLine = this.getStartLineNumber(node);
+		final int endLine = this.getEndLineNumber(node);
+		final boolean isStatic = Modifier.isStatic(node.getModifiers());
+		final MethodInfo initializer = new MethodInfo(this.path,
+				isStatic ? "<clinit>" : "<init>", startLine, endLine);
+		this.stack.push(initializer);
+
+		final ProgramElementInfo body = this.visitChild(node.getBody());
+		initializer.setStatement((StatementInfo) body);
+		initializer.setText((isStatic ? "static " : "") + body.getText());
+
+		return false;
 	}
 
 	/**
@@ -216,17 +271,11 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 				startLine, endLine);
 		this.stack.push(anonymousClass);
 
-		for (final Object o : node.bodyDeclarations()) {
-			if (o instanceof MethodDeclaration) {
-				final ProgramElementInfo method = this.visitChild((ASTNode) o);
-				// 匿名クラスのメソッドも 1 つの独立した解析単位として扱う。
-				// ここで this.methods に入れ忘れていたため、これまで
-				// 匿名クラスの中身は誰からも見えていなかった。
-				this.methods.add((MethodInfo) method);
-				anonymousClass.addMethod((MethodInfo) method);
-				text.append(method.getText());
-			}
-		}
+		// 匿名クラスのメソッドも 1 つの独立した解析単位として扱う。以前は
+		// ここで this.methods に入れ忘れていたため、匿名クラスの中身は誰からも
+		// 見えていなかった。初期化ブロック (new ArrayList<>() {{ add(1); }}) も
+		// 同じく拾う。
+		this.visitMembers(node.bodyDeclarations(), anonymousClass, text);
 
 		text.append("}");
 		anonymousClass.setText(text.toString());

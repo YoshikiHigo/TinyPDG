@@ -35,7 +35,7 @@ edges:
 ## CFG method2 <5...15>
 nodes:
   0: [enter,normal] final int number = 10; <6>
-  1: [normal] A a = new A(){\npublic void method1(boolean b1){\nif (b1) {\nSystem.out.println(number);\n}\n}}; <7...13>
+  1: [normal] A a = new A(){\npublic void method1(boolean b1){\nif (b1) {\nSystem.out.println(number);\n}\n}\n}; <7...13>
   2: [exit,normal] a.method1(true); <14>
 edges:
   0 -> 1 []
@@ -44,7 +44,7 @@ edges:
 ## PDG method2 <5...15>
 nodes:
   0: [normal] final int number = 10; <6>
-  1: [normal] A a = new A(){\npublic void method1(boolean b1){\nif (b1) {\nSystem.out.println(number);\n}\n}}; <7...13>
+  1: [normal] A a = new A(){\npublic void method1(boolean b1){\nif (b1) {\nSystem.out.println(number);\n}\n}\n}; <7...13>
   2: [exit] a.method1(true); <14>
   3: [enter,control] Enter <5...15>
 edges:
