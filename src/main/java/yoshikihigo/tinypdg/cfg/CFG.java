@@ -4,6 +4,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -44,20 +45,33 @@ public class CFG {
 
 	final protected Set<CFGNode<? extends ProgramElementInfo>> exitNodes;
 
-	final protected LinkedList<CFGBreakStatementNode> unhandledBreakStatementNodes;
-
-	final protected LinkedList<CFGContinueStatementNode> unhandledContinueStatementNodes;
+	/** 飛び越えの種類。EXIT は return と throw で、メソッドの外へ出る。 */
+	enum JUMP {
+		BREAK, CONTINUE, EXIT
+	}
 
 	/**
-	 * return と throw のノード。メソッドから出る文なので、次の文へは流れない。
+	 * 行き先がまだ決まっていない飛び越え。
 	 *
-	 * <p>break と同じく、行き先の決まっていないものとして外側へ渡す。try の
-	 * finally があればそこへ繋ぎ、なければメソッドの出口になる。以前は他の
-	 * 文と同じく直後の文へ繋がっていて、{@code if (c) { return a; } b = a;} で
-	 * return から b の代入へ辺が張られ、ループの中の return はループの先頭へ
-	 * 戻っていた。
+	 * <p>break と continue はそれを囲むループや switch が、return と throw は
+	 * メソッドが行き先を決めるので、そこへ着くまで外側へ渡していく。途中に
+	 * finally のある try があれば、飛び越えはまず finally へ進み、finally の
+	 * 出口を始点にした同じ種類の飛び越えとして先へ渡される。
+	 *
+	 * <p>以前は break、continue、return と throw のノードを別々のリストで
+	 * 持っていた。始点が飛び越えの文そのものに限られていたので、finally を
+	 * 通った後の続きを表せなかった。
+	 *
+	 * @param kind  種類
+	 * @param label break と continue のラベル。なければ null
+	 * @param from  辺の始点。飛び越えの文のノードか、finally を通った後は
+	 *              finally の出口のノード
 	 */
-	final protected LinkedList<CFGNode<? extends ProgramElementInfo>> unhandledExitStatementNodes;
+	record PendingJump(JUMP kind, String label,
+			CFGNode<? extends ProgramElementInfo> from) {
+	}
+
+	final protected LinkedList<PendingJump> pendingJumps;
 
 	protected boolean built;
 
@@ -86,9 +100,7 @@ public class CFG {
 		this.exitNodes = new TreeSet<>();
 		this.built = false;
 
-		this.unhandledBreakStatementNodes = new LinkedList<>();
-		this.unhandledContinueStatementNodes = new LinkedList<>();
-		this.unhandledExitStatementNodes = new LinkedList<>();
+		this.pendingJumps = new LinkedList<>();
 	}
 
 	public boolean isEmpty() {
@@ -254,13 +266,14 @@ public class CFG {
 				final CFGNode<? extends ProgramElementInfo> node = this.nodeFactory
 						.makeNormalNode(coreStatement);
 				this.enterNode = node;
-				if (node instanceof CFGBreakStatementNode breakNode) {
-					this.unhandledBreakStatementNodes.addFirst(breakNode);
-				} else if (node instanceof CFGContinueStatementNode continueNode) {
-					this.unhandledContinueStatementNodes
-							.addFirst(continueNode);
+				if (node instanceof CFGBreakStatementNode) {
+					this.pendingJumps.add(new PendingJump(JUMP.BREAK,
+							coreStatement.getJumpToLabel(), node));
+				} else if (node instanceof CFGContinueStatementNode) {
+					this.pendingJumps.add(new PendingJump(JUMP.CONTINUE,
+							coreStatement.getJumpToLabel(), node));
 				} else if (leavesTheMethod(coreStatement)) {
-					this.unhandledExitStatementNodes.add(node);
+					this.pendingJumps.add(new PendingJump(JUMP.EXIT, null, node));
 				} else {
 					this.exitNodes.add(node);
 				}
@@ -279,9 +292,15 @@ public class CFG {
 
 		else if (this.core instanceof MethodInfo coreMethod) {
 			this.buildSimpleBlockCFG(coreMethod);
-			// メソッドの出口は、本体の最後の文に加えて、途中の return と throw。
-			this.exitNodes.addAll(this.unhandledExitStatementNodes);
-			this.unhandledExitStatementNodes.clear();
+			// メソッドの出口は、本体の最後の文に加えて、途中の return と throw
+			// (finally を通ったなら、その出口)。行き先の見つからなかった break と
+			// continue は捨てる。正しいソースにはない。
+			for (final PendingJump jump : this.pendingJumps) {
+				if (JUMP.EXIT == jump.kind()) {
+					this.exitNodes.add(jump.from());
+				}
+			}
+			this.pendingJumps.clear();
 		}
 
 		else {
@@ -559,15 +578,27 @@ public class CFG {
 			}
 		}
 
-		// try 本体と catch 節の中の return と throw は、finally があればまず
-		// そこへ進む。finally の後は次の文へ流れてしまい、メソッドの外へ出る
-		// 経路としては正確でないが、finally が実行されることは表せる。
-		// finally がなければ、メソッドの出口として外側へ渡す。
+		// finally は合流点である。try 本体と catch 節から出る飛び越え (return、
+		// throw、break、continue) は、種類を問わずまず finally へ進み、finally の
+		// 出口を始点にした同じ種類の飛び越えとして外側へ渡す。経路は区別しない
+		// ので、finally の後には通常経路の次の文と飛び越えの行き先の両方が続く。
+		// 経路ごとに finally を複製すれば正確になるが、文 1 つにノード 1 つと
+		// いう同一性を崩すことになる。
+		//
+		// 以前は return と throw だけを finally へ通し、その後は次の文へしか
+		// 流れず、break と continue は finally を飛ばしてループへ直接届いていた。
 		if (null != finallyBlock) {
-			for (final CFGNode<? extends ProgramElementInfo> exitStatementNode : this.unhandledExitStatementNodes) {
-				connect(exitStatementNode, finallyCFG.enterNode);
+			final List<PendingJump> jumps = new ArrayList<>(this.pendingJumps);
+			this.pendingJumps.clear();
+			final Set<PendingJump> passed = new LinkedHashSet<>();
+			for (final PendingJump jump : jumps) {
+				connect(jump.from(), finallyCFG.enterNode);
+				for (final CFGNode<? extends ProgramElementInfo> finallyExitNode : finallyCFG.exitNodes) {
+					passed.add(new PendingJump(jump.kind(), jump.label(),
+							finallyExitNode));
+				}
 			}
-			this.unhandledExitStatementNodes.clear();
+			this.pendingJumps.addAll(passed);
 		}
 
 		this.absorb(finallyCFG);
@@ -575,20 +606,15 @@ public class CFG {
 	}
 
 	/**
-	 * 部分グラフのノードと、まだ行き先の決まっていない break と continue を
-	 * 引き取る。入口と出口は文の種類ごとに決め方が違うので、呼ぶ側が扱う。
+	 * 部分グラフのノードと、まだ行き先の決まっていない飛び越えを引き取る。
+	 * 入口と出口は文の種類ごとに決め方が違うので、呼ぶ側が扱う。
 	 *
 	 * <p>private にすると SequentialCFGs から呼べない。private なメソッドは
 	 * 継承されないので、サブクラスの this からは見つからない。
 	 */
 	void absorb(final CFG sub) {
 		this.nodes.addAll(sub.nodes);
-		this.unhandledBreakStatementNodes
-				.addAll(sub.unhandledBreakStatementNodes);
-		this.unhandledContinueStatementNodes
-				.addAll(sub.unhandledContinueStatementNodes);
-		this.unhandledExitStatementNodes
-				.addAll(sub.unhandledExitStatementNodes);
+		this.pendingJumps.addAll(sub.pendingJumps);
 	}
 
 	/** return と throw。メソッド (と、あれば finally) の外へ出る文。 */
@@ -682,15 +708,16 @@ public class CFG {
 	private void connectCFGBreakStatementNode(final StatementInfo statement,
 			final boolean acceptsUnlabeled) {
 
-		final Iterator<CFGBreakStatementNode> iterator = this.unhandledBreakStatementNodes
-				.iterator();
+		final Iterator<PendingJump> iterator = this.pendingJumps.iterator();
 		while (iterator.hasNext()) {
-			final CFGBreakStatementNode node = iterator.next();
-			final String label = node.core.getJumpToLabel();
-			final boolean endsHere = null == label ? acceptsUnlabeled
-					: label.equals(statement.getLabel());
+			final PendingJump jump = iterator.next();
+			if (JUMP.BREAK != jump.kind()) {
+				continue;
+			}
+			final boolean endsHere = null == jump.label() ? acceptsUnlabeled
+					: jump.label().equals(statement.getLabel());
 			if (endsHere) {
-				this.exitNodes.add(node);
+				this.exitNodes.add(jump.from());
 				iterator.remove();
 			}
 		}
@@ -699,27 +726,21 @@ public class CFG {
 	private void connectCFGContinueStatementNode(final StatementInfo statement,
 			final CFGNode<? extends ProgramElementInfo> destinationNode) {
 
-		final Iterator<CFGContinueStatementNode> iterator = this.unhandledContinueStatementNodes
-				.iterator();
+		final Iterator<PendingJump> iterator = this.pendingJumps.iterator();
 		while (iterator.hasNext()) {
-			final CFGContinueStatementNode node = iterator.next();
-			final StatementInfo continueStatement = node.core;
-			final String label = continueStatement.getJumpToLabel();
-
-			if (null == label) {
-				connect(node, destinationNode);
+			final PendingJump jump = iterator.next();
+			if (JUMP.CONTINUE != jump.kind()) {
+				continue;
+			}
+			// ラベルのない continue は最も内側のループへ、ラベル付きは名指しの
+			// ループへ飛ぶ。
+			final boolean endsHere = null == jump.label()
+					|| jump.label().equals(statement.getLabel());
+			if (endsHere) {
+				connect(jump.from(), destinationNode);
 				iterator.remove();
 			}
-
-			else {
-
-				if (label.equals(statement.getLabel())) {
-					connect(node, destinationNode);
-					iterator.remove();
-				}
-			}
 		}
-
 	}
 
 	private class SequentialCFGs extends CFG {
