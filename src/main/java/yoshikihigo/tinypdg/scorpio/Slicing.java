@@ -11,6 +11,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 
+import yoshikihigo.tinypdg.pdg.edge.PDGControlDependenceEdge;
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
 import yoshikihigo.tinypdg.scorpio.data.ClonePairInfo;
@@ -198,6 +199,13 @@ public class Slicing {
 					continue;
 				}
 
+				// 依存の種類と、制御依存なら真偽も揃える。以前は先のノードの同値
+				// だけを見ていたので、データ依存と制御依存が対応したり、if の then
+				// と else を入れ替えたものが同型になったりしていた (issue #30)。
+				if (!sameKind(edgeA, edgeB)) {
+					continue;
+				}
+
 				this.comparisons.incrementAndGet();
 				if (equivalentNodesA == equivalentNodesB && nodeA != nodeB) {
 					// 再帰版はここで perform(nodeA, nodeB) を呼んでいた。見た
@@ -229,6 +237,22 @@ public class Slicing {
 			newCandidate.merge(clonepair);
 			candidates.add(newCandidate);
 		}
+	}
+
+	/**
+	 * 2 つの辺が同じ種類の依存か。制御依存は真偽まで同じでなければならない。
+	 * データ依存の変数名は見ない。正規化で番号に変わり、2 つの断片の間で
+	 * 揃える手立てがない。
+	 */
+	private static boolean sameKind(final PDGEdge edgeA, final PDGEdge edgeB) {
+		if (edgeA.type != edgeB.type) {
+			return false;
+		}
+		if (edgeA instanceof PDGControlDependenceEdge controlA
+				&& edgeB instanceof PDGControlDependenceEdge controlB) {
+			return controlA.trueDependence == controlB.trueDependence;
+		}
+		return true;
 	}
 
 	private static List<PDGEdge> sortedBy(final Comparator<PDGEdge> comparator,

@@ -1,0 +1,101 @@
+# sample: lang53_branchorder
+
+## CFG log <29...30>
+nodes:
+edges:
+
+## PDG log <29...30>
+nodes:
+  0: [parameter] final String message <29>
+  1: [enter,control] Enter <29...30>
+edges:
+  1 -> 0 [control: true]
+
+## CFG same <21...27>
+nodes:
+  0: [enter,control] d <22>
+  1: [exit,normal] log("a"); <23>
+  2: [exit,normal] warn("b"); <25>
+edges:
+  0 -> 1 [true]
+  0 -> 2 [false]
+
+## PDG same <21...27>
+nodes:
+  0: [parameter] final boolean d <21>
+  1: [control] d <22>
+  2: [exit] log("a"); <23>
+  3: [exit] warn("b"); <25>
+  4: [enter,control] Enter <21...27>
+edges:
+  0 -> 1 [data: d]
+  1 -> 2 [control: true]
+  1 -> 2 [execution: ]
+  1 -> 3 [control: false]
+  1 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 1 [control: true]
+  4 -> 1 [execution: ]
+
+## CFG straight <5...11>
+nodes:
+  0: [enter,control] c <6>
+  1: [exit,normal] log("a"); <7>
+  2: [exit,normal] warn("b"); <9>
+edges:
+  0 -> 1 [true]
+  0 -> 2 [false]
+
+## PDG straight <5...11>
+nodes:
+  0: [parameter] final boolean c <5>
+  1: [control] c <6>
+  2: [exit] log("a"); <7>
+  3: [exit] warn("b"); <9>
+  4: [enter,control] Enter <5...11>
+edges:
+  0 -> 1 [data: c]
+  1 -> 2 [control: true]
+  1 -> 2 [execution: ]
+  1 -> 3 [control: false]
+  1 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 1 [control: true]
+  4 -> 1 [execution: ]
+
+## CFG swapped <13...19>
+nodes:
+  0: [enter,control] c <14>
+  1: [exit,normal] warn("b"); <15>
+  2: [exit,normal] log("a"); <17>
+edges:
+  0 -> 1 [true]
+  0 -> 2 [false]
+
+## PDG swapped <13...19>
+nodes:
+  0: [parameter] final boolean c <13>
+  1: [control] c <14>
+  2: [exit] warn("b"); <15>
+  3: [exit] log("a"); <17>
+  4: [enter,control] Enter <13...19>
+edges:
+  0 -> 1 [data: c]
+  1 -> 2 [control: true]
+  1 -> 2 [execution: ]
+  1 -> 3 [control: false]
+  1 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 1 [control: true]
+  4 -> 1 [execution: ]
+
+## CFG warn <32...33>
+nodes:
+edges:
+
+## PDG warn <32...33>
+nodes:
+  0: [parameter] final String message <32>
+  1: [enter,control] Enter <32...33>
+edges:
+  1 -> 0 [control: true]

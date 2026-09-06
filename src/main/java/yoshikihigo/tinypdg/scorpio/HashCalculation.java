@@ -6,6 +6,7 @@ import java.util.TreeMap;
 
 import yoshikihigo.tinypdg.Parallel;
 import yoshikihigo.tinypdg.pdg.PDG;
+import yoshikihigo.tinypdg.pdg.edge.PDGControlDependenceEdge;
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
 import yoshikihigo.tinypdg.pdg.node.PDGNode;
 
@@ -59,8 +60,14 @@ public final class HashCalculation {
 
 			final SortedMap<PDGEdge, String> mappingPDGEdgeToKey = new TreeMap<>();
 			for (final PDGEdge edge : pdg.getAllEdges()) {
+				// 制御依存は真偽も鍵に含める。then と else を入れ替えたものは
+				// 別物である (issue #30)。データ依存の変数名は正規化で番号に
+				// なるので含めない。
+				final String kind = edge instanceof PDGControlDependenceEdge control
+						? edge.type + ":" + control.getDependenceString()
+						: edge.type.toString();
 				final String key = NormalizedText.normalize(edge.fromNode.core) + "-"
-						+ edge.type + "->"
+						+ kind + "->"
 						+ NormalizedText.normalize(edge.toNode.core);
 				mappingPDGEdgeToKey.put(edge, key);
 			}
