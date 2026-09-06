@@ -80,12 +80,17 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 	 * 式のままでは分岐が見えない。
 	 *
 	 * <p>そこで、一時変数へ代入する switch 文へ書き換えて元の文の前に置き、
-	 * 元の位置にはその一時変数の参照だけを残す。
+	 * 元の位置にはその一時変数の参照だけを残す。yield は一時変数への代入と、
+	 * その switch 文へのラベル付き break になる。switch 文には一時変数と同じ
+	 * 名前のラベルを付ける。
 	 *
 	 * <pre>
 	 *   int y = switch (x) { case 1 -&gt; 10; default -&gt; 20; };
 	 *     ↓
-	 *   switch (x) { case 1: $switch1 = 10; default: $switch1 = 20; }
+	 *   $switch1: switch (x) {
+	 *     case 1: $switch1 = 10; break $switch1;
+	 *     default: $switch1 = 20; break $switch1;
+	 *   }
 	 *   int y = $switch1;
 	 * </pre>
 	 *
@@ -113,6 +118,8 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		// switch 式は網羅的でなければコンパイルが通らない。default がなくても
 		// 素通りする経路はない。
 		switchBlock.setExhaustive(true);
+		// yield から書き換えた break $switchN の行き先。
+		switchBlock.setLabel(target);
 		this.stack.push(switchBlock);
 
 		final ProgramElementInfo condition = this.visitChild(node.getExpression());
@@ -125,11 +132,8 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		text.append(") {");
 		text.append(System.lineSeparator());
 
-		// 入れ子の switch 式が中にあっても、外側の yieldConverted を壊さない。
-		final boolean outerConverted = this.yieldConverted;
 		this.yieldTargets.push(target);
 		for (final Object o : node.statements()) {
-			this.yieldConverted = false;
 			final StatementInfo statement = (StatementInfo) this.visitChild((ASTNode) o);
 
 			// アームの式の中にあった switch 式は、脱糖されてこのアームの前に出る。
@@ -157,22 +161,7 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				text.append(statement.getText());
 				text.append(System.lineSeparator());
 			}
-
-			// yield はアームを終わらせる。switch 文へ書き換えた以上、
-			// 明示的に break を置かないと次のアームへ流れてしまう。
-			// フラグは yield が入れ子のブロックの中にあっても立つので、
-			// 矢印形式でもコロン形式でも同じ判定で済む。
-			if (this.yieldConverted) {
-				final SimpleStatementInfo jump = new SimpleStatementInfo(switchBlock,
-						StatementInfo.CATEGORY.Break, statement.startLine,
-						statement.endLine);
-				jump.setText("break;");
-				switchBlock.addStatement(jump);
-				text.append(jump.getText());
-				text.append(System.lineSeparator());
-			}
 		}
-		this.yieldConverted = outerConverted;
 		this.yieldTargets.pop();
 
 		text.append("}");

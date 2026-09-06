@@ -115,9 +115,14 @@ abstract class StatementVisitor extends ExpressionVisitor {
 					text.append("yield ");
 					text.append(expression.getText());
 				} else {
-					// 脱糖中。yield expr は一時変数への代入になる。
-					// 変数宣言の断片と同じ形にすると、定義が一時変数、参照が
-					// expr の中身、という関係がそのまま得られる。
+					// 脱糖中。yield expr は、一時変数への代入と、脱糖した switch 文
+					// へのラベル付き break の 2 文になる。代入は変数宣言の断片と
+					// 同じ形にすると、定義が一時変数、参照が expr の中身、という
+					// 関係がそのまま得られる。
+					//
+					// 以前は代入だけにして、アームの末尾に break を 1 つ置いていた。
+					// ループや入れ子の switch 文の中の yield では、代入の後にループ
+					// の続きが実行されることになっていた (issue #22)。
 					final String target = this.yieldTargets.peek();
 					final ExpressionInfo assignment = new ExpressionInfo(
 							ExpressionInfo.CATEGORY.VariableDeclarationFragment,
@@ -131,8 +136,26 @@ abstract class StatementVisitor extends ExpressionVisitor {
 
 					yieldStatement.setCategory(StatementInfo.CATEGORY.Expression);
 					yieldStatement.addExpression(assignment);
-					text.append(assignment.getText());
-					this.yieldConverted = true;
+					yieldStatement.setText(assignment.getText() + ";");
+
+					final SimpleStatementInfo jump = new SimpleStatementInfo(ownerBlock,
+							StatementInfo.CATEGORY.Break, startLine, endLine);
+					final ExpressionInfo label = new ExpressionInfo(
+							ExpressionInfo.CATEGORY.SimpleName, startLine, endLine);
+					label.setText(target);
+					jump.addExpression(label);
+					jump.setText("break " + target + ";");
+
+					// 2 文を並べて積む。文の並びを受け取る側が中身を平らにする。
+					final BlockStatementInfo group = new BlockStatementInfo(ownerBlock,
+							StatementInfo.CATEGORY.SimpleBlock, startLine, endLine);
+					group.addStatement(yieldStatement);
+					group.addStatement(jump);
+					group.setText(yieldStatement.getText() + System.lineSeparator()
+							+ jump.getText());
+					this.stack.pop();
+					this.stack.push(group);
+					return false;
 				}
 			} else {
 				text.append("yield");
