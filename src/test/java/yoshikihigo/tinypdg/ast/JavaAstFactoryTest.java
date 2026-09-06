@@ -19,6 +19,31 @@ class JavaAstFactoryTest {
 	private static final File BROKEN = Path.of(System.getProperty("user.dir"))
 			.resolve("src/test/resources/broken").toFile();
 
+	private static final File ENCODING = Path.of(System.getProperty("user.dir"))
+			.resolve("src/test/resources/encoding").toFile();
+
+	@Test
+	void skipsFilesThatAreNotUtf8AndWarns() {
+
+		final PrintStream original = System.err;
+		final ByteArrayOutputStream captured = new ByteArrayOutputStream();
+		System.setErr(new PrintStream(captured, true, StandardCharsets.UTF_8));
+
+		final List<MethodInfo> methods;
+		try {
+			methods = JavaAstFactory.collectMethods(ENCODING,
+					JavaAstFactory.DEFAULT_JAVA_VERSION);
+		} finally {
+			System.setErr(original);
+		}
+
+		assertEquals(List.of("good"), methods.stream().map(m -> m.name).toList(),
+				"UTF-8 として読めないファイルのメソッドは集めないこと");
+		final String warning = captured.toString(StandardCharsets.UTF_8);
+		assertTrue(warning.contains("Latin1.java"),
+				"飛ばしたファイルを報告すること: " + warning);
+	}
+
 	@Test
 	void skipsFilesWithSyntaxErrorsAndWarns() {
 

@@ -3,6 +3,7 @@ package yoshikihigo.tinypdg.ast;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -123,8 +124,21 @@ public final class JavaAstFactory {
 		final List<MethodInfo> methods = new ArrayList<>();
 		int skipped = 0;
 		for (final File file : JavaSourceFiles.collect(target)) {
-			final CompilationUnit unit = createAST(file,
-					StandardCharsets.UTF_8, javaVersion);
+			final CompilationUnit unit;
+			try {
+				unit = createAST(file, StandardCharsets.UTF_8, javaVersion);
+			} catch (final TinyPDGException e) {
+				// UTF-8 として読めないファイルは、構文エラーのファイルと同じく
+				// 飛ばす。以前は実行全体が止まっていた (issue #18)。読めない以外
+				// の入出力の失敗は今までどおり止める。
+				if (e.getCause() instanceof CharacterCodingException) {
+					System.err.println("警告: UTF-8 として読めないファイルを飛ばします: "
+							+ file);
+					skipped++;
+					continue;
+				}
+				throw e;
+			}
 
 			final IProblem error = firstSyntaxError(unit);
 			if (null != error) {
@@ -139,8 +153,7 @@ public final class JavaAstFactory {
 					methods));
 		}
 		if (0 < skipped) {
-			System.err.println("警告: 構文エラーのため " + skipped
-					+ " 個のファイルを飛ばしました。");
+			System.err.println("警告: " + skipped + " 個のファイルを飛ばしました。");
 		}
 		return methods;
 	}
