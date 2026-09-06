@@ -1,10 +1,17 @@
 package yoshikihigo.tinypdg;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileSystemLoopException;
+import java.nio.file.FileVisitOption;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -25,9 +32,13 @@ public final class JavaSourceFiles {
 	/**
 	 * ファイルまたはディレクトリから、Java ソースファイルを再帰的に集める。
 	 *
-	 * <p>結果はパス順に並べる。{@link File#listFiles()} が返す順序は
-	 * ファイルシステム任せで、同じ入力でも環境によって変わる。並べておかないと
-	 * 出力されるグラフの番号付けが環境依存になってしまう。
+	 * <p>結果はパス順に並べる。ディレクトリの列挙順はファイルシステム任せで、
+	 * 同じ入力でも環境によって変わる。並べておかないと出力されるグラフの
+	 * 番号付けが環境依存になってしまう。
+	 *
+	 * <p>シンボリックリンクとジャンクションは辿る。ただし祖先へ戻る循環は
+	 * 警告して飛ばす。以前は File の再帰で辿っていて循環を知らず、パスの長さ
+	 * が OS の上限を超えるまで降りてから落ちていた (issue #20)。
 	 *
 	 * @param file 対象のファイルまたはディレクトリ
 	 * @return 見つかった .java ファイル。パス順
@@ -38,36 +49,44 @@ public final class JavaSourceFiles {
 
 		Objects.requireNonNull(file, "\"file\" is null.");
 
+		final Path start = file.toPath();
+		if (!Files.isRegularFile(start) && !Files.isDirectory(start)) {
+			// 存在しないか、通常のファイルでもディレクトリでもない。
+			// 黙って無視すると「解析対象 0 件で正常終了」に見えてしまう。
+			throw new TinyPDGException(
+					"ファイルでもディレクトリでもありません: " + file);
+		}
+
 		final List<File> files = new ArrayList<>();
-		collectInto(file, files);
+		try {
+			Files.walkFileTree(start, EnumSet.of(FileVisitOption.FOLLOW_LINKS),
+					Integer.MAX_VALUE, new SimpleFileVisitor<Path>() {
+
+						@Override
+						public FileVisitResult visitFile(final Path path,
+								final BasicFileAttributes attributes) {
+							if (attributes.isRegularFile()
+									&& path.getFileName().toString().endsWith(".java")) {
+								files.add(path.toFile());
+							}
+							return FileVisitResult.CONTINUE;
+						}
+
+						@Override
+						public FileVisitResult visitFileFailed(final Path path,
+								final IOException e) throws IOException {
+							if (e instanceof FileSystemLoopException) {
+								System.err.println("警告: 循環するリンクを飛ばします: " + path);
+								return FileVisitResult.CONTINUE;
+							}
+							throw e;
+						}
+					});
+		} catch (final IOException e) {
+			throw new TinyPDGException("ディレクトリを読めませんでした: " + file, e);
+		}
+
 		files.sort(Comparator.comparing(File::getAbsolutePath));
 		return files;
-	}
-
-	private static void collectInto(final File file, final List<File> files) {
-
-		if (file.isFile()) {
-			if (file.getName().endsWith(".java")) {
-				files.add(file);
-			}
-			return;
-		}
-
-		if (file.isDirectory()) {
-			final File[] children = file.listFiles();
-			if (null == children) {
-				throw new TinyPDGException(
-						"ディレクトリを読めませんでした: " + file);
-			}
-			for (final File child : children) {
-				collectInto(child, files);
-			}
-			return;
-		}
-
-		// 存在しないか、通常のファイルでもディレクトリでもない。
-		// 黙って無視すると「解析対象 0 件で正常終了」に見えてしまう。
-		throw new TinyPDGException(
-				"ファイルでもディレクトリでもありません: " + file);
 	}
 }

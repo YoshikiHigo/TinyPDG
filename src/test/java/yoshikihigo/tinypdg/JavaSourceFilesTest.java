@@ -4,11 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.io.TempDir;
 
 class JavaSourceFilesTest {
@@ -39,6 +41,23 @@ class JavaSourceFilesTest {
 		final Path source = root.resolve("One.java");
 		Files.writeString(source, "class One {}");
 		assertEquals(List.of(source.toFile()), JavaSourceFiles.collect(source.toFile()));
+	}
+
+	@Test
+	void skipsALinkThatClosesACycle(@TempDir final Path root) throws Exception {
+		final Path sub = Files.createDirectories(root.resolve("sub"));
+		Files.writeString(sub.resolve("A.java"), "class A {}");
+		try {
+			Files.createSymbolicLink(sub.resolve("back"), root);
+		} catch (final IOException | UnsupportedOperationException e) {
+			// リンクを作れない環境 (権限のない Windows など) では確かめられない。
+			Assumptions.abort("symbolic links are not available: " + e);
+		}
+
+		final List<File> files = JavaSourceFiles.collect(root.toFile());
+
+		assertEquals(List.of(sub.resolve("A.java").toFile()), files,
+				"循環で落ちず、ファイルは 1 回だけ集めること");
 	}
 
 	@Test
