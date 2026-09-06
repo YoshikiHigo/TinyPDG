@@ -111,12 +111,20 @@ public class CFG {
 		return nodes;
 	}
 
+	/**
+	 * case ラベルのノードを消し、条件から直接アームへ繋ぐ。
+	 *
+	 * <p>ただしパターンを持つラベル (case String s ->、case Circle(double r)
+	 * when r > 0 ->) は残す。値の比較ではなく変数の束縛なので、消すと s を
+	 * 定義するノードがなくなり、アームの中で s を使う文にデータ依存の辺が
+	 * 出なかった。case 1: や case RED: のような定数のラベルは今までどおり消す。
+	 */
 	public void removeSwitchCases() {
 		final Iterator<CFGNode<? extends ProgramElementInfo>> iterator = this.nodes
 				.iterator();
 		while (iterator.hasNext()) {
 			final CFGNode<? extends ProgramElementInfo> node = iterator.next();
-			if (node instanceof CFGSwitchCaseNode) {
+			if (node instanceof CFGSwitchCaseNode && !bindsVariables(node)) {
 
 				this.replaceExitNode(node);
 				for (final CFGEdge edge : node.getBackwardEdges()) {
@@ -603,6 +611,11 @@ public class CFG {
 	private static void connect(final CFGNode<?> from, final CFGNode<?> to,
 			final boolean control) {
 		CFGEdge.makeEdge(from, to, control).connect();
+	}
+
+	/** パターン変数を束縛する case ラベルか。 */
+	private static boolean bindsVariables(final CFGNode<?> node) {
+		return !node.core.getAssignedVariables().isEmpty();
 	}
 
 	/** node が出口なら、その前のノードたちを代わりの出口にする。 */
