@@ -1,0 +1,53 @@
+# sample: lang51_merge
+
+## CFG spin <11...15>
+nodes:
+  0: [enter,normal] tick(); <13>
+edges:
+  0 -> 0 []
+
+## PDG spin <11...15>
+nodes:
+  0: [normal] tick(); <13>
+  1: [enter,control] Enter <11...15>
+edges:
+  0 -> 0 [execution: ]
+  1 -> 0 [control: true]
+  1 -> 0 [execution: ]
+
+## CFG tick <17...18>
+nodes:
+edges:
+
+## PDG tick <17...18>
+nodes:
+  0: [enter,control] Enter <17...18>
+edges:
+
+## CFG twice <5...9>
+nodes:
+  0: [enter,normal] i++; <6>
+  1: [normal] i++; <7>
+  2: [exit,normal] return i; <8>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+
+## PDG twice <5...9>
+nodes:
+  0: [parameter] int i <5>
+  1: [normal] i++; <6>
+  2: [normal] i++; <7>
+  3: [exit] return i; <8>
+  4: [enter,control] Enter <5...9>
+edges:
+  0 -> 1 [data: i]
+  1 -> 2 [data: i]
+  1 -> 2 [execution: ]
+  2 -> 3 [data: i]
+  2 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 1 [control: true]
+  4 -> 1 [execution: ]
+  4 -> 2 [control: true]
+  4 -> 3 [control: true]

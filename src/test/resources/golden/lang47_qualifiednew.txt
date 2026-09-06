@@ -1,0 +1,45 @@
+# sample: lang47_qualifiednew
+
+## CFG create <15...19>
+nodes:
+  0: [enter,normal] final Inner in = outer.new Inner(); <16>
+  1: [normal] in.v = seed; <17>
+  2: [exit,normal] return in; <18>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+
+## PDG create <15...19>
+nodes:
+  0: [parameter] final Lang47QualifiedNew outer <15>
+  1: [parameter] final int seed <15>
+  2: [normal] final Inner in = outer.new Inner(); <16>
+  3: [normal] in.v = seed; <17>
+  4: [exit] return in; <18>
+  5: [enter,control] Enter <15...19>
+edges:
+  0 -> 2 [data: outer]
+  1 -> 3 [data: seed]
+  2 -> 3 [data: in]
+  2 -> 3 [execution: ]
+  3 -> 4 [data: in]
+  3 -> 4 [execution: ]
+  5 -> 0 [control: true]
+  5 -> 1 [control: true]
+  5 -> 2 [control: true]
+  5 -> 2 [execution: ]
+  5 -> 3 [control: true]
+  5 -> 4 [control: true]
+
+## CFG outerX <10...12>
+nodes:
+  0: [enter,exit,normal] return Lang47QualifiedNew.this.x + this.v; <11>
+edges:
+
+## PDG outerX <10...12>
+nodes:
+  0: [exit] return Lang47QualifiedNew.this.x + this.v; <11>
+  1: [enter,control] Enter <10...12>
+edges:
+  1 -> 0 [control: true]
+  1 -> 0 [execution: ]

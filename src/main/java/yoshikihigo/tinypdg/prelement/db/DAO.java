@@ -1,5 +1,6 @@
 package yoshikihigo.tinypdg.prelement.db;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -18,22 +19,23 @@ import yoshikihigo.tinypdg.prelement.data.Frequency;
  *
  * <p>AutoCloseable なので try-with-resources で使える。書き込みは
  * まとめて実行され、残りは close で流れる。読み戻す前には必ず閉じること。
+ *
+ * <p>要素の鍵は正規化テキストそのものである。以前はテキストの int のハッシュ
+ * を鍵にし、ハッシュからテキストを引く表を別に持っていた。別のテキストが
+ * 同じハッシュになると 1 つの要素に合算されていた (issue #24)。
  */
 public class DAO implements AutoCloseable {
 
-	static public final String TEXTS_SCHEMA = "id integer primary key autoincrement, hash integer, text string";
-	static public final String FREQUENCIES_SCHEMA = "id integer primary key autoincrement, type string, fromhash integer, tohash integer, support integer, probability real";
+	// 文字列の列は text にする。string と書くと SQLite では数値の親和性に
+	// なり、'007' が '7' として入る (issue #28)。
+	static public final String FREQUENCIES_SCHEMA = "id integer primary key autoincrement, type text, fromtext text, totext text, support integer, probability real";
 
 	private final Connection connection;
-	private final BatchedInsert insertToTexts;
 	private final BatchedInsert insertToFrequencies;
 	private final PreparedStatement selectFromFrequencies;
 
 	/**
 	 * まとめて実行する insert。一定の件数がたまるごとに、そして close で流す。
-	 *
-	 * <p>texts と frequencies の 2 つの insert が、件数を数えて流す同じ
-	 * 手順をそれぞれ持っていた。
 	 */
 	private static final class BatchedInsert implements AutoCloseable {
 
@@ -73,10 +75,19 @@ public class DAO implements AutoCloseable {
 	}
 
 	/**
-	 * @param creation テーブルがなければ作る。読むだけなら false
-	 * @throws TinyPDGException データベースを開けない場合
+	 * @param creation 真なら空のテーブルを作る (あれば作り直す)。読むだけなら
+	 *                 false で、そのときはファイルがなければ開かない
+	 * @throws TinyPDGException データベースを開けない場合、読むだけなのに
+	 *                          ファイルがない場合
 	 */
 	public DAO(final String database, final boolean creation) {
+
+		// 読むだけなのにファイルがなければ、開かずに止める。SQLite は開くだけで
+		// 空のファイルを作るので、以前はパスの綴りを間違えると 0 バイトの
+		// ファイルが残ったうえで「開けない」と言っていた (issue #28)。
+		if (!creation && !new File(database).isFile()) {
+			throw new TinyPDGException("データベースがありません: " + database);
+		}
 
 		// JDBC 4 以降、ドライバは ServiceLoader が見つける。Class.forName は
 		// 要らない。
@@ -91,23 +102,24 @@ public class DAO implements AutoCloseable {
 
 		try {
 			if (creation) {
+				// 作り直す。以前は "if not exists" で残していたので、同じ
+				// データベースへ 2 回書くと行が重複し、予測が両方を足していた。
 				try (final Statement statement = this.connection
 						.createStatement()) {
+					statement.executeUpdate("drop table if exists texts");
+					statement.executeUpdate("drop table if exists frequencies");
 					statement.executeUpdate(
-							"create table if not exists texts (" + TEXTS_SCHEMA
-									+ ")");
+							"create table frequencies (" + FREQUENCIES_SCHEMA + ")");
+					// 予測は始点のテキストと種類で引く。
 					statement.executeUpdate(
-							"create table if not exists frequencies ("
-									+ FREQUENCIES_SCHEMA + ")");
+							"create index frequencies_from on frequencies (fromtext, type)");
 				}
 			}
 
-			this.insertToTexts = new BatchedInsert(this.connection,
-					"insert into texts (hash, text) values (?, ?)");
 			this.insertToFrequencies = new BatchedInsert(this.connection,
-					"insert into frequencies (type, fromhash, tohash, support, probability) values (?, ?, ?, ?, ?)");
+					"insert into frequencies (type, fromtext, totext, support, probability) values (?, ?, ?, ?, ?)");
 			this.selectFromFrequencies = this.connection.prepareStatement(
-					"select tohash, (select text from texts T where T.hash = F.tohash), support, probability from frequencies F where (fromhash = ?) and (type = ?)");
+					"select totext, support, probability from frequencies where (fromtext = ?) and (type = ?)");
 
 		} catch (final SQLException e) {
 			// 開いた接続を残さない。
@@ -121,28 +133,15 @@ public class DAO implements AutoCloseable {
 		}
 	}
 
-	public void addToTexts(final int hash, final String text) {
-
-		try {
-			final PreparedStatement insert = this.insertToTexts.statement();
-			insert.setInt(1, hash);
-			insert.setString(2, text);
-			this.insertToTexts.addBatch();
-
-		} catch (final SQLException e) {
-			throw new TinyPDGException("texts への書き込みに失敗しました。", e);
-		}
-	}
-
 	public void addToFrequencies(final PDGEdge.TYPE type,
-			final int fromhash, final Frequency frequency) {
+			final String fromText, final Frequency frequency) {
 
 		try {
 			final PreparedStatement insert = this.insertToFrequencies
 					.statement();
 			insert.setString(1, type.toString());
-			insert.setInt(2, fromhash);
-			insert.setInt(3, frequency.hash);
+			insert.setString(2, fromText);
+			insert.setString(3, frequency.text);
 			insert.setInt(4, frequency.support);
 			insert.setFloat(5, frequency.probability);
 			this.insertToFrequencies.addBatch();
@@ -154,24 +153,22 @@ public class DAO implements AutoCloseable {
 	}
 
 	public List<Frequency> getFrequencies(final PDGEdge.TYPE type,
-			final int fromhash) {
+			final String fromText) {
 
 		final List<Frequency> frequencies = new ArrayList<>();
 
 		try {
 			this.selectFromFrequencies.clearParameters();
-			this.selectFromFrequencies.setInt(1, fromhash);
+			this.selectFromFrequencies.setString(1, fromText);
 			this.selectFromFrequencies.setString(2, type.toString());
 
 			try (final ResultSet result = this.selectFromFrequencies
 					.executeQuery()) {
 				while (result.next()) {
-					final int tohash = result.getInt(1);
-					final String toText = result.getString(2);
-					final int support = result.getInt(3);
-					final float probability = result.getFloat(4);
-					frequencies.add(new Frequency(probability, support, tohash,
-							toText));
+					final String toText = result.getString(1);
+					final int support = result.getInt(2);
+					final float probability = result.getFloat(3);
+					frequencies.add(new Frequency(probability, support, toText));
 				}
 			}
 
@@ -193,8 +190,7 @@ public class DAO implements AutoCloseable {
 	public void close() {
 		try (this.connection;
 				this.selectFromFrequencies;
-				this.insertToFrequencies;
-				this.insertToTexts) {
+				this.insertToFrequencies) {
 			// 閉じるだけ。
 		} catch (final SQLException e) {
 			throw new TinyPDGException("データベースを閉じられませんでした。", e);

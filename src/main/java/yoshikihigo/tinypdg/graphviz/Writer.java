@@ -20,6 +20,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 import yoshikihigo.tinypdg.CommandLineTools;
+import yoshikihigo.tinypdg.TinyPDGException;
 import yoshikihigo.tinypdg.ast.JavaAstFactory;
 import yoshikihigo.tinypdg.cfg.CFG;
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
@@ -103,6 +104,13 @@ public class Writer {
 			final CommandLine cmd = parser.parse(options, args);
 
 			final File target = CommandLineTools.target(cmd);
+
+			// 出力先がなければ、解析しても何も残らない。以前は全て解析した後で
+			// 何も書かずに "successfully finished." と言っていた。
+			if (!cmd.hasOption("c") && !cmd.hasOption("p")) {
+				throw new TinyPDGException(
+						"-c (CFG) か -p (PDG) の少なくとも一方を指定してください。");
+			}
 
 			final List<MethodInfo> methods = JavaAstFactory.collectMethods(
 					target, CommandLineTools.javaVersion(cmd));

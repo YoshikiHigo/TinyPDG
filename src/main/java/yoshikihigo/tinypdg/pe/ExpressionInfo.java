@@ -75,10 +75,22 @@ public class ExpressionInfo extends ProgramElementInfo {
 		SwitchExpression,
 
 		/**
-		 * パターン。record パターンや when 節つきパターンなど、内側に別の
-		 * パターンを含みうるもの。定義される変数は内側のパターンから集まる。
+		 * 型パターン (String s)。子は型と、束縛する変数の名前の 2 つ。
+		 * 名前は定義であって参照ではない。
 		 */
-		Pattern,
+		TypePattern,
+
+		/**
+		 * record パターン (Circle(double r))。子は record の型と、内側の
+		 * パターンたち。定義される変数は内側のパターンから集まる。
+		 */
+		RecordPattern,
+
+		/**
+		 * when 節つきパターン。子はパターンとガードの式。ガードは束縛した
+		 * 変数を参照する。
+		 */
+		GuardedPattern,
 
 		/**
 		 * foreach のヘッダ {@code T x : expr}。子は取り出す変数 (VariableInfo)
@@ -290,13 +302,22 @@ public class ExpressionInfo extends ProgramElementInfo {
 
 		case Assignment -> {
 			// 左辺が代入先。右辺は右辺でさらに代入しているかもしれない (a = b = c)。
+			// 左辺の中でも代入しうる (a[i++] = x の i)。以前はどちらも見ていな
+			// かった (issue #21)。
 			final SortedSet<String> variables = targets(this.expressions.get(0));
+			variables.addAll(this.expressions.get(0).getAssignedVariables());
 			variables.addAll(this.expressions.get(2).getAssignedVariables());
 			yield variables;
 		}
 
-		case VariableDeclarationFragment ->
-			only(this.expressions.get(0).getText());
+		case VariableDeclarationFragment -> {
+			// 宣言する変数と、初期化子の中で代入している変数 (int x = (y = 1) の y)。
+			final SortedSet<String> variables = only(this.expressions.get(0).getText());
+			if (1 < this.expressions.size()) {
+				variables.addAll(this.expressions.get(1).getAssignedVariables());
+			}
+			yield variables;
+		}
 
 		case ForeachHeader -> {
 			// 取り出す変数を定義する。反復対象の式の中で代入していれば、それも。
@@ -306,16 +327,24 @@ public class ExpressionInfo extends ProgramElementInfo {
 			yield variables;
 		}
 
-		case Postfix ->
-			// i++ は i を読み、かつ書く。被演算子は先頭の子。
-			targets(this.expressions.get(0));
+		case Postfix -> {
+			// i++ は i を読み、かつ書く。被演算子は先頭の子。被演算子の中の代入
+			// (a[i++]++ の i) も数える。
+			final SortedSet<String> variables = targets(this.expressions.get(0));
+			variables.addAll(this.expressions.get(0).getAssignedVariables());
+			yield variables;
+		}
 
-		case Prefix ->
+		case Prefix -> {
 			// ++i は i を読み、かつ書く。-x や !flag は読むだけである。
 			// 前置式は演算子が先頭の子で、被演算子はその次にある。
-			this.isIncrementOrDecrement()
-					? targets(this.expressions.get(1))
-					: this.expressions.get(1).getAssignedVariables();
+			final SortedSet<String> variables = this.expressions.get(1)
+					.getAssignedVariables();
+			if (this.isIncrementOrDecrement()) {
+				variables.addAll(targets(this.expressions.get(1)));
+			}
+			yield variables;
+		}
 
 		case Lambda ->
 			this.capturedByLambda(ProgramElementInfo::getAssignedVariables);
@@ -331,9 +360,12 @@ public class ExpressionInfo extends ProgramElementInfo {
 				SimpleName, String, SuperConstructorInvocation,
 				SuperFieldAccess, This, Trinomial,
 				TypeLiteral, VariableDeclarationExpression, MethodEnter,
-				MethodReference, SwitchExpression, Pattern,
-				Unsupported ->
+				MethodReference, SwitchExpression, RecordPattern,
+				GuardedPattern, Unsupported ->
 			collectFromChildren(ProgramElementInfo::getAssignedVariables);
+
+		// 型パターンは 2 つ目の子の名前を束縛する。
+		case TypePattern -> only(this.expressions.get(1).getText());
 		};
 	}
 
@@ -390,8 +422,12 @@ public class ExpressionInfo extends ProgramElementInfo {
 				String, SuperConstructorInvocation, SuperFieldAccess,
 				This, Trinomial, TypeLiteral,
 				VariableDeclarationExpression, MethodEnter, MethodReference,
-				SwitchExpression, Pattern, Unsupported ->
+				SwitchExpression, RecordPattern, GuardedPattern,
+				Unsupported ->
 			collectFromChildren(ProgramElementInfo::getReferencedVariables);
+
+		// 型パターンは変数を束縛するだけで、何も読まない。
+		case TypePattern -> new TreeSet<>();
 		};
 	}
 }
