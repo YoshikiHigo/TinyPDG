@@ -36,6 +36,13 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 					continue;
 				}
 
+				// ループが自分へ戻る辺は併合の相手ではない。以前は自分自身と
+				// 「併合」して辺を落とし、ループの本体が直線と同じ形になっていた
+				// (issue #27)。
+				if (fromNode == toNode) {
+					continue;
+				}
+
 				if (NormalizedText.normalize(fromNode.core).equals(
 						NormalizedText.normalize(toNode.core))) {
 
@@ -43,8 +50,10 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 							(PDGNormalNode<?>) fromNode,
 							(PDGNormalNode<?>) toNode);
 
-					fromNode.removeForwardEdge(edge);
-					toNode.removeBackwardEdge(edge);
+					// 2 つのノードの間の辺は、併合すると自己ループになる。実行
+					// 依存の辺だけでなく、i++; i++; のデータ依存のような辺も落とす。
+					removeEdgesBetween(fromNode, toNode);
+					removeEdgesBetween(toNode, fromNode);
 
 					replace(fromNode, mergedNode);
 					replace(toNode, mergedNode);
@@ -65,6 +74,17 @@ public class PDGMergedNode extends PDGNormalNode<ProgramElementInfo> {
 			}
 
 			break;
+		}
+	}
+
+	/** from から to へ向かう辺を全て、両端から外す。 */
+	private static void removeEdgesBetween(final PDGNode<?> from,
+			final PDGNode<?> to) {
+		for (final PDGEdge edge : from.getForwardEdges()) {
+			if (edge.toNode == to) {
+				from.removeForwardEdge(edge);
+				to.removeBackwardEdge(edge);
+			}
 		}
 	}
 
