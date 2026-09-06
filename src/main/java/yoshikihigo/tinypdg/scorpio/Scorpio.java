@@ -118,6 +118,7 @@ public class Scorpio {
 			System.out.print("detecting clone pairs ... ");
 			final SortedSet<ClonePairInfo> clonepairs = Collections
 					.synchronizedSortedSet(new TreeSet<>());
+			final long comparisons;
 			{
 				final List<PDGPairInfo> pdgpairs = new ArrayList<>();
 				for (int i = 0; i < pdgArray.length; i++) {
@@ -127,7 +128,7 @@ public class Scorpio {
 				}
 				final PDGPairInfo[] pdgpairArray = pdgpairs
 						.toArray(new PDGPairInfo[0]);
-				CloneDetection.detect(pdgpairArray, pdgArray,
+				comparisons = CloneDetection.detect(pdgpairArray, pdgArray,
 						mappingPDGToPDGNodes, mappingPDGToPDGEdges, clonepairs,
 						SIZE_THRESHOLD, NUMBER_OF_THREADS);
 			}
@@ -144,7 +145,7 @@ public class Scorpio {
 					+ CommandLineTools.formatElapsed(time5 - time1));
 
 			System.out.print("number of comparisons: ");
-			printNumberOfComparison(Slicing.getNumberOfComparison());
+			printNumberOfComparison(comparisons);
 
 		} catch (final Exception e) {
 			// 異常終了なので終了コードは非 0 にする。0 のままでは、

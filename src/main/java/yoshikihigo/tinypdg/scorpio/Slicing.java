@@ -18,16 +18,13 @@ import yoshikihigo.tinypdg.scorpio.data.NodePairInfo;
 
 public class Slicing {
 
-	final static private AtomicLong NUMBER_OF_COMPARISON = new AtomicLong(0);
-
-	public static long getNumberOfComparison() {
-		return NUMBER_OF_COMPARISON.get();
-	}
-
-	/** 比較回数を数え直す。1 回の検出ごとに呼ぶ。 */
-	static void resetNumberOfComparison() {
-		NUMBER_OF_COMPARISON.set(0);
-	}
+	/**
+	 * 辺の比較回数。1 回の検出で共有するカウンタを CloneDetection が渡す。
+	 *
+	 * <p>以前は static なカウンタで、同じ JVM で検出を 2 回行うと数が混ざり、
+	 * 検出の前に 0 に戻す手順が要った。
+	 */
+	final private AtomicLong comparisons;
 
 	final private SortedSet<NodePairInfo> checkedNodepairs;
 	final private SortedMap<PDGNode<?>, PDGNode<?>[]> mappingPDGNodeToPDGNodes;
@@ -43,7 +40,10 @@ public class Slicing {
 			final PDGNode<?> startNodeA, final PDGNode<?> startNodeB,
 			final SortedMap<PDGNode<?>, PDGNode<?>[]> mappingPDGNodeToPDGNodes,
 			final SortedMap<PDGEdge, PDGEdge[]> mappingPDGEdgeToPDGEdges,
-			final SortedSet<NodePairInfo> checkedNodepairs) {
+			final SortedSet<NodePairInfo> checkedNodepairs,
+			final AtomicLong comparisons) {
+		this.comparisons = Objects.requireNonNull(comparisons,
+				"\"comparisons\" is null.");
 		this.checkedNodepairs = checkedNodepairs;
 		this.pathA = pathA;
 		this.pathB = pathB;
@@ -177,7 +177,7 @@ public class Slicing {
 					continue EDGEB;
 				}
 
-				NUMBER_OF_COMPARISON.incrementAndGet();
+				this.comparisons.incrementAndGet();
 				if (equivalentNodesA == equivalentNodesB) {
 
 					if (nodeA == nodeB) {
