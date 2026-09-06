@@ -404,7 +404,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 					StatementInfo.CATEGORY.Do, startLine, endLine);
 			this.stack.push(doBlock);
 
-			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
+			final StatementInfo body = this.visitBody(node.getBody());
 			doBlock.setStatement(body);
 
 			final ProgramElementInfo condition = this.visitChild(node.getExpression());
@@ -451,7 +451,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			foreachBlock.setCondition(header);
 			header.setOwnerConditionalBlock(foreachBlock);
 
-			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
+			final StatementInfo body = this.visitBody(node.getBody());
 			foreachBlock.setStatement(body);
 
 			final StringBuilder text = new StringBuilder();
@@ -509,7 +509,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 
 			text.append(")");
 
-			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
+			final StatementInfo body = this.visitBody(node.getBody());
 			forBlock.setStatement(body);
 			text.append(body.getText());
 			forBlock.setText(text.toString());
@@ -540,13 +540,13 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			text.append(") ");
 
 			if (null != node.getThenStatement()) {
-				final StatementInfo thenBody = (StatementInfo) this.visitChild(node.getThenStatement());
+				final StatementInfo thenBody = this.visitBody(node.getThenStatement());
 				ifBlock.setStatement(thenBody);
 				text.append(thenBody.getText());
 			}
 
 			if (null != node.getElseStatement()) {
-				final StatementInfo elseBody = (StatementInfo) this.visitChild(node.getElseStatement());
+				final StatementInfo elseBody = this.visitBody(node.getElseStatement());
 				ifBlock.setElseStatement(elseBody);
 				text.append(elseBody.getText());
 			}
@@ -674,7 +674,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			synchronizedBlock.setCondition(condition);
 			condition.setOwnerConditionalBlock(synchronizedBlock);
 
-			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
+			final StatementInfo body = this.visitBody(node.getBody());
 			synchronizedBlock.setStatement(body);
 
 			final StringBuilder text = new StringBuilder();
@@ -817,7 +817,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			whileBlock.setCondition(condition);
 			condition.setOwnerConditionalBlock(whileBlock);
 
-			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
+			final StatementInfo body = this.visitBody(node.getBody());
 			whileBlock.setStatement(body);
 
 			final StringBuilder text = new StringBuilder();
@@ -957,6 +957,43 @@ abstract class StatementVisitor extends ExpressionVisitor {
 		return false;
 	}
 
+	/**
+	 * 文の本体を訪問する。本体の式の中の switch 式が脱糖されて前に出ていれば、
+	 * それらと本体をブロックに包んで返す。
+	 *
+	 * <p>{@code if (c) r = switch (b) {...};} のように波括弧のない本体では、
+	 * 脱糖した switch 文をこの本体の前に置きたい。本体はブロックではないので、
+	 * 待ち行列を取り出す visit(Block) を通らない。ここで取り出し、
+	 * {@code if (c) { switch 文; r = $switch1; }} と書いたのと同じ形にする。
+	 * ブロックの本体では待ち行列は空で、本体をそのまま返す。
+	 */
+	private StatementInfo visitBody(final ASTNode body) {
+
+		final StatementInfo statement = (StatementInfo) this.visitChild(body);
+		final List<StatementInfo> pending = this.drainPendingStatements();
+		if (pending.isEmpty()) {
+			return statement;
+		}
+
+		final BlockStatementInfo block = new BlockStatementInfo(this.stack.peek(),
+				StatementInfo.CATEGORY.SimpleBlock, pending.get(0).startLine,
+				statement.endLine);
+		final StringBuilder text = new StringBuilder();
+		text.append("{");
+		text.append(System.lineSeparator());
+		final List<StatementInfo> contents = new ArrayList<>(pending);
+		contents.addAll(BlockStatementInfo.flatten(statement));
+		for (final StatementInfo inner : contents) {
+			inner.setOwnerBlock(block);
+			block.addStatement(inner);
+			text.append(inner.getText());
+			text.append(System.lineSeparator());
+		}
+		text.append("}");
+		block.setText(text.toString());
+		return block;
+	}
+
 	@Override
 	public boolean visit(final Block node) {
 
@@ -1020,7 +1057,7 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			exception.setOwnerConditionalBlock(catchBlock);
 			catchBlock.setCondition(exception);
 
-			final StatementInfo body = (StatementInfo) this.visitChild(node.getBody());
+			final StatementInfo body = this.visitBody(node.getBody());
 			catchBlock.setStatement(body);
 
 			final StringBuilder text = new StringBuilder();

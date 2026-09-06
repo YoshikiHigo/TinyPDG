@@ -395,9 +395,22 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				returnStatement.setText("return " + expression.getText() + ";");
 
 				this.stack.pop();
+
+				// 本体の式の中の switch 式は、脱糖されて return の前に出る。
+				final StringBuilder blockText = new StringBuilder();
+				blockText.append("{");
+				blockText.append(System.lineSeparator());
+				for (final StatementInfo pending : this.drainPendingStatements()) {
+					pending.setOwnerBlock(block);
+					block.addStatement(pending);
+					blockText.append(pending.getText());
+					blockText.append(System.lineSeparator());
+				}
 				block.addStatement(returnStatement);
-				block.setText("{" + System.lineSeparator() + returnStatement.getText()
-						+ System.lineSeparator() + "}");
+				blockText.append(returnStatement.getText());
+				blockText.append(System.lineSeparator());
+				blockText.append("}");
+				block.setText(blockText.toString());
 
 				this.stack.pop();
 				lambda.setStatement(block);

@@ -16,6 +16,7 @@ import org.eclipse.jdt.core.dom.EnhancedForStatement;
 import org.eclipse.jdt.core.dom.ForStatement;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.InfixExpression;
+import org.eclipse.jdt.core.dom.LabeledStatement;
 import org.eclipse.jdt.core.dom.LambdaExpression;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.SwitchExpression;
@@ -184,9 +185,15 @@ abstract class ProgramElementVisitor extends ASTVisitor {
 			if (parent instanceof ConditionalExpression) {
 				return false;
 			}
-			// 別の入れ子の内側からは外へ出せない。
-			if (parent instanceof LambdaExpression
-					|| parent instanceof SwitchExpression) {
+			// ラムダの式本体 (x -> expr) なら、本体を包む合成ブロックの return の
+			// 前へ出せる。ブロック本体なら、その中の文で先に止まっている。以前は
+			// ラムダの中では一律に出せず、1 個の不透明な式になっていた。
+			if (parent instanceof LambdaExpression lambda) {
+				return child == lambda.getBody();
+			}
+			// 別の switch 式のセレクタの中からは外へ出せない。アームの中なら、
+			// アームの文で先に止まっている。
+			if (parent instanceof SwitchExpression) {
 				return false;
 			}
 
@@ -211,15 +218,41 @@ abstract class ProgramElementVisitor extends ASTVisitor {
 						&& child == ((EnhancedForStatement) parent).getExpression()) {
 					return false;
 				}
-				// 挿入先が要る。ブロックのほか、switch 文と switch 式のアームも
-				// 受け入れる。case X -> expr; の expr の中の switch 式は、その
-				// アームの前に出る。以前はアームの中では前に出せず、1 個の
-				// 不透明な式になっていた。
+				// 挿入先が要る。ブロックと、switch 文と switch 式のアームのほか、
+				// 波括弧なしで書かれた if、else、ループ、ラベル付き文の本体も
+				// 受け入れる。本体は 1 文のブロックと見なして、脱糖した switch 文を
+				// その前に置く。以前はこれらの中では前に出せず、1 個の不透明な
+				// 式になっていた。
 				final ASTNode grandparent = parent.getParent();
 				return grandparent instanceof Block
 						|| grandparent instanceof SwitchStatement
-						|| grandparent instanceof SwitchExpression;
+						|| grandparent instanceof SwitchExpression
+						|| isBody(parent, grandparent);
 			}
+		}
+		return false;
+	}
+
+	/** statement が、波括弧なしで書かれた if、else、ループ、ラベル付き文の本体か。 */
+	private static boolean isBody(final ASTNode statement, final ASTNode owner) {
+		if (owner instanceof IfStatement s) {
+			return statement == s.getThenStatement()
+					|| statement == s.getElseStatement();
+		}
+		if (owner instanceof WhileStatement s) {
+			return statement == s.getBody();
+		}
+		if (owner instanceof DoStatement s) {
+			return statement == s.getBody();
+		}
+		if (owner instanceof ForStatement s) {
+			return statement == s.getBody();
+		}
+		if (owner instanceof EnhancedForStatement s) {
+			return statement == s.getBody();
+		}
+		if (owner instanceof LabeledStatement s) {
+			return statement == s.getBody();
 		}
 		return false;
 	}
