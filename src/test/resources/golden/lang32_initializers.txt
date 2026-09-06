@@ -1,11 +1,11 @@
 # sample: lang32_initializers
 
-## CFG <clinit> <12...14>
+## CFG <clinit>$12 <12...14>
 nodes:
   0: [enter,exit,normal] counter = counter * 2; <13>
 edges:
 
-## PDG <clinit> <12...14>
+## PDG <clinit>$12 <12...14>
 nodes:
   0: [exit] counter = counter * 2; <13>
   1: [enter,control] Enter <12...14>
@@ -13,12 +13,12 @@ edges:
   1 -> 0 [control: true]
   1 -> 0 [execution: ]
 
-## CFG <init> <16...18>
+## CFG <init>$16 <16...18>
 nodes:
   0: [enter,exit,normal] this.instanceField = this.instanceField + 1; <17>
 edges:
 
-## PDG <init> <16...18>
+## PDG <init>$16 <16...18>
 nodes:
   0: [exit] this.instanceField = this.instanceField + 1; <17>
   1: [enter,control] Enter <16...18>
@@ -26,14 +26,14 @@ edges:
   1 -> 0 [control: true]
   1 -> 0 [execution: ]
 
-## CFG <init> <39...42>
+## CFG <init>$39 <39...42>
 nodes:
   0: [enter,normal] add(1); <40>
   1: [exit,normal] add(2); <41>
 edges:
   0 -> 1 []
 
-## PDG <init> <39...42>
+## PDG <init>$39 <39...42>
 nodes:
   0: [normal] add(1); <40>
   1: [exit] add(2); <41>

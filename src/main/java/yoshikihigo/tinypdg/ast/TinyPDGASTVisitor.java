@@ -223,7 +223,9 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 	 *
 	 * <p>本体を持つ点でメソッドと同じなので、1 つの解析単位にする。名前は
 	 * JVM に倣って static なら {@code <clinit>}、そうでなければ {@code <init>}
-	 * とする。ソースのメソッド名とは衝突しない。以前は素通りしていて、
+	 * とし、ラムダの {@code lambda$9} と同じ流儀で開始行を付ける
+	 * ({@code <clinit>$12})。1 つのクラスに初期化ブロックが複数あっても名前が
+	 * 重ならず、ソースのメソッド名とも衝突しない。以前は素通りしていて、
 	 * 初期化ブロックの中のコードは誰からも見えなかった。
 	 */
 	@Override
@@ -233,7 +235,8 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 		final int endLine = this.getEndLineNumber(node);
 		final boolean isStatic = Modifier.isStatic(node.getModifiers());
 		final MethodInfo initializer = new MethodInfo(this.path,
-				isStatic ? "<clinit>" : "<init>", startLine, endLine);
+				(isStatic ? "<clinit>" : "<init>") + "$" + startLine, startLine,
+				endLine);
 		this.stack.push(initializer);
 
 		this.isolatedFromYield(() -> {
