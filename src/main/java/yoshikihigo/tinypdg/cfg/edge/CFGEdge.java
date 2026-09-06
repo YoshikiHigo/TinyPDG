@@ -71,6 +71,16 @@ public abstract class CFGEdge implements Comparable<CFGEdge> {
 		return new CFGJumpEdge(fromNode, toNode, control);
 	}
 
+	/** 例外による移動の辺。try のノードから catch 節や finally の入口へ。 */
+	static public CFGEdge makeExceptionEdge(final CFGNode<?> fromNode,
+			final CFGNode<?> toNode) {
+
+		Objects.requireNonNull(fromNode, "\"fromNode\" is null.");
+		Objects.requireNonNull(toNode, "\"toNode\" is null.");
+
+		return new CFGExceptionEdge(fromNode, toNode);
+	}
+
 	public final CFGNode<? extends ProgramElementInfo> fromNode;
 	public final CFGNode<? extends ProgramElementInfo> toNode;
 

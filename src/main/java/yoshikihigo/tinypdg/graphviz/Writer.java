@@ -23,6 +23,7 @@ import yoshikihigo.tinypdg.CommandLineTools;
 import yoshikihigo.tinypdg.ast.JavaAstFactory;
 import yoshikihigo.tinypdg.cfg.CFG;
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
+import yoshikihigo.tinypdg.cfg.edge.CFGExceptionEdge;
 import yoshikihigo.tinypdg.cfg.node.CFGControlNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
@@ -245,7 +246,10 @@ public class Writer {
 			writer.write(Integer.toString(createdGraphNumber));
 			writer.write(".");
 			writer.write(Integer.toString(nodeLabels.get(edge.toNode)));
-			writer.write(" [style = solid, label=\""
+			// 例外辺は破線で描く。
+			final String style = edge instanceof CFGExceptionEdge ? "dashed"
+					: "solid";
+			writer.write(" [style = " + style + ", label=\""
 					+ edge.getDependenceString() + "\"];");
 			writer.newLine();
 		}

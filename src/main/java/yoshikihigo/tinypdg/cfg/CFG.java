@@ -15,6 +15,7 @@ import java.util.TreeSet;
 import yoshikihigo.tinypdg.TinyPDGException;
 import yoshikihigo.tinypdg.cfg.edge.CFGControlEdge;
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
+import yoshikihigo.tinypdg.cfg.edge.CFGExceptionEdge;
 import yoshikihigo.tinypdg.cfg.node.CFGBreakStatementNode;
 import yoshikihigo.tinypdg.cfg.node.CFGContinueStatementNode;
 import yoshikihigo.tinypdg.cfg.node.CFGJumpStatementNode;
@@ -557,11 +558,30 @@ public class CFG {
 		final CFG finallyCFG = new CFG(finallyBlock, this.nodeFactory, true);
 		finallyCFG.build();
 
-		this.enterNode = sequentialCFGs.enterNode;
+		// try の入口の疑似ノード。例外辺の始点になる。疑似ノードが消えるときに、
+		// try の前のノードから catch へ直接、例外辺が引き直される。
+		final CFG entryCFG = new CFG(null, this.nodeFactory, true);
+		entryCFG.build();
+		final CFGNode<? extends ProgramElementInfo> entryNode = entryCFG.enterNode;
+
+		this.enterNode = entryNode;
+		this.absorb(entryCFG);
 		this.absorb(sequentialCFGs);
+		connect(entryNode, sequentialCFGs.enterNode);
 		for (final CFGNode<? extends ProgramElementInfo> sequentialExitNode : sequentialCFGs.exitNodes) {
 			connect(sequentialExitNode, finallyCFG.enterNode);
 		}
+
+		// 例外辺。「try 本体のどの文も例外を投げうる」という近似で、try の入口と
+		// 本体の各ノードから各 catch 節の入口 (例外の宣言) へ引く。型を解決しない
+		// ので、どの catch が受けるかは決められない。入口からの辺があるので、try
+		// の前の定義も catch へ届く。この辺はデータ依存と到達可能性にだけ使い、
+		// 実行依存と制御依存には使わない (PDG 側で除く)。
+		//
+		// 以前は本体から catch へ入る辺がなく、catch 節は入口から到達不能で、
+		// try 本体の定義が catch の中の参照へ届かなかった。
+		final List<CFGNode<? extends ProgramElementInfo>> throwers = new ArrayList<>(
+				sequentialCFGs.nodes);
 
 		for (final StatementInfo catchStatement : statement
 				.getCatchStatements()) {
@@ -576,6 +596,15 @@ public class CFG {
 			for (final CFGNode<? extends ProgramElementInfo> catchExitNode : catchCFG.exitNodes) {
 				connect(catchExitNode, finallyCFG.enterNode);
 			}
+
+			connectException(entryNode, catchCFG.enterNode);
+			for (final CFGNode<? extends ProgramElementInfo> thrower : throwers) {
+				if (mayThrow(thrower)) {
+					connectException(thrower, catchCFG.enterNode);
+				}
+			}
+			// catch 節の中で投げた例外は、finally があればそこへ進む。
+			throwers.addAll(catchCFG.nodes);
 		}
 
 		// finally は合流点である。try 本体と catch 節から出る飛び越え (return、
@@ -601,8 +630,38 @@ public class CFG {
 			this.pendingJumps.addAll(passed);
 		}
 
+		// finally があれば、try の入口と、本体と catch 節のどこで投げた例外も
+		// そこへ進む。通常経路や飛び越えで既に finally へ繋がっているノードには
+		// 引かない。辺が重なるだけである。
+		if (null != finallyBlock) {
+			final SortedSet<CFGNode<? extends ProgramElementInfo>> arriving = finallyCFG.enterNode
+					.getBackwardNodes();
+			connectException(entryNode, finallyCFG.enterNode);
+			for (final CFGNode<? extends ProgramElementInfo> thrower : throwers) {
+				if (mayThrow(thrower) && !arriving.contains(thrower)) {
+					connectException(thrower, finallyCFG.enterNode);
+				}
+			}
+		}
+
 		this.absorb(finallyCFG);
 		this.exitNodes.addAll(finallyCFG.exitNodes);
+	}
+
+	/**
+	 * 例外を投げうるノードか。疑似ノード、break と continue、case ラベルは
+	 * 投げない。
+	 */
+	private static boolean mayThrow(final CFGNode<?> node) {
+		return !(node instanceof CFGPseudoNode
+				|| node instanceof CFGJumpStatementNode
+				|| node instanceof CFGSwitchCaseNode);
+	}
+
+	/** from から to へ例外辺を張る。 */
+	private static void connectException(final CFGNode<?> from,
+			final CFGNode<?> to) {
+		CFGEdge.makeExceptionEdge(from, to).connect();
 	}
 
 	/**
@@ -647,10 +706,17 @@ public class CFG {
 		return !node.core.getAssignedVariables().isEmpty();
 	}
 
-	/** node が出口なら、その前のノードたちを代わりの出口にする。 */
+	/**
+	 * node が出口なら、その前のノードたちを代わりの出口にする。例外辺で
+	 * 入ってくるノードは前のノードではない。
+	 */
 	private void replaceExitNode(final CFGNode<? extends ProgramElementInfo> node) {
 		if (this.exitNodes.remove(node)) {
-			this.exitNodes.addAll(node.getBackwardNodes());
+			for (final CFGEdge edge : node.getBackwardEdges()) {
+				if (!(edge instanceof CFGExceptionEdge)) {
+					this.exitNodes.add(edge.fromNode);
+				}
+			}
 		}
 	}
 
@@ -666,31 +732,40 @@ public class CFG {
 				iterator.remove();
 
 				if (0 == node.compareTo(this.enterNode)) {
-					if (0 < this.enterNode.getForwardEdges().size()) {
-						this.enterNode = this.enterNode.getForwardNodes()
-								.first();
-					} else {
-						this.enterNode = null;
+					// 入口の疑似ノードの後継のうち、例外辺でないもの。try の入口
+					// なら本体の先頭であって catch ではない。
+					CFGNode<? extends ProgramElementInfo> next = null;
+					for (final CFGEdge edge : node.getForwardEdges()) {
+						if (!(edge instanceof CFGExceptionEdge)) {
+							next = edge.toNode;
+							break;
+						}
 					}
+					this.enterNode = next;
 				}
 
 				this.replaceExitNode(node);
 
 				final SortedSet<CFGEdge> backwardEdges = node.getBackwardEdges();
-				final SortedSet<CFGNode<? extends ProgramElementInfo>> forwardNodes = node
-						.getForwardNodes();
+				final SortedSet<CFGEdge> forwardEdges = node.getForwardEdges();
 				node.remove();
 
 				// 条件ノードから来た辺は真偽を持つので、それを引き継いで繋ぎ直す。
 				// 以前はノードだけを見て繋いでいたので、条件ノードからの辺は
 				// 既定の偽になり、if (c) {} の真の枝が偽の辺として現れていた。
+				// 例外辺が絡む組は例外辺のまま繋ぎ直す。try の入口の疑似ノードから
+				// catch へ出る辺と、空の finally の疑似ノードへ入る辺がこれである。
 				for (final CFGEdge backwardEdge : backwardEdges) {
-					for (final CFGNode<? extends ProgramElementInfo> forwardNode : forwardNodes) {
-						if (backwardEdge instanceof CFGControlEdge controlEdge) {
-							connect(controlEdge.fromNode, forwardNode,
-									controlEdge.control);
+					for (final CFGEdge forwardEdge : forwardEdges) {
+						final CFGNode<?> from = backwardEdge.fromNode;
+						final CFGNode<?> to = forwardEdge.toNode;
+						if (backwardEdge instanceof CFGExceptionEdge
+								|| forwardEdge instanceof CFGExceptionEdge) {
+							connectException(from, to);
+						} else if (backwardEdge instanceof CFGControlEdge controlEdge) {
+							connect(from, to, controlEdge.control);
 						} else {
-							connect(backwardEdge.fromNode, forwardNode);
+							connect(from, to);
 						}
 					}
 				}

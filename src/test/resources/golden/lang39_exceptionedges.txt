@@ -1,0 +1,113 @@
+# sample: lang39_exceptionedges
+
+## CFG flowsIntoCatch <5...14>
+nodes:
+  0: [enter,normal] int x = 0; <6>
+  1: [normal] x = risky(a); <8>
+  2: [normal] x = x + 1; <9>
+  3: [control] final IllegalStateException e <10>
+  4: [normal] x = x - 1; <11>
+  5: [exit,normal] return x; <13>
+edges:
+  0 -> 1 []
+  0 -> 3 [exception]
+  1 -> 2 []
+  1 -> 3 [exception]
+  2 -> 3 [exception]
+  2 -> 5 []
+  3 -> 4 [true]
+  4 -> 5 []
+
+## PDG flowsIntoCatch <5...14>
+nodes:
+  0: [parameter] final int a <5>
+  1: [normal] int x = 0; <6>
+  2: [normal] x = risky(a); <8>
+  3: [normal] x = x + 1; <9>
+  4: [control] final IllegalStateException e <10>
+  5: [normal] x = x - 1; <11>
+  6: [exit] return x; <13>
+  7: [enter,control] Enter <5...14>
+edges:
+  0 -> 2 [data: a]
+  1 -> 2 [execution: ]
+  1 -> 5 [data: x]
+  2 -> 3 [data: x]
+  2 -> 3 [execution: ]
+  2 -> 5 [data: x]
+  3 -> 5 [data: x]
+  3 -> 6 [data: x]
+  3 -> 6 [execution: ]
+  4 -> 5 [control: true]
+  4 -> 5 [execution: ]
+  5 -> 6 [data: x]
+  5 -> 6 [execution: ]
+  7 -> 0 [control: true]
+  7 -> 1 [control: true]
+  7 -> 1 [execution: ]
+  7 -> 2 [control: true]
+  7 -> 3 [control: true]
+  7 -> 4 [control: true]
+  7 -> 6 [control: true]
+
+## CFG flowsIntoFinally <16...24>
+nodes:
+  0: [enter,normal] int x = 0; <17>
+  1: [normal] x = risky(a); <19>
+  2: [normal] x = x + 10; <21>
+  3: [exit,normal] return x; <23>
+edges:
+  0 -> 1 []
+  0 -> 2 [exception]
+  1 -> 2 []
+  2 -> 3 []
+
+## PDG flowsIntoFinally <16...24>
+nodes:
+  0: [parameter] final int a <16>
+  1: [normal] int x = 0; <17>
+  2: [normal] x = risky(a); <19>
+  3: [normal] x = x + 10; <21>
+  4: [exit] return x; <23>
+  5: [enter,control] Enter <16...24>
+edges:
+  0 -> 2 [data: a]
+  1 -> 2 [execution: ]
+  1 -> 3 [data: x]
+  2 -> 3 [data: x]
+  2 -> 3 [execution: ]
+  3 -> 4 [data: x]
+  3 -> 4 [execution: ]
+  5 -> 0 [control: true]
+  5 -> 1 [control: true]
+  5 -> 1 [execution: ]
+  5 -> 2 [control: true]
+  5 -> 3 [control: true]
+  5 -> 4 [control: true]
+
+## CFG risky <26...31>
+nodes:
+  0: [enter,control] a < 0 <27>
+  1: [exit,normal] throw new IllegalStateException(); <28>
+  2: [exit,normal] return a; <30>
+edges:
+  0 -> 1 [true]
+  0 -> 2 [false]
+
+## PDG risky <26...31>
+nodes:
+  0: [parameter] final int a <26>
+  1: [control] a < 0 <27>
+  2: [exit] throw new IllegalStateException(); <28>
+  3: [exit] return a; <30>
+  4: [enter,control] Enter <26...31>
+edges:
+  0 -> 1 [data: a]
+  0 -> 3 [data: a]
+  1 -> 2 [control: true]
+  1 -> 2 [execution: ]
+  1 -> 3 [execution: ]
+  4 -> 0 [control: true]
+  4 -> 1 [control: true]
+  4 -> 1 [execution: ]
+  4 -> 3 [control: true]

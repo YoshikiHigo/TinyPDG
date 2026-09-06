@@ -12,11 +12,16 @@ nodes:
   7: [exit,normal] return lines; <19>
 edges:
   0 -> 1 []
+  0 -> 5 [exception]
   1 -> 2 []
+  1 -> 5 [exception]
   2 -> 3 []
+  2 -> 5 [exception]
   3 -> 4 [true]
+  3 -> 5 [exception]
   3 -> 7 [false]
   4 -> 3 []
+  4 -> 5 [exception]
   5 -> 6 [true]
   6 -> 7 []
 

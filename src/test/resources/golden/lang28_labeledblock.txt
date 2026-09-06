@@ -9,6 +9,7 @@ nodes:
   4: [exit,normal] return r; <24>
 edges:
   0 -> 1 []
+  0 -> 2 [exception]
   1 -> 2 []
   2 -> 3 []
   3 -> 4 []
@@ -25,6 +26,7 @@ nodes:
 edges:
   0 -> 2 [data: x]
   1 -> 2 [execution: ]
+  1 -> 3 [data: r]
   2 -> 3 [data: r]
   2 -> 3 [execution: ]
   3 -> 4 [data: r]

@@ -9,6 +9,8 @@ nodes:
   4: [exit,normal] return m; <12>
 edges:
   0 -> 1 []
+  0 -> 2 [exception]
+  1 -> 2 [exception]
   1 -> 4 []
   2 -> 3 [true]
   3 -> 4 []

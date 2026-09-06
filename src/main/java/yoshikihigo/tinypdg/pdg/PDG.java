@@ -11,6 +11,8 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import yoshikihigo.tinypdg.cfg.CFG;
+import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
+import yoshikihigo.tinypdg.cfg.edge.CFGExceptionEdge;
 import yoshikihigo.tinypdg.cfg.node.CFGNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.pdg.edge.PDGControlDependenceEdge;
@@ -325,7 +327,16 @@ public class PDG implements Comparable<PDG> {
 		}
 
 		if (this.dependences.execution()) {
-			for (final CFGNode<?> toCFGNode : cfgNode.getForwardNodes()) {
+			// 例外辺は「直後に実行される」とは読まない。may の辺なので、実行依存
+			// に使うと try 本体の各文に後続が増え、連続するノードの併合も切れる。
+			// データ依存は例外辺も辿る (buildDataDependence)。
+			final SortedSet<CFGNode<? extends ProgramElementInfo>> successors = new TreeSet<>();
+			for (final CFGEdge edge : cfgNode.getForwardEdges()) {
+				if (!(edge instanceof CFGExceptionEdge)) {
+					successors.add(edge.toNode);
+				}
+			}
+			for (final CFGNode<?> toCFGNode : successors) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNode(toCFGNode);
 				final int distance = Math.abs(toPDGNode.core.startLine
