@@ -917,11 +917,22 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 				endLine);
 		this.stack.push(classInstanceCreation);
 
+		final StringBuilder text = new StringBuilder();
+
+		// outer.new Inner() の outer。メソッド呼び出しのレシーバと同じく修飾子
+		// として持つ。以前は引数の後ろに子として足し、テキストも
+		// "new Inner()outer" になっていた。
+		if (null != node.getExpression()) {
+			final ProgramElementInfo qualifier = this.visitChild(node.getExpression());
+			classInstanceCreation.setQualifier(qualifier);
+			text.append(qualifier.getText());
+			text.append(".");
+		}
+
 		final TypeInfo type = new TypeInfo(node.getType().toString(),
 				startLine, endLine);
 		classInstanceCreation.addExpression(type);
 
-		final StringBuilder text = new StringBuilder();
 		text.append("new ");
 		text.append(type.getText());
 		text.append("(");
@@ -929,13 +940,6 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		arguments.forEach(classInstanceCreation::addExpression);
 		text.append(joinTexts(arguments, ","));
 		text.append(")");
-
-		if (null != node.getExpression()) {
-			final ProgramElementInfo expression = this.visitChild(node.getExpression());
-			classInstanceCreation
-					.addExpression(expression);
-			text.append(expression.getText());
-		}
 
 		if (null != node.getAnonymousClassDeclaration()) {
 			final ProgramElementInfo anonymousClass = this.visitChild(node.getAnonymousClassDeclaration());
@@ -1070,7 +1074,9 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		final ProgramElementInfo expression = new ExpressionInfo(
 				ExpressionInfo.CATEGORY.This, startLine, endLine);
 		this.stack.push(expression);
-		expression.setText("this");
+		// Outer.this の Outer は残す。以前は捨てていた。
+		expression.setText(null == node.getQualifier() ? "this"
+				: node.getQualifier().toString() + ".this");
 
 		return false;
 	}
