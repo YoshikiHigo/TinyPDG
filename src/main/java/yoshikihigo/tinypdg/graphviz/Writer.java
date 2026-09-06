@@ -41,6 +41,33 @@ import yoshikihigo.tinypdg.pe.ProgramElementInfo;
 
 public class Writer {
 
+	/**
+	 * Graphviz のラベルに入れる文字列を作る。
+	 *
+	 * <p>ラベルは二重引用符で囲むので、中のバックスラッシュと二重引用符を
+	 * エスケープする。改行は dot が読める {@code \n} の 2 文字にする。
+	 *
+	 * <p>以前は二重引用符だけを見ていた。文字列リテラルの中のバックスラッシュ
+	 * ("a\\b") はそのまま出て dot 側で別の意味に読まれ、さらに 2 段目の
+	 * 置き換えが 1 段目で作ったばかりの {@code \"} を壊していた。
+	 */
+	static String escapeLabel(final String text) {
+		final StringBuilder escaped = new StringBuilder(text.length() + 8);
+		for (int index = 0; index < text.length(); index++) {
+			final char c = text.charAt(index);
+			switch (c) {
+			case '\\' -> escaped.append("\\\\");
+			case '"' -> escaped.append("\\\"");
+			case '\n' -> escaped.append("\\n");
+			case '\r' -> {
+				// CRLF は LF の側で書く。
+			}
+			default -> escaped.append(c);
+			}
+		}
+		return escaped.toString();
+	}
+
 	public static void main(String[] args) {
 
 		try {
@@ -162,8 +189,7 @@ public class Writer {
 			writer.write(".");
 			writer.write(Integer.toString(label));
 			writer.write(" [style = filled, label = \"");
-			writer.write(node.getText().replace("\"", "\\\"")
-					.replace("\\\\\"", "\\\\\\\""));
+			writer.write(escapeLabel(node.getText()));
 			writer.write("\"");
 
 			final CFGNode<? extends ProgramElementInfo> enterNode = cfg
@@ -250,8 +276,7 @@ public class Writer {
 			writer.write(".");
 			writer.write(Integer.toString(entry.getValue()));
 			writer.write(" [style = filled, label = \"");
-			writer.write(entry.getKey().getText().replace("\"", "\\\"")
-					.replace("\\\\\"", "\\\\\\\""));
+			writer.write(escapeLabel(entry.getKey().getText()));
 			writer.write("\"");
 
 			final PDGNode<?> node = entry.getKey();
