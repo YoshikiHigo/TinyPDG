@@ -13,6 +13,7 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.EnumConstantDeclaration;
 import org.eclipse.jdt.core.dom.EnumDeclaration;
 import org.eclipse.jdt.core.dom.Expression;
+import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.Initializer;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.Modifier;
@@ -20,6 +21,7 @@ import org.eclipse.jdt.core.dom.RecordDeclaration;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
+import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import yoshikihigo.tinypdg.pe.ClassInfo;
 import yoshikihigo.tinypdg.pe.ExpressionInfo;
 import yoshikihigo.tinypdg.pe.MethodInfo;
@@ -170,10 +172,14 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 		text.append(System.lineSeparator());
 
 		// enum の定数が本体を持てば (PLUS { ... })、それは匿名クラスである。
-		// 中のメソッドは匿名クラスの visit が this.methods に積む。
+		// 中のメソッドは匿名クラスの visit が this.methods に積む。定数の引数
+		// (PLUS((a, b) -> a + b)) の中のラムダや匿名クラスも同じく拾う。
 		if (node instanceof EnumDeclaration enumDeclaration) {
 			for (final Object o : enumDeclaration.enumConstants()) {
 				final EnumConstantDeclaration constant = (EnumConstantDeclaration) o;
+				for (final Object argument : constant.arguments()) {
+					this.collectNestedBodies((Expression) argument);
+				}
 				if (null != constant.getAnonymousClassDeclaration()) {
 					final ProgramElementInfo body = this.visitChild(
 							constant.getAnonymousClassDeclaration());
@@ -191,17 +197,41 @@ public class TinyPDGASTVisitor extends StatementVisitor {
 	}
 
 	/**
+	 * 文の外にある式 (フィールドの初期化子、enum の定数の引数) の中から、
+	 * ラムダと匿名クラスの本体を解析単位として拾う。
+	 *
+	 * <p>式の visit はラムダを {@code lambda$行番号} の MethodInfo として、
+	 * 匿名クラスのメソッドをメソッドとして this.methods に積む。式そのものは
+	 * 文ではないのでグラフにならず、ここでは捨てる。以前はこれらの式を見て
+	 * おらず、Comparator のフィールドや戦略 enum の本体は誰からも見えなかった
+	 * (issue #29)。
+	 */
+	private void collectNestedBodies(final Expression expression) {
+		this.visitChild(expression);
+	}
+
+	/**
 	 * 型の本体からメソッド、初期化ブロック、ネストした型を拾う。
 	 *
-	 * <p>型宣言と匿名クラスの両方がここを通る。フィールドと、enum の定数の
-	 * 引数は式であって文の並びを持たないので拾わない。
+	 * <p>型宣言と匿名クラスの両方がここを通る。フィールドは式であって文の
+	 * 並びを持たないので解析単位にはしないが、初期化子の中のラムダと匿名
+	 * クラスは拾う。
 	 */
 	private void visitMembers(final List<?> members, final ClassInfo owner,
 			final StringBuilder text) {
 
 		for (final Object o : members) {
 
-			if (o instanceof MethodDeclaration || o instanceof Initializer) {
+			if (o instanceof FieldDeclaration field) {
+				for (final Object fragment : field.fragments()) {
+					final Expression initializer = ((VariableDeclarationFragment) fragment)
+							.getInitializer();
+					if (null != initializer) {
+						this.collectNestedBodies(initializer);
+					}
+				}
+
+			} else if (o instanceof MethodDeclaration || o instanceof Initializer) {
 				final MethodInfo method = (MethodInfo) this.visitChild((ASTNode) o);
 				this.methods.add(method);
 				owner.addMethod(method);
