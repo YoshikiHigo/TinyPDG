@@ -22,9 +22,21 @@ Building
 
     ./gradlew build
 
-This compiles, runs the tests, and produces `build/libs/TinyPDG-0.1.0.jar`.
-Compilation runs with `-Xlint:all` and the build is expected to stay
-warning free.
+This compiles, runs the tests, and produces `build/libs/TinyPDG-0.1.0.jar`
+together with a distribution of the command line tools,
+`build/distributions/TinyPDG-0.1.0.zip`. Compilation runs with
+`-Xlint:all` and the build is expected to stay warning free.
+
+To get the tools ready to run in place:
+
+    ./gradlew installDist
+
+This puts start scripts in `build/install/TinyPDG/bin/` (`writer`,
+`scorpio`, `distiller` and `predictor`, each with a `.bat` twin for
+Windows) and every jar they need in `build/install/TinyPDG/lib/`. The
+scripts use the `java` found through `JAVA_HOME` or on `PATH`, which
+must be a JDK 25 or later. The zip under `build/distributions/` holds
+the same layout for copying elsewhere.
 
 Command line tools
 ------------------
@@ -33,14 +45,20 @@ Every tool takes `-d` for the target, which may be a single `.java` file
 or a directory that is searched recursively. Source files are read as
 UTF-8.
 
+The examples below use the start scripts that `./gradlew installDist`
+puts in `build/install/TinyPDG/bin/`. On Windows call the `.bat` files.
+From an IDE, run the main class named in each section with the same
+arguments.
+
 `-j <version>` sets the Java version assumed when parsing (`8`, `11`,
 `17`, `21`, `25`, ...). It defaults to 25. Use it when analysing sources
 that a newer compiler would reject.
 
 ### Writing graphs for Graphviz
 
-    java -cp <classpath> yoshikihigo.tinypdg.graphviz.Writer \
-        -d src/main/java -p pdg.dot -c cfg.dot
+    build/install/TinyPDG/bin/writer -d src/main/java -p pdg.dot -c cfg.dot
+
+Main class: `yoshikihigo.tinypdg.graphviz.Writer`.
 
 | Option | Meaning |
 | --- | --- |
@@ -58,8 +76,9 @@ Reports clone pairs as pairs of isomorphic subgraphs of the PDGs, grown
 outwards from pairs of equivalent nodes. The technique and the heuristics
 it rests on are described in the paper under [Publication](#publication).
 
-    java -cp <classpath> yoshikihigo.tinypdg.scorpio.Scorpio \
-        -d src/main/java -o clonepairs.csv -s 10 -t 4
+    build/install/TinyPDG/bin/scorpio -d src/main/java -o clonepairs.csv -s 10 -t 4
+
+Main class: `yoshikihigo.tinypdg.scorpio.Scorpio`.
 
 | Option | Meaning |
 | --- | --- |
@@ -78,8 +97,9 @@ Merging needs execution dependences, and is turned off automatically if
 
 ### Collecting dependence frequencies
 
-    java -cp <classpath> yoshikihigo.tinypdg.prelement.DependenceDistiller \
-        -d src/main/java -b frequencies.db -s 5 -t 4
+    build/install/TinyPDG/bin/distiller -d src/main/java -b frequencies.db -s 5 -t 4
+
+Main class: `yoshikihigo.tinypdg.prelement.DependenceDistiller`.
 
 Walks the PDGs and records, in an SQLite database, how often each kind of
 dependence connects each pair of normalized statements.
@@ -94,8 +114,9 @@ dependence connects each pair of normalized statements.
 
 ### Querying those frequencies
 
-    java -cp <classpath> yoshikihigo.tinypdg.prelement.ElementPredictor \
-        -b frequencies.db
+    build/install/TinyPDG/bin/predictor -b frequencies.db
+
+Main class: `yoshikihigo.tinypdg.prelement.ElementPredictor`.
 
 Reads a statement from standard input and prints the statements most
 often found to depend on it. An empty line ends the session.

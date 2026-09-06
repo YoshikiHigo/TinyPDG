@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'distribution'
     id 'eclipse'
 }
 
@@ -39,6 +40,49 @@ tasks.named('jar') {
                 'Implementation-Version': project.version,
                 'Implementation-Vendor': 'Yoshiki Higo',
         )
+    }
+}
+
+// コマンドラインツールの配布物。./gradlew installDist で
+// build/install/TinyPDG/{bin,lib} に起動スクリプトと依存 jar が揃い、build
+// (distZip) で同じ内容の zip ができる。以前は jar 単体しかなく、Main-Class も
+// 依存も持たないので、利用者がクラスパスを自分で組む必要があった (issue #4)。
+//
+// application プラグインはメインクラスを 1 つしか想定しないので、ツールごとに
+// CreateStartScripts を定義して distribution プラグインの配布物に入れる。
+def tools = [
+        writer   : 'yoshikihigo.tinypdg.graphviz.Writer',
+        scorpio  : 'yoshikihigo.tinypdg.scorpio.Scorpio',
+        distiller: 'yoshikihigo.tinypdg.prelement.DependenceDistiller',
+        predictor: 'yoshikihigo.tinypdg.prelement.ElementPredictor',
+]
+
+def startScriptTasks = tools.collect { name, mainClassName ->
+    tasks.register("${name}StartScripts",
+            org.gradle.jvm.application.tasks.CreateStartScripts) {
+        applicationName = name
+        mainClass = mainClassName
+        outputDir = layout.buildDirectory.dir("scripts/${name}").get().asFile
+        classpath = files(tasks.named('jar')) + configurations.runtimeClasspath
+        // sqlite-jdbc のネイティブライブラリの読み込みを許可する (test と同じ)。
+        defaultJvmOpts = ['--enable-native-access=ALL-UNNAMED']
+    }
+}
+
+distributions {
+    main {
+        contents {
+            into('bin') {
+                from(startScriptTasks)
+                filePermissions { unix('rwxr-xr-x') }
+            }
+            into('lib') {
+                from(tasks.named('jar'))
+                from(configurations.runtimeClasspath)
+            }
+            from(rootProject.file('LICENSE'))
+            from(rootProject.file('README.md'))
+        }
     }
 }
 
