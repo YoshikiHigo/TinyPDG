@@ -7,6 +7,7 @@ import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.AssertStatement;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BreakStatement;
+import org.eclipse.jdt.core.dom.CaseDefaultExpression;
 import org.eclipse.jdt.core.dom.CatchClause;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ConstructorInvocation;
@@ -815,14 +816,33 @@ abstract class StatementVisitor extends ExpressionVisitor {
 			// JLS14 以降、switch ラベルは複数の式を持ちうる (case 1, 2, 3:)。
 			// 旧 API の getExpression() は JLS14 以降の AST では実際のラベルを
 			// 返さず、空の SimpleName を遅延生成して返してしまうため使えない。
-			final List<?> expressions = node.expressions();
-			if (expressions.isEmpty()) {
+			//
+			// case null, default -> の default は式ではなく印である。default を
+			// 含む case は、ラベルの式を持たない case として持つ。CFG は
+			// 「式のない case」を default と見て、素通りする経路の有無を決める。
+			final List<Object> labels = new ArrayList<>();
+			boolean isDefault = node.expressions().isEmpty();
+			for (final Object o : node.expressions()) {
+				if (o instanceof CaseDefaultExpression) {
+					isDefault = true;
+				} else {
+					labels.add(o);
+				}
+			}
+
+			final List<ProgramElementInfo> labelExpressions = this.visitChildren(labels);
+			if (!isDefault) {
+				labelExpressions.forEach(switchCase::addExpression);
+			}
+
+			if (labelExpressions.isEmpty()) {
 				text.append("default");
 			} else {
 				text.append("case ");
-				final List<ProgramElementInfo> labels = this.visitChildren(expressions);
-				labels.forEach(switchCase::addExpression);
-				text.append(joinTexts(labels, ", "));
+				text.append(joinTexts(labelExpressions, ", "));
+				if (isDefault) {
+					text.append(", default");
+				}
 			}
 
 			// case X -> ... の矢印形式か、従来の case X: 形式か。

@@ -473,6 +473,17 @@ public class CFG {
 			this.exitNodes.addAll(sequentialCFGs.getLast().exitNodes);
 		}
 
+		// default のない switch には、どの case にも合わずに素通りする経路が
+		// ある。条件から直接 switch の後ろへ出る。default はラベルの式を持たない
+		// case として届く。enum や sealed 型を網羅した switch にも辺が付くが、
+		// 型を見ないここでは区別できない。
+		final boolean hasDefault = substatements.stream().anyMatch(
+				s -> StatementInfo.CATEGORY.Case == s.getCategory()
+						&& s.getExpressions().isEmpty());
+		if (!hasDefault) {
+			this.exitNodes.add(conditionNode);
+		}
+
 		this.connectCFGBreakStatementNode(statement);
 	}
 
