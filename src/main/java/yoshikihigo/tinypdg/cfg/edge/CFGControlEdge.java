@@ -13,6 +13,11 @@ public class CFGControlEdge extends CFGEdge {
 	}
 
 	@Override
+	public Boolean getControl() {
+		return this.control;
+	}
+
+	@Override
 	public String getDependenceString() {
 		return Boolean.toString(this.control);
 	}

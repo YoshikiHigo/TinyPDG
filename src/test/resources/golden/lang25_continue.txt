@@ -12,7 +12,7 @@ edges:
   0 -> 1 []
   1 -> 2 []
   2 -> 3 [false]
-  2 -> 4 [jump]
+  2 -> 4 [jump:true]
   3 -> 4 []
   4 -> 1 [true]
   4 -> 5 [false]
@@ -68,7 +68,7 @@ edges:
   2 -> 4 [true]
   2 -> 6 [false]
   3 -> 2 []
-  4 -> 3 [jump]
+  4 -> 3 [jump:true]
   4 -> 5 [false]
   5 -> 3 []
 

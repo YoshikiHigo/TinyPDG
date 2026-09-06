@@ -21,7 +21,7 @@ edges:
   5 -> 3 [false]
   5 -> 7 [true]
   6 -> 5 []
-  7 -> 3 [jump]
+  7 -> 3 [jump:true]
   7 -> 6 [false]
 
 ## PDG method <5...15>

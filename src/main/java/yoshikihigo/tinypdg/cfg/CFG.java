@@ -156,10 +156,11 @@ public class CFG {
 				// 後も出口の集合に残っていて、PDG はグラフに現れない出口を作って
 				// いた。
 				this.replaceExitNode(node);
-				for (final CFGNode<?> fromNode : node.getBackwardNodes()) {
+				// 条件ノードから来た辺なら、その真偽を jump の辺に持たせる。
+				for (final CFGEdge backwardEdge : node.getBackwardEdges()) {
 					for (final CFGNode<?> toNode : node.getForwardNodes()) {
-
-						CFGEdge.makeJumpEdge(fromNode, toNode).connect();
+						CFGEdge.makeJumpEdge(backwardEdge.fromNode, toNode,
+								backwardEdge.getControl()).connect();
 					}
 				}
 

@@ -56,6 +56,21 @@ public abstract class CFGEdge implements Comparable<CFGEdge> {
 		return new CFGJumpEdge(fromNode, toNode);
 	}
 
+	/**
+	 * break や continue のノードを消したときに、その前後を繋ぐ辺。
+	 *
+	 * @param control 消したノードへ入っていた辺の真偽。条件ノードから来て
+	 *                いなければ null
+	 */
+	static public CFGEdge makeJumpEdge(final CFGNode<?> fromNode,
+			final CFGNode<?> toNode, final Boolean control) {
+
+		Objects.requireNonNull(fromNode, "\"fromNode\" is null.");
+		Objects.requireNonNull(toNode, "\"toNode\" is null.");
+
+		return new CFGJumpEdge(fromNode, toNode, control);
+	}
+
 	public final CFGNode<? extends ProgramElementInfo> fromNode;
 	public final CFGNode<? extends ProgramElementInfo> toNode;
 
@@ -82,6 +97,17 @@ public abstract class CFGEdge implements Comparable<CFGEdge> {
 	public abstract String getDependenceTypeString();
 
 	public abstract String getDependenceString();
+
+	/**
+	 * 始点が条件ノードなら、この辺へ進む条件の真偽。そうでなければ null。
+	 *
+	 * <p>条件つきの辺のほか、break や continue のノードを消したときに条件
+	 * ノードから張り直した jump の辺も持つ。後支配から制御依存を計算するには、
+	 * 条件ノードから出る全ての辺の真偽が要る。
+	 */
+	public Boolean getControl() {
+		return null;
+	}
 
 	/**
 	 * 同一性は compareTo と同じく、両端のノードと辺の種類で決まる。

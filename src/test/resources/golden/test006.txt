@@ -15,7 +15,7 @@ edges:
   3 -> 4 []
   4 -> 5 [false]
   5 -> 2 [false]
-  5 -> 2 [jump]
+  5 -> 2 [jump:true]
 
 ## PDG method <5...15>
 nodes:

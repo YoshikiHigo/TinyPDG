@@ -48,7 +48,7 @@ nodes:
 edges:
   0 -> 1 []
   1 -> 2 [false]
-  1 -> 3 [jump]
+  1 -> 3 [jump:true]
   2 -> 3 []
 
 ## PDG labeledBlock <5...14>
