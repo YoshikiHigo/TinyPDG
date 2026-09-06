@@ -446,8 +446,13 @@ public class CFG {
 			}
 		}
 
-		this.exitNodes
-				.addAll(sequentialCFGs.get(sequentialCFGs.size() - 1).exitNodes);
+		// 中身のない switch (x) { } では条件からそのまま次へ流れる。以前は
+		// 最後の文を取ろうとして IndexOutOfBoundsException になっていた。
+		if (sequentialCFGs.isEmpty()) {
+			this.exitNodes.add(conditionNode);
+		} else {
+			this.exitNodes.addAll(sequentialCFGs.getLast().exitNodes);
+		}
 
 		this.connectCFGBreakStatementNode(statement);
 	}
