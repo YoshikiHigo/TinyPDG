@@ -174,6 +174,15 @@ class NormalizedTextTest {
 	}
 
 	@Test
+	void survivesDollarSignsInIdentifiers() {
+		// a$$b のような名前は印の $$ と衝突し、以前は範囲外アクセスで落ちていた。
+		final List<String> texts = normalizedTexts("lang23_dollars", "dollars");
+		assertContains(texts, "int $1");
+		assertContains(texts, "int $1 = $2 + $3;");
+		assertContains(texts, "return $1;");
+	}
+
+	@Test
 	void writesAForeachHeaderAsItsVariableAndIterable() {
 		// for (final int value : values) のヘッダ。以前はヘッダがなく、
 		// 変数と反復対象が別々の孤立したノードになっていた。
