@@ -45,6 +45,7 @@ edges:
   2 -> 6 [execution: ]
   2 -> 7 [control: true]
   2 -> 7 [execution: ]
+  2 -> 8 [control: true]
   3 -> 8 [data: r]
   3 -> 8 [execution: ]
   4 -> 5 [data: r]
@@ -57,4 +58,3 @@ edges:
   9 -> 1 [control: true]
   9 -> 1 [execution: ]
   9 -> 2 [control: true]
-  9 -> 8 [control: true]

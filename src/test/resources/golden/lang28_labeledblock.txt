@@ -65,6 +65,7 @@ edges:
   0 -> 2 [data: c]
   1 -> 2 [execution: ]
   1 -> 4 [data: x]
+  2 -> 3 [control: false]
   2 -> 3 [execution: ]
   2 -> 4 [execution: ]
   3 -> 4 [data: x]
@@ -73,5 +74,4 @@ edges:
   5 -> 1 [control: true]
   5 -> 1 [execution: ]
   5 -> 2 [control: true]
-  5 -> 3 [control: true]
   5 -> 4 [control: true]

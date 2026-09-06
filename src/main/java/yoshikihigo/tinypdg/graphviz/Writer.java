@@ -97,6 +97,8 @@ public class Writer {
 
 			options.addOption(CommandLineTools.javaVersionOption());
 
+			options.addOption(CommandLineTools.structuralOption());
+
 			final CommandLineParser parser = new DefaultParser();
 			final CommandLine cmd = parser.parse(options, args);
 
@@ -142,7 +144,8 @@ public class Writer {
 					for (final MethodInfo method : methods) {
 
 						final PDG pdg = new PDG(method, new PDGNodeFactory(),
-								new CFGNodeFactory());
+								new CFGNodeFactory(), CommandLineTools
+										.withControlOption(cmd, PDG.Dependences.ALL));
 						pdg.build();
 						writePDG(pdg, createdGraphNumber++, writer);
 					}

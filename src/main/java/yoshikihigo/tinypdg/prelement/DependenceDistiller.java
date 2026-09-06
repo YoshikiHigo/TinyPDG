@@ -46,6 +46,8 @@ public class DependenceDistiller {
 
 			options.addOption(CommandLineTools.javaVersionOption());
 
+			options.addOption(CommandLineTools.structuralOption());
+
 			final CommandLineParser parser = new DefaultParser();
 			final CommandLine cmd = parser.parse(options, args);
 
@@ -66,8 +68,9 @@ public class DependenceDistiller {
 				// ノードの併合はしない。
 				final SortedSet<PDG> pdgs = PDGGeneration.buildInParallel(
 						methods, new PDGGeneration.Options(
-								PDG.Dependences.ALL, SIZE_THRESHOLD,
-								NUMBER_OF_THREADS));
+								CommandLineTools.withControlOption(cmd,
+										PDG.Dependences.ALL),
+								SIZE_THRESHOLD, NUMBER_OF_THREADS));
 				pdgArray = pdgs.toArray(new PDG[0]);
 			}
 			final long time2 = System.nanoTime();

@@ -14,6 +14,7 @@ import yoshikihigo.tinypdg.ast.JavaAstFactory;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.pdg.edge.PDGDataDependenceEdge;
 import yoshikihigo.tinypdg.pdg.edge.PDGEdge;
+import yoshikihigo.tinypdg.pdg.node.PDGMethodEnterNode;
 import yoshikihigo.tinypdg.pdg.node.PDGNodeFactory;
 import yoshikihigo.tinypdg.pe.MethodInfo;
 
@@ -22,10 +23,18 @@ class PDGTest {
 	private static final File SAMPLE = Path.of(System.getProperty("user.dir"))
 			.resolve("src/test/resources/samples/lang09_receiver").toFile();
 
+	private static final File CONTROL_SAMPLE = Path.of(System.getProperty("user.dir"))
+			.resolve("src/test/resources/samples/lang40_controldep").toFile();
+
 	private static PDG build(final String methodName,
 			final PDG.Dependences dependences) {
+		return build(SAMPLE, methodName, dependences);
+	}
 
-		final List<MethodInfo> methods = JavaAstFactory.collectMethods(SAMPLE,
+	private static PDG build(final File sample, final String methodName,
+			final PDG.Dependences dependences) {
+
+		final List<MethodInfo> methods = JavaAstFactory.collectMethods(sample,
 				JavaAstFactory.DEFAULT_JAVA_VERSION);
 		final MethodInfo method = methods.stream()
 				.filter(m -> methodName.equals(m.name)).findFirst()
@@ -91,6 +100,48 @@ class PDGTest {
 
 		assertTrue(near < all,
 				"距離を絞ると遠いデータ依存が落ちること: all=" + all + " near=" + near);
+	}
+
+	/** toText で始まるノードへの制御依存の、始点のテキストと真偽。 */
+	private static List<String> controlParents(final PDG pdg, final String toText) {
+		return pdg.getAllEdges().stream()
+				.filter(e -> PDGEdge.TYPE.CONTROL == e.type)
+				.filter(e -> e.toNode.core.getText().startsWith(toText))
+				.map(e -> (e.fromNode instanceof PDGMethodEnterNode ? "Enter"
+						: e.fromNode.core.getText()) + ":" + e.getDependenceString())
+				.sorted().toList();
+	}
+
+	@Test
+	void postDominanceMakesAGuardedStatementDependOnTheGuard() {
+		// if (x < 0) { return -1; } の後の文は、条件が偽のときだけ実行される。
+		final PDG pdg = build(CONTROL_SAMPLE, "guard", PDG.Dependences.ALL);
+		assertEquals(List.of("x < 0:false"), controlParents(pdg, "final int y"));
+	}
+
+	@Test
+	void postDominanceMakesALoopConditionDependOnItself() {
+		final PDG pdg = build(CONTROL_SAMPLE, "whileLoop", PDG.Dependences.ALL);
+		assertEquals(List.of("Enter:true", "n > 0:true"),
+				controlParents(pdg, "n > 0"));
+	}
+
+	@Test
+	void structuralControlDependenceIgnoresTheJump() {
+		final PDG pdg = build(CONTROL_SAMPLE, "guard",
+				PDG.Dependences.ALL.withStructuralControl());
+		assertEquals(List.of("Enter:true"), controlParents(pdg, "final int y"));
+	}
+
+	@Test
+	void catchClausesStillGetTheirControlDependence() {
+		// catch 節には入口から届く経路がないので、後支配の計算では依存が
+		// 付かない。構文による依存で補う。
+		final PDG pdg = build(CONTROL_SAMPLE, "afterCatch", PDG.Dependences.ALL);
+		assertEquals(List.of("Enter:true"),
+				controlParents(pdg, "final RuntimeException e"));
+		assertEquals(List.of("final RuntimeException e:true"),
+				controlParents(pdg, "x = -1"));
 	}
 
 	@Test

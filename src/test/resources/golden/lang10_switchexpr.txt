@@ -136,6 +136,7 @@ edges:
   1 -> 2 [execution: ]
   1 -> 3 [data: count]
   1 -> 4 [data: count]
+  2 -> 2 [control: true]
   2 -> 3 [control: true]
   2 -> 3 [execution: ]
   2 -> 4 [execution: ]

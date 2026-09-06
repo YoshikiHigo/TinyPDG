@@ -36,6 +36,7 @@ edges:
   2 -> 3 [execution: ]
   2 -> 4 [data: i]
   2 -> 5 [data: i]
+  3 -> 3 [control: true]
   3 -> 4 [control: true]
   3 -> 5 [control: true]
   3 -> 5 [execution: ]

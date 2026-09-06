@@ -58,6 +58,7 @@ edges:
   0 -> 1 [execution: ]
   0 -> 2 [data: total]
   0 -> 3 [data: total]
+  1 -> 1 [control: true]
   1 -> 2 [control: true]
   1 -> 2 [data: c]
   1 -> 2 [execution: ]

@@ -62,6 +62,8 @@ public class Scorpio {
 			options.addOption(CommandLineTools.onOffOption("M", "merging",
 					"merging consecutive similar nodes"));
 
+			options.addOption(CommandLineTools.structuralOption());
+
 			options.addOption(CommandLineTools.javaVersionOption());
 
 			final CommandLineParser parser = new DefaultParser();
@@ -89,8 +91,9 @@ public class Scorpio {
 						.collectMethods(target, CommandLineTools.javaVersion(cmd));
 
 				final PDGGeneration.Options generation = new PDGGeneration.Options(
-						new PDG.Dependences(useOfControl, useOfData,
-								useOfExecution),
+						CommandLineTools.withControlOption(cmd,
+								new PDG.Dependences(useOfControl, useOfData,
+										useOfExecution)),
 						SIZE_THRESHOLD, NUMBER_OF_THREADS);
 				// ノードの併合は Scorpio 固有の処理なので、生成側には
 				// 「作り終えた PDG に何をするか」として渡す。

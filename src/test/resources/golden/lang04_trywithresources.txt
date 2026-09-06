@@ -45,6 +45,7 @@ edges:
   2 -> 3 [execution: ]
   2 -> 4 [data: reader]
   3 -> 4 [execution: ]
+  4 -> 4 [control: true]
   4 -> 5 [control: true]
   4 -> 5 [data: line]
   4 -> 5 [execution: ]

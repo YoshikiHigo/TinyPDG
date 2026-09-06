@@ -13,6 +13,7 @@ import java.util.TreeSet;
 import yoshikihigo.tinypdg.cfg.CFG;
 import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
 import yoshikihigo.tinypdg.cfg.edge.CFGExceptionEdge;
+import yoshikihigo.tinypdg.cfg.node.CFGControlNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.pdg.edge.PDGControlDependenceEdge;
@@ -60,6 +61,12 @@ public class PDG implements Comparable<PDG> {
 	private SortedSet<CFGNode<?>> cfgNodes;
 
 	/**
+	 * 構文による制御依存を、まだ制御依存を持たないノードにだけ張るか。
+	 * 後支配の計算が届かなかったノードを補うときに真にする。
+	 */
+	private boolean onlyOrphans;
+
+	/**
 	 * PDG に何を含めるか。
 	 *
 	 * <p>以前はコンストラクタの引数として並んでいた。真偽値が 3 つ続くので、
@@ -75,14 +82,18 @@ public class PDG implements Comparable<PDG> {
 	 * @param execution         実行依存の辺を作るか
 	 * @param dataDistance      データ依存を作る行数の上限
 	 * @param executionDistance 実行依存を作る行数の上限
+	 * @param controlDependence 制御依存の決め方
 	 */
 	public record Dependences(boolean control, boolean data, boolean execution,
-			int dataDistance, int executionDistance) {
+			int dataDistance, int executionDistance,
+			ControlDependence controlDependence) {
 
-		/** 3 種類すべてを、距離の制限なしで作る。 */
+		/** 3 種類すべてを、距離の制限なしで作る。制御依存は後支配から。 */
 		public static final Dependences ALL = new Dependences(true, true, true);
 
 		public Dependences {
+			Objects.requireNonNull(controlDependence,
+					"\"controlDependence\" is null.");
 			if (dataDistance < 1 || executionDistance < 1) {
 				throw new IllegalArgumentException(
 						"距離は 1 以上でなければならない: data=" + dataDistance
@@ -90,12 +101,43 @@ public class PDG implements Comparable<PDG> {
 			}
 		}
 
-		/** 距離を制限せずに作る。 */
+		/** 距離を制限せずに作る。制御依存は後支配から。 */
 		public Dependences(final boolean control, final boolean data,
 				final boolean execution) {
 			this(control, data, execution, Integer.MAX_VALUE,
 					Integer.MAX_VALUE);
 		}
+
+		/** 制御依存は後支配から。 */
+		public Dependences(final boolean control, final boolean data,
+				final boolean execution, final int dataDistance,
+				final int executionDistance) {
+			this(control, data, execution, dataDistance, executionDistance,
+					ControlDependence.POST_DOMINANCE);
+		}
+
+		/** 制御依存を文の入れ子で決める設定にしたもの。 */
+		public Dependences withStructuralControl() {
+			return new Dependences(this.control, this.data, this.execution,
+					this.dataDistance, this.executionDistance,
+					ControlDependence.STRUCTURAL);
+		}
+	}
+
+	/** 制御依存の決め方。 */
+	public enum ControlDependence {
+		/**
+		 * CFG の後支配から計算する。Ferrante らの古典的な定義で、break や
+		 * return が作る依存も拾う。{@code if (c) return; x = 1;} の
+		 * {@code x = 1} は c に偽で依存する。既定。
+		 */
+		POST_DOMINANCE,
+		/**
+		 * 文の入れ子で決める。条件の本体は条件に、最上位の文は入口に依存し、
+		 * ジャンプは考慮しない。以前の唯一の決め方で、過去の結果との比較の
+		 * ために残してある。
+		 */
+		STRUCTURAL
 	}
 
 	public PDG(final MethodInfo unit, final PDGNodeFactory pdgNodeFactory,
@@ -243,7 +285,16 @@ public class PDG implements Comparable<PDG> {
 		this.cfgNodes = this.cfg.getAllNodes();
 
 		if (this.dependences.control()) {
-			this.buildControlDependenceInside(this.enterNode, unit, true);
+			switch (this.dependences.controlDependence()) {
+			case POST_DOMINANCE -> {
+				this.buildPostDominanceControlDependence();
+				// 入口から辿れないノード (catch 節の条件と、その本体の先頭、
+				// return の後の到達不能な文) には後支配の計算が辺を張らない。
+				// それらだけ文の入れ子で決める。
+				this.buildStructuralControlDependence(true);
+			}
+			case STRUCTURAL -> this.buildStructuralControlDependence(false);
+			}
 			for (final PDGParameterNode parameterNode : this.parameterNodes) {
 				new PDGControlDependenceEdge(this.enterNode, parameterNode, true).connect();
 			}
@@ -318,14 +369,6 @@ public class PDG implements Comparable<PDG> {
 				}
 			}
 		}
-		if (this.dependences.control()) {
-			if (pdgNode instanceof PDGControlNode) {
-				final ProgramElementInfo condition = ((PDGControlNode) pdgNode).core;
-				this.buildControlDependenceInside((PDGControlNode) pdgNode,
-						condition.getOwnerConditionalBlock(), true);
-			}
-		}
-
 		if (this.dependences.execution()) {
 			// 例外辺は「直後に実行される」とは読まない。may の辺なので、実行依存
 			// に使うと try 本体の各文に後続が増え、連続するノードの併合も切れる。
@@ -395,6 +438,53 @@ public class PDG implements Comparable<PDG> {
 		}
 	}
 
+	/** 後支配から制御依存を張る。 */
+	private void buildPostDominanceControlDependence() {
+		for (final PostDominanceControlDependence.Dependence dependence : PostDominanceControlDependence
+				.compute(this.cfg)) {
+			final PDGControlNode fromPDGNode = null == dependence.from()
+					? this.enterNode
+					: (PDGControlNode) this.pdgNodeFactory.makeNode(dependence.from());
+			final PDGNode<?> toPDGNode = this.pdgNodeFactory.makeNode(dependence.to());
+			new PDGControlDependenceEdge(fromPDGNode, toPDGNode,
+					dependence.control()).connect();
+		}
+	}
+
+	/**
+	 * 文の入れ子から制御依存を張る。入口から本体の最上位の文へ、各条件ノード
+	 * からその本体の文へ。
+	 *
+	 * @param onlyOrphans 真なら、まだ制御依存を持たないノードにだけ辺を張る。
+	 *                    後支配の計算が届かなかったノードを補うときに使う
+	 */
+	private void buildStructuralControlDependence(final boolean onlyOrphans) {
+		this.onlyOrphans = onlyOrphans;
+		this.buildControlDependenceInside(this.enterNode, this.unit, true);
+		for (final CFGNode<?> cfgNode : this.cfgNodes) {
+			if (cfgNode instanceof CFGControlNode) {
+				final PDGControlNode controlNode = (PDGControlNode) this.pdgNodeFactory
+						.makeNode(cfgNode);
+				this.buildControlDependenceInside(controlNode,
+						controlNode.core.getOwnerConditionalBlock(), true);
+			}
+		}
+		this.onlyOrphans = false;
+	}
+
+	/**
+	 * 構文による制御依存の辺を張る。onlyOrphans なら、既に制御依存を持つ相手
+	 * には張らない。
+	 */
+	private void connectControl(final PDGControlNode fromPDGNode,
+			final PDGNode<?> toPDGNode, final boolean type) {
+		if (this.onlyOrphans && toPDGNode.getBackwardEdges().stream()
+				.anyMatch(edge -> edge instanceof PDGControlDependenceEdge)) {
+			return;
+		}
+		new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
+	}
+
 	/**
 	 * ブロックの中身を fromPDGNode に制御依存させる。
 	 *
@@ -437,7 +527,7 @@ public class PDG implements Comparable<PDG> {
 			for (final ProgramElementInfo updater : forStatement.getUpdaters()) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeNormalNode(updater);
-				new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
+				this.connectControl(fromPDGNode, toPDGNode, type);
 			}
 		}
 	}
@@ -458,7 +548,7 @@ public class PDG implements Comparable<PDG> {
 			if (null != condition) {
 				final PDGNode<?> toPDGNode = this.pdgNodeFactory
 						.makeControlNode(condition);
-				new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
+				this.connectControl(fromPDGNode, toPDGNode, type);
 			} else {
 				this.buildControlDependenceInside(fromPDGNode, block, type);
 			}
@@ -468,7 +558,7 @@ public class PDG implements Comparable<PDG> {
 						.getInitializers()) {
 					final PDGNode<?> toPDGNode = this.pdgNodeFactory
 							.makeNormalNode(initializer);
-					new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
+					this.connectControl(fromPDGNode, toPDGNode, type);
 				}
 			}
 
@@ -505,7 +595,7 @@ public class PDG implements Comparable<PDG> {
 		if ((null != cfgNode) && (this.cfgNodes.contains(cfgNode))) {
 			final PDGNode<?> toPDGNode = this.pdgNodeFactory
 					.makeNormalNode(statement);
-			new PDGControlDependenceEdge(fromPDGNode, toPDGNode, type).connect();
+			this.connectControl(fromPDGNode, toPDGNode, type);
 		}
 	}
 }

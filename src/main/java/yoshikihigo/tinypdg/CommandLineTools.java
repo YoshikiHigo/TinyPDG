@@ -6,6 +6,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 
 import yoshikihigo.tinypdg.ast.JavaAstFactory;
+import yoshikihigo.tinypdg.pdg.PDG;
 
 /**
  * コマンドラインツールが共有する、オプションの定義と読み取り、経過時間の表示。
@@ -67,6 +68,21 @@ public final class CommandLineTools {
 		option.setArgs(1);
 		option.setRequired(true);
 		return option;
+	}
+
+	/** {@code -S}: 制御依存を後支配ではなく文の入れ子で決める。 */
+	public static Option structuralOption() {
+		final Option option = new Option("S", "structural", false,
+				"decide control dependence by syntactic nesting instead of post-dominance");
+		option.setRequired(false);
+		return option;
+	}
+
+	/** {@code -S} が指定されていれば、制御依存を文の入れ子で決める設定にする。 */
+	public static PDG.Dependences withControlOption(final CommandLine cmd,
+			final PDG.Dependences dependences) {
+		return cmd.hasOption("S") ? dependences.withStructuralControl()
+				: dependences;
 	}
 
 	/** on か off を取るオプション。省略時は on。 */
