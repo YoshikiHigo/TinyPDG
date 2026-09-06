@@ -513,12 +513,14 @@ public class CFG {
 
 		// default のない switch には、どの case にも合わずに素通りする経路が
 		// ある。条件から直接 switch の後ろへ出る。default はラベルの式を持たない
-		// case として届く。enum や sealed 型を網羅した switch にも辺が付くが、
-		// 型を見ないここでは区別できない。
+		// case として届く。ただし構文から網羅的だと分かる switch (switch 式と、
+		// パターンか null のラベルを持つ switch 文) には素通りの経路がない。
+		// 従来型の switch 文が enum の全定数を並べていても、型を見ないここでは
+		// 分からず、言語の意味としても素通りしうる。
 		final boolean hasDefault = substatements.stream().anyMatch(
 				s -> StatementInfo.CATEGORY.Case == s.getCategory()
 						&& s.getExpressions().isEmpty());
-		if (!hasDefault) {
+		if (!hasDefault && !statement.isExhaustive()) {
 			this.exitNodes.add(conditionNode);
 		}
 

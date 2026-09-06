@@ -110,6 +110,9 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 
 		final ConditionalStatementInfo switchBlock = new ConditionalStatementInfo(this.nearestBlock(),
 				StatementInfo.CATEGORY.Switch, startLine, endLine);
+		// switch 式は網羅的でなければコンパイルが通らない。default がなくても
+		// 素通りする経路はない。
+		switchBlock.setExhaustive(true);
 		this.stack.push(switchBlock);
 
 		final ProgramElementInfo condition = this.visitChild(node.getExpression());

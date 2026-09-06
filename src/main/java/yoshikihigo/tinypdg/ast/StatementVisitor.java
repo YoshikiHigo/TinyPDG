@@ -20,6 +20,8 @@ import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.ForStatement;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.LabeledStatement;
+import org.eclipse.jdt.core.dom.NullLiteral;
+import org.eclipse.jdt.core.dom.Pattern;
 import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
@@ -618,9 +620,27 @@ abstract class StatementVisitor extends ExpressionVisitor {
 				}
 			}
 
+			// パターンか null をラベルに持つ switch 文には、コンパイラが網羅性を
+			// 要求する。default がなくても素通りの経路はない。
+			switchBlock.setExhaustive(hasPatternOrNullLabel(node));
+
 			switchBlock.setText(text.toString());
 		}
 
+		return false;
+	}
+
+	/** ラベルにパターンか null を含む switch 文か。 */
+	private static boolean hasPatternOrNullLabel(final SwitchStatement node) {
+		for (final Object o : node.statements()) {
+			if (o instanceof SwitchCase switchCase) {
+				for (final Object label : switchCase.expressions()) {
+					if (label instanceof Pattern || label instanceof NullLiteral) {
+						return true;
+					}
+				}
+			}
+		}
 		return false;
 	}
 
