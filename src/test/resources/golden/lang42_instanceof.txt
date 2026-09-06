@@ -1,0 +1,84 @@
+# sample: lang42_instanceof
+
+## CFG array <19...21>
+nodes:
+  0: [enter,exit,normal] return o instanceof int[]; <20>
+edges:
+
+## PDG array <19...21>
+nodes:
+  0: [parameter] final Object o <19>
+  1: [exit] return o instanceof int[]; <20>
+  2: [enter,control] Enter <19...21>
+edges:
+  0 -> 1 [data: o]
+  2 -> 0 [control: true]
+  2 -> 1 [control: true]
+  2 -> 1 [execution: ]
+
+## CFG generic <15...17>
+nodes:
+  0: [enter,exit,normal] return o instanceof List<?>? 1: 0; <16>
+edges:
+
+## PDG generic <15...17>
+nodes:
+  0: [parameter] final Object o <15>
+  1: [exit] return o instanceof List<?>? 1: 0; <16>
+  2: [enter,control] Enter <15...17>
+edges:
+  0 -> 1 [data: o]
+  2 -> 0 [control: true]
+  2 -> 1 [control: true]
+  2 -> 1 [execution: ]
+
+## CFG plain <7...13>
+nodes:
+  0: [enter,normal] int r = 0; <8>
+  1: [control] o instanceof String <9>
+  2: [normal] r = 1; <10>
+  3: [exit,normal] return r; <12>
+edges:
+  0 -> 1 []
+  1 -> 2 [true]
+  1 -> 3 [false]
+  2 -> 3 []
+
+## PDG plain <7...13>
+nodes:
+  0: [parameter] final Object o <7>
+  1: [normal] int r = 0; <8>
+  2: [control] o instanceof String <9>
+  3: [normal] r = 1; <10>
+  4: [exit] return r; <12>
+  5: [enter,control] Enter <7...13>
+edges:
+  0 -> 2 [data: o]
+  1 -> 2 [execution: ]
+  1 -> 4 [data: r]
+  2 -> 3 [control: true]
+  2 -> 3 [execution: ]
+  2 -> 4 [execution: ]
+  3 -> 4 [data: r]
+  3 -> 4 [execution: ]
+  5 -> 0 [control: true]
+  5 -> 1 [control: true]
+  5 -> 1 [execution: ]
+  5 -> 2 [control: true]
+  5 -> 4 [control: true]
+
+## CFG qualified <23...25>
+nodes:
+  0: [enter,exit,normal] return o instanceof java.util.Map; <24>
+edges:
+
+## PDG qualified <23...25>
+nodes:
+  0: [parameter] final Object o <23>
+  1: [exit] return o instanceof java.util.Map; <24>
+  2: [enter,control] Enter <23...25>
+edges:
+  0 -> 1 [data: o]
+  2 -> 0 [control: true]
+  2 -> 1 [control: true]
+  2 -> 1 [execution: ]
