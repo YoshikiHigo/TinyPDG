@@ -1,6 +1,8 @@
 package yoshikihigo.tinypdg.pdg;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -9,7 +11,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import yoshikihigo.tinypdg.cfg.CFG;
-import yoshikihigo.tinypdg.cfg.edge.CFGEdge;
 import yoshikihigo.tinypdg.cfg.node.CFGNode;
 import yoshikihigo.tinypdg.cfg.node.CFGNodeFactory;
 import yoshikihigo.tinypdg.pdg.edge.PDGControlDependenceEdge;
@@ -188,20 +189,31 @@ public class PDG implements Comparable<PDG> {
 		return nodes;
 	}
 
-	private void collectFrom(final PDGNode<?> node,
+	/**
+	 * startNode と、辺で繋がっているノードを全て nodes に集める。
+	 *
+	 * <p>再帰ではなく作業リストで巡る。長いメソッドではグラフの経路の長さの
+	 * ぶんだけ再帰が深くなり、StackOverflowError になっていた。このクラスの
+	 * 他の巡回も同じ形にしてある。
+	 */
+	private void collectFrom(final PDGNode<?> startNode,
 			final SortedSet<PDGNode<?>> nodes) {
 
-		Objects.requireNonNull(node, "\"node\" is null.");
+		Objects.requireNonNull(startNode, "\"startNode\" is null.");
 
-		if (!nodes.add(node)) {
-			return;
-		}
-
-		for (final PDGEdge edge : node.getBackwardEdges()) {
-			this.collectFrom(edge.fromNode, nodes);
-		}
-		for (final PDGEdge edge : node.getForwardEdges()) {
-			this.collectFrom(edge.toNode, nodes);
+		final Deque<PDGNode<?>> worklist = new ArrayDeque<>();
+		worklist.push(startNode);
+		while (!worklist.isEmpty()) {
+			final PDGNode<?> node = worklist.pop();
+			if (!nodes.add(node)) {
+				continue;
+			}
+			for (final PDGEdge edge : node.getBackwardEdges()) {
+				worklist.push(edge.fromNode);
+			}
+			for (final PDGEdge edge : node.getForwardEdges()) {
+				worklist.push(edge.toNode);
+			}
 		}
 	}
 
@@ -247,8 +259,7 @@ public class PDG implements Comparable<PDG> {
 			for (final PDGParameterNode parameterNode : this.parameterNodes) {
 				if (!this.cfg.isEmpty()) {
 					this.buildDataDependence(this.cfg.getEnterNode(),
-							parameterNode, parameterNode.core.name,
-							new HashSet<>());
+							parameterNode, parameterNode.core.name);
 				}
 			}
 		}
@@ -275,25 +286,33 @@ public class PDG implements Comparable<PDG> {
 		}
 	}
 
-	private void buildDependence(final CFGNode<?> cfgNode,
+	/** startNode から到達できる CFG のノードそれぞれについて、依存の辺を張る。 */
+	private void buildDependence(final CFGNode<?> startNode,
 			final Set<CFGNode<?>> checkedNodes) {
 
-		Objects.requireNonNull(cfgNode, "\"cfgNode\" is null.");
+		Objects.requireNonNull(startNode, "\"startNode\" is null.");
 		Objects.requireNonNull(checkedNodes, "\"checkedNodes\" is null.");
 
-		if (checkedNodes.contains(cfgNode)) {
-			return;
-		} else {
-			checkedNodes.add(cfgNode);
+		final Deque<CFGNode<?>> worklist = new ArrayDeque<>();
+		worklist.push(startNode);
+		while (!worklist.isEmpty()) {
+			final CFGNode<?> cfgNode = worklist.pop();
+			if (!checkedNodes.add(cfgNode)) {
+				continue;
+			}
+			this.buildDependenceOf(cfgNode);
+			pushReversed(worklist, cfgNode.getForwardNodes());
 		}
+	}
+
+	/** 1 つのノードから出る依存の辺を張る。 */
+	private void buildDependenceOf(final CFGNode<?> cfgNode) {
 
 		final PDGNode<?> pdgNode = this.pdgNodeFactory.makeNode(cfgNode);
 		if (this.dependences.data()) {
 			for (final String variable : pdgNode.core.getAssignedVariables()) {
-				for (final CFGEdge edge : cfgNode.getForwardEdges()) {
-					final Set<CFGNode<?>> checkedNodesForDefinedVariables = new HashSet<>();
-					this.buildDataDependence(edge.toNode, pdgNode, variable,
-							checkedNodesForDefinedVariables);
+				for (final CFGNode<?> forwardNode : cfgNode.getForwardNodes()) {
+					this.buildDataDependence(forwardNode, pdgNode, variable);
 				}
 			}
 		}
@@ -317,44 +336,51 @@ public class PDG implements Comparable<PDG> {
 
 			}
 		}
+	}
 
-		for (final CFGNode<?> forwardNode : cfgNode.getForwardNodes()) {
-			this.buildDependence(forwardNode, checkedNodes);
+	/** 先頭の要素が最初に取り出されるように、逆順に積む。 */
+	private static void pushReversed(final Deque<CFGNode<?>> worklist,
+			final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes) {
+		final List<CFGNode<?>> list = new ArrayList<>(nodes);
+		for (int index = list.size() - 1; 0 <= index; index--) {
+			worklist.push(list.get(index));
 		}
 	}
 
-	private void buildDataDependence(final CFGNode<?> cfgNode,
-			final PDGNode<?> fromPDGNode, final String variable,
-			final Set<CFGNode<?>> checkedCFGNodes) {
+	/**
+	 * fromPDGNode が variable を定義した後、startNode から先でその値を読む
+	 * ノードへデータ依存の辺を張る。variable を定義し直すノードで止まる。
+	 */
+	private void buildDataDependence(final CFGNode<?> startNode,
+			final PDGNode<?> fromPDGNode, final String variable) {
 
-		Objects.requireNonNull(cfgNode, "\"cfgNode\" is null.");
+		Objects.requireNonNull(startNode, "\"startNode\" is null.");
 		Objects.requireNonNull(fromPDGNode, "\"fromPDGNode\" is null.");
 		Objects.requireNonNull(variable, "\"variable\" is null.");
-		Objects.requireNonNull(checkedCFGNodes, "\"checkedCFGNodes\" is null.");
 
-		if (checkedCFGNodes.contains(cfgNode)) {
-			return;
-		} else {
-			checkedCFGNodes.add(cfgNode);
-		}
-
-		if (cfgNode.core.getReferencedVariables().contains(variable)) {
-
-			final PDGNode<?> toPDGNode = this.pdgNodeFactory.makeNode(cfgNode);
-			final int distance = Math.abs(toPDGNode.core.startLine
-					- fromPDGNode.core.startLine) + 1;
-			if (distance <= this.dependences.dataDistance()) {
-				new PDGDataDependenceEdge(fromPDGNode, toPDGNode, variable).connect();
+		final Set<CFGNode<?>> checkedCFGNodes = new HashSet<>();
+		final Deque<CFGNode<?>> worklist = new ArrayDeque<>();
+		worklist.push(startNode);
+		while (!worklist.isEmpty()) {
+			final CFGNode<?> cfgNode = worklist.pop();
+			if (!checkedCFGNodes.add(cfgNode)) {
+				continue;
 			}
-		}
 
-		if (cfgNode.core.getAssignedVariables().contains(variable)) {
-			return;
-		}
+			if (cfgNode.core.getReferencedVariables().contains(variable)) {
+				final PDGNode<?> toPDGNode = this.pdgNodeFactory.makeNode(cfgNode);
+				final int distance = Math.abs(toPDGNode.core.startLine
+						- fromPDGNode.core.startLine) + 1;
+				if (distance <= this.dependences.dataDistance()) {
+					new PDGDataDependenceEdge(fromPDGNode, toPDGNode, variable).connect();
+				}
+			}
 
-		for (final CFGNode<?> forwardNode : cfgNode.getForwardNodes()) {
-			this.buildDataDependence(forwardNode, fromPDGNode, variable,
-					checkedCFGNodes);
+			if (cfgNode.core.getAssignedVariables().contains(variable)) {
+				continue;
+			}
+
+			pushReversed(worklist, cfgNode.getForwardNodes());
 		}
 	}
 

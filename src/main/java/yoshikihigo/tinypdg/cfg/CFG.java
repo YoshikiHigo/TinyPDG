@@ -1,6 +1,8 @@
 package yoshikihigo.tinypdg.cfg;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -749,28 +751,29 @@ public class CFG {
 		}
 	}
 
+	/**
+	 * startNode から順方向の辺で到達できるノード。startNode 自身を含む。
+	 *
+	 * <p>再帰ではなく作業リストで巡る。長いメソッドでは経路の長さのぶんだけ
+	 * 再帰が深くなり、StackOverflowError になっていた。
+	 */
 	public final SortedSet<CFGNode<? extends ProgramElementInfo>> getReachableNodes(
 			final CFGNode<? extends ProgramElementInfo> startNode) {
 		Objects.requireNonNull(startNode, "\"startNode\" is null.");
+
 		final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes = new TreeSet<>();
-		this.getReachableNodes(startNode, nodes);
+		final Deque<CFGNode<? extends ProgramElementInfo>> worklist = new ArrayDeque<>();
+		worklist.push(startNode);
+		while (!worklist.isEmpty()) {
+			final CFGNode<? extends ProgramElementInfo> node = worklist.pop();
+			if (!nodes.add(node)) {
+				continue;
+			}
+			for (final CFGNode<? extends ProgramElementInfo> forwardNode : node
+					.getForwardNodes()) {
+				worklist.push(forwardNode);
+			}
+		}
 		return nodes;
-	}
-
-	private final void getReachableNodes(
-			final CFGNode<? extends ProgramElementInfo> startNode,
-			final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes) {
-		Objects.requireNonNull(startNode, "\"startNode\" is null.");
-		Objects.requireNonNull(nodes, "\"nodes\" is null.");
-
-		if (nodes.contains(startNode)) {
-			return;
-		}
-
-		nodes.add(startNode);
-		for (final CFGNode<? extends ProgramElementInfo> node : startNode
-				.getForwardNodes()) {
-			this.getReachableNodes(node, nodes);
-		}
 	}
 }
