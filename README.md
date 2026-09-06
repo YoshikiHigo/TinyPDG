@@ -50,6 +50,14 @@ puts in `build/install/TinyPDG/bin/`. On Windows call the `.bat` files.
 From an IDE, run the main class named in each section with the same
 arguments.
 
+Control dependences in the PDGs follow the classic post-dominance
+definition: a statement after `if (c) return;` depends on `c` being
+false, and a loop condition depends on itself. `-S` switches a tool to
+the older rule that follows the syntactic nesting only, for comparison
+with earlier results. The CFG output also contains dashed `exception`
+edges from a try body to its catch and finally blocks; they contribute
+to data dependences only, not to control or execution dependences.
+
 `-j <version>` sets the Java version assumed when parsing (`8`, `11`,
 `17`, `21`, `25`, ...). It defaults to 25. Use it when analysing sources
 that a newer compiler would reject.
@@ -66,6 +74,7 @@ Main class: `yoshikihigo.tinypdg.graphviz.Writer`.
 | `-p`, `--ProgramDependencyGraph` | write PDGs to this file |
 | `-c`, `--ControlFlowGraph` | write CFGs to this file |
 | `-j`, `--java-version` | Java version assumed for the sources |
+| `-S`, `--structural` | decide control dependence by syntactic nesting instead of post-dominance |
 
 At least one of `-p` and `-c` is needed for the run to produce anything.
 Render the result with `dot -Tpdf pdg.dot -o pdg.pdf`.
@@ -91,6 +100,7 @@ Main class: `yoshikihigo.tinypdg.scorpio.Scorpio`.
 | `-E`, `--execution` | use execution dependences, `on` or `off` (default on) |
 | `-M`, `--merging` | merge equivalent adjacent nodes, `on` or `off` (default on) |
 | `-j`, `--java-version` | Java version assumed for the sources |
+| `-S`, `--structural` | decide control dependence by syntactic nesting instead of post-dominance |
 
 Merging needs execution dependences, and is turned off automatically if
 `-E off` is given.
@@ -111,6 +121,7 @@ dependence connects each pair of normalized statements.
 | `-s`, `--size` | smallest graph to consider, in nodes (default 5) |
 | `-t`, `--thread` | number of threads (default 1) |
 | `-j`, `--java-version` | Java version assumed for the sources |
+| `-S`, `--structural` | decide control dependence by syntactic nesting instead of post-dominance |
 
 ### Querying those frequencies
 
