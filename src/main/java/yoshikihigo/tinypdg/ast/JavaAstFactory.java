@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.core.compiler.IProblem;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
@@ -105,6 +106,12 @@ public final class JavaAstFactory {
 	 * <p>コマンドラインツール 3 つが同じ手順を書いていた。ファイルを集め、
 	 * 1 つずつ AST にし、visitor に渡してメソッドを取り出す、という流れである。
 	 *
+	 * <p>構文エラーのあるファイルは、標準エラーに警告を出して飛ばす。JDT の
+	 * パーサは誤り回復をするので、そうしたファイルからも部分的な AST が黙って
+	 * 返り、以前は文の抜けた不完全なメソッドが結果に混ざっていた。飛ばす単位は
+	 * ファイルである。メソッド単位も考えられるが、波括弧の欠落は以降のメソッド
+	 * の境界も狂わせる。他のファイルの解析は続ける。
+	 *
 	 * @param javaVersion 解析対象として仮定する Java のバージョン
 	 */
 	public static List<MethodInfo> collectMethods(final File target,
@@ -114,12 +121,42 @@ public final class JavaAstFactory {
 		Objects.requireNonNull(javaVersion, "\"javaVersion\" is null.");
 
 		final List<MethodInfo> methods = new ArrayList<>();
+		int skipped = 0;
 		for (final File file : JavaSourceFiles.collect(target)) {
 			final CompilationUnit unit = createAST(file,
 					StandardCharsets.UTF_8, javaVersion);
+
+			final IProblem error = firstSyntaxError(unit);
+			if (null != error) {
+				System.err.println("警告: 構文エラーのあるファイルを飛ばします: " + file
+						+ " (" + error.getSourceLineNumber() + " 行目: "
+						+ error.getMessage() + ")");
+				skipped++;
+				continue;
+			}
+
 			unit.accept(new TinyPDGASTVisitor(file.getAbsolutePath(), unit,
 					methods));
 		}
+		if (0 < skipped) {
+			System.err.println("警告: 構文エラーのため " + skipped
+					+ " 個のファイルを飛ばしました。");
+		}
 		return methods;
+	}
+
+	/**
+	 * 最初の構文エラー。なければ null。
+	 *
+	 * <p>バインディングを解決していないので、報告される問題は構文のものに
+	 * 限られる。警告は数えない。
+	 */
+	private static IProblem firstSyntaxError(final CompilationUnit unit) {
+		for (final IProblem problem : unit.getProblems()) {
+			if (problem.isError()) {
+				return problem;
+			}
+		}
+		return null;
 	}
 }
