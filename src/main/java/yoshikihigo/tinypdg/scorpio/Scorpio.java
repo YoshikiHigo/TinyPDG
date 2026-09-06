@@ -106,10 +106,10 @@ public class Scorpio {
 			final long time2 = System.nanoTime();
 			System.out.println("done: " + CommandLineTools.formatElapsed(time2 - time1));
 
-			System.out.print("calculating hash values ... ");
-			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mappingPDGToPDGNodes = Collections
-					.synchronizedSortedMap(new TreeMap<PDG, SortedMap<PDGNode<?>, Integer>>());
-			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mappingPDGToPDGEdges = Collections
+			System.out.print("normalizing nodes and edges ... ");
+			final SortedMap<PDG, SortedMap<PDGNode<?>, String>> mappingPDGToPDGNodes = Collections
+					.synchronizedSortedMap(new TreeMap<PDG, SortedMap<PDGNode<?>, String>>());
+			final SortedMap<PDG, SortedMap<PDGEdge, String>> mappingPDGToPDGEdges = Collections
 					.synchronizedSortedMap(new TreeMap<>());
 			{
 				HashCalculation.calculate(pdgArray, mappingPDGToPDGNodes,

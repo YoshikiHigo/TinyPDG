@@ -31,8 +31,8 @@ public final class CloneDetection {
 	final private PDGPairInfo[] pdgpairs;
 	final private PDG[] pdgs;
 
-	final private SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mapPDGToPDGNodes;
-	final private SortedMap<PDG, SortedMap<PDGEdge, Integer>> mapPDGToPDGEdges;
+	final private SortedMap<PDG, SortedMap<PDGNode<?>, String>> mapPDGToPDGNodes;
+	final private SortedMap<PDG, SortedMap<PDGEdge, String>> mapPDGToPDGEdges;
 	final private int SIZE_THRESHOLD;
 
 	/** この検出での辺の比較回数。 */
@@ -49,8 +49,8 @@ public final class CloneDetection {
 	 * @return この検出での辺の比較回数
 	 */
 	static long detect(final PDGPairInfo[] pdgpairs, final PDG[] pdgs,
-			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mapPDGToPDGNodes,
-			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mapPDGToPDGEdges,
+			final SortedMap<PDG, SortedMap<PDGNode<?>, String>> mapPDGToPDGNodes,
+			final SortedMap<PDG, SortedMap<PDGEdge, String>> mapPDGToPDGEdges,
 			final SortedSet<ClonePairInfo> clonepairs,
 			final int SIZE_THRESHOLD, final int threads) {
 
@@ -72,8 +72,8 @@ public final class CloneDetection {
 	}
 
 	private CloneDetection(final PDGPairInfo[] pdgpairs, final PDG[] pdgs,
-			final SortedMap<PDG, SortedMap<PDGNode<?>, Integer>> mapPDGToPDGNodes,
-			final SortedMap<PDG, SortedMap<PDGEdge, Integer>> mapPDGToPDGEdges,
+			final SortedMap<PDG, SortedMap<PDGNode<?>, String>> mapPDGToPDGNodes,
+			final SortedMap<PDG, SortedMap<PDGEdge, String>> mapPDGToPDGEdges,
 			final int SIZE_THRESHOLD) {
 		Objects.requireNonNull(pdgpairs, "\"pdgpairs\" is null.");
 		Objects.requireNonNull(pdgs, "\"pdgs\" is null.");
@@ -131,7 +131,7 @@ public final class CloneDetection {
 	 * 探す。
 	 *
 	 * <p>以前は「対の間」と「1 つの中」が別々の 100 行だった。違いは、
-	 * ハッシュを片方から集めるか両方から集めるか、辺の対を順序付きで見るか
+	 * 鍵を片方から集めるか両方から集めるか、辺の対を順序付きで見るか
 	 * 順序なしで見るか、そして対の間では A の辺と B の辺の組み合わせだけを
 	 * 見ること、の 3 点である。
 	 */
@@ -140,18 +140,18 @@ public final class CloneDetection {
 
 		final boolean single = pdgA == pdgB;
 
-		final List<SortedMap<PDGNode<?>, Integer>> nodeHashes = single
+		final List<SortedMap<PDGNode<?>, String>> nodeKeys = single
 				? List.of(this.mapPDGToPDGNodes.get(pdgA))
 				: List.of(this.mapPDGToPDGNodes.get(pdgA),
 						this.mapPDGToPDGNodes.get(pdgB));
-		final List<SortedMap<PDGEdge, Integer>> edgeHashes = single
+		final List<SortedMap<PDGEdge, String>> edgeKeys = single
 				? List.of(this.mapPDGToPDGEdges.get(pdgA))
 				: List.of(this.mapPDGToPDGEdges.get(pdgA),
 						this.mapPDGToPDGEdges.get(pdgB));
 
-		final List<PDGNode<?>[]> nodeGroups = groupByHash(nodeHashes,
+		final List<PDGNode<?>[]> nodeGroups = groupByKey(nodeKeys,
 				PDGNode<?>[]::new);
-		final List<PDGEdge[]> edgeGroups = groupByHash(edgeHashes,
+		final List<PDGEdge[]> edgeGroups = groupByKey(edgeKeys,
 				PDGEdge[]::new);
 		final SortedMap<PDGNode<?>, PDGNode<?>[]> mappingPDGNodeToPDGNodes = indexByMember(
 				nodeGroups);
@@ -208,28 +208,31 @@ public final class CloneDetection {
 	}
 
 	/**
-	 * 要素をハッシュ値でまとめ、2 個以上あるまとまりだけを返す。1 個しか
-	 * ない要素には相手がいないので、クローンの種にならない。
+	 * 要素を鍵 (正規化テキスト) でまとめ、2 個以上あるまとまりだけを返す。
+	 * 1 個しかない要素には相手がいないので、クローンの種にならない。
 	 *
 	 * <p>まとまりは配列 1 個で表す。Slicing は 2 つのノードが同値かどうかを
 	 * この配列が同じものかで判定するので、同じまとまりの要素は同じ配列を
 	 * 指していなければならない。
+	 *
+	 * <p>以前は鍵がテキストの String.hashCode() で、衝突した別のテキスト同士
+	 * が 1 つのまとまりになっていた (issue #24)。
 	 */
-	private static <T extends Comparable<? super T>> List<T[]> groupByHash(
-			final List<SortedMap<T, Integer>> elementToHashMaps,
+	private static <T extends Comparable<? super T>> List<T[]> groupByKey(
+			final List<SortedMap<T, String>> elementToKeyMaps,
 			final IntFunction<T[]> newArray) {
 
-		final SortedMap<Integer, List<T>> hashToElements = new TreeMap<>();
-		for (final SortedMap<T, Integer> elementToHash : elementToHashMaps) {
-			for (final Entry<T, Integer> entry : elementToHash.entrySet()) {
-				hashToElements
-						.computeIfAbsent(entry.getValue(), h -> new ArrayList<>())
+		final SortedMap<String, List<T>> keyToElements = new TreeMap<>();
+		for (final SortedMap<T, String> elementToKey : elementToKeyMaps) {
+			for (final Entry<T, String> entry : elementToKey.entrySet()) {
+				keyToElements
+						.computeIfAbsent(entry.getValue(), k -> new ArrayList<>())
 						.add(entry.getKey());
 			}
 		}
 
 		final List<T[]> groups = new ArrayList<>();
-		for (final List<T> elements : hashToElements.values()) {
+		for (final List<T> elements : keyToElements.values()) {
 			if (1 < elements.size()) {
 				groups.add(elements.toArray(newArray.apply(0)));
 			}
