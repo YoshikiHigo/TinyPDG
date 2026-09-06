@@ -12,4 +12,16 @@ public class Lang25Continue {
 		}
 		return sum;
 	}
+
+	int doContinue(int n) {
+		int sum = 0;
+		do {
+			n--;
+			if (n % 2 == 0) {
+				continue;
+			}
+			sum = sum + n;
+		} while (n > 0);
+		return sum;
+	}
 }

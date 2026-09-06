@@ -1,5 +1,58 @@
 # sample: lang25_continue
 
+## CFG doContinue <16...26>
+nodes:
+  0: [enter,normal] int sum = 0; <17>
+  1: [normal] n--; <19>
+  2: [control] n % 2 == 0 <20>
+  3: [normal] sum = sum + n; <23>
+  4: [control] n > 0 <24>
+  5: [exit,normal] return sum; <25>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 3 [false]
+  2 -> 4 [jump]
+  3 -> 4 []
+  4 -> 1 [true]
+  4 -> 5 [false]
+
+## PDG doContinue <16...26>
+nodes:
+  0: [parameter] int n <16>
+  1: [normal] int sum = 0; <17>
+  2: [normal] n--; <19>
+  3: [control] n % 2 == 0 <20>
+  4: [normal] sum = sum + n; <23>
+  5: [control] n > 0 <24>
+  6: [exit] return sum; <25>
+  7: [enter,control] Enter <16...26>
+edges:
+  0 -> 2 [data: n]
+  1 -> 2 [execution: ]
+  1 -> 4 [data: sum]
+  1 -> 6 [data: sum]
+  2 -> 2 [data: n]
+  2 -> 3 [data: n]
+  2 -> 3 [execution: ]
+  2 -> 4 [data: n]
+  2 -> 5 [data: n]
+  3 -> 4 [execution: ]
+  3 -> 5 [execution: ]
+  4 -> 4 [data: sum]
+  4 -> 5 [execution: ]
+  4 -> 6 [data: sum]
+  5 -> 2 [control: true]
+  5 -> 2 [execution: ]
+  5 -> 3 [control: true]
+  5 -> 4 [control: true]
+  5 -> 6 [execution: ]
+  7 -> 0 [control: true]
+  7 -> 1 [control: true]
+  7 -> 1 [execution: ]
+  7 -> 5 [control: true]
+  7 -> 6 [control: true]
+
 ## CFG forContinue <5...14>
 nodes:
   0: [enter,normal] int sum = 0; <6>

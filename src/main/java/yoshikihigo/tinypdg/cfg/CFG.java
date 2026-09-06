@@ -273,7 +273,9 @@ public class CFG {
 		connect(conditionNode, sequentialCFGs.enterNode, true);
 
 		this.connectCFGBreakStatementNode(statement);
-		this.connectCFGContinueStatementNode(statement, this.enterNode);
+		// do-while の continue は条件の評価へ飛ぶ。以前は本体の先頭へ戻して
+		// いて、条件を通らずにもう一周することになっていた。
+		this.connectCFGContinueStatementNode(statement, conditionNode);
 	}
 
 	private void buildForBlockCFG(final ForStatementInfo statement) {
