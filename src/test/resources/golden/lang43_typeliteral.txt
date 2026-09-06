@@ -1,0 +1,71 @@
+# sample: lang43_typeliteral
+
+## CFG describe <18...20>
+nodes:
+  0: [enter,exit,normal] return c.getName(); <19>
+edges:
+
+## PDG describe <18...20>
+nodes:
+  0: [parameter] final Class<?> c <18>
+  1: [exit] return c.getName(); <19>
+  2: [enter,control] Enter <18...20>
+edges:
+  0 -> 1 [data: c]
+  2 -> 0 [control: true]
+  2 -> 1 [control: true]
+  2 -> 1 [execution: ]
+
+## CFG literal <5...12>
+nodes:
+  0: [enter,normal] final Class<?> c = String.class; <6>
+  1: [normal] int r = 0; <7>
+  2: [control] c.isInstance(o) <8>
+  3: [normal] r = 1; <9>
+  4: [exit,normal] return r; <11>
+edges:
+  0 -> 1 []
+  1 -> 2 []
+  2 -> 3 [true]
+  2 -> 4 [false]
+  3 -> 4 []
+
+## PDG literal <5...12>
+nodes:
+  0: [parameter] final Object o <5>
+  1: [normal] final Class<?> c = String.class; <6>
+  2: [normal] int r = 0; <7>
+  3: [control] c.isInstance(o) <8>
+  4: [normal] r = 1; <9>
+  5: [exit] return r; <11>
+  6: [enter,control] Enter <5...12>
+edges:
+  0 -> 3 [data: o]
+  1 -> 2 [execution: ]
+  1 -> 3 [data: c]
+  2 -> 3 [execution: ]
+  2 -> 5 [data: r]
+  3 -> 4 [control: true]
+  3 -> 4 [execution: ]
+  3 -> 5 [execution: ]
+  4 -> 5 [data: r]
+  4 -> 5 [execution: ]
+  6 -> 0 [control: true]
+  6 -> 1 [control: true]
+  6 -> 1 [execution: ]
+  6 -> 2 [control: true]
+  6 -> 3 [control: true]
+  6 -> 5 [control: true]
+
+## CFG name <14...16>
+nodes:
+  0: [enter,exit,normal] return describe(int[].class); <15>
+edges:
+
+## PDG name <14...16>
+nodes:
+  0: [exit] return describe(int[].class); <15>
+  1: [enter,control] Enter <14...16>
+edges:
+  1 -> 0 [control: true]
+  1 -> 0 [execution: ]

@@ -645,6 +645,8 @@ abstract class ExpressionVisitor extends ProgramElementVisitor {
 		final int endLine = this.getEndLineNumber(node);
 		final ProgramElementInfo expression = new ExpressionInfo(
 				ExpressionInfo.CATEGORY.TypeLiteral, startLine, endLine);
+		// 以前はテキストを入れ忘れていて、String.class が空文字列になっていた。
+		expression.setText(flatten(node));
 		this.stack.push(expression);
 
 		return false;
